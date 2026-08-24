@@ -1,0 +1,31 @@
+# Requires the AWS Load Balancer Controller installed in the cluster:
+# https://docs.aws.amazon.com/eks/latest/userguide/aws-load-balancer-controller.html
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: video2text-ingress
+  namespace: video2text
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+spec:
+  rules:
+    - host: __APP_DOMAIN__
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

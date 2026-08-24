@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: video2text
+data:
+  APP_NAME: "video2Text API"
+  DEBUG: "false"
+  # Replace with the deployed frontend origin (e.g. https://video2text.com)
+  ALLOWED_ORIGINS: '["__FRONTEND_ORIGIN__"]'
