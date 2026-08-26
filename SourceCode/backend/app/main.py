@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 
-app = FastAPI(title=settings.app_name, version=settings.app_version)
+app = FastAPI(title=settings.app_name, version=settings.app_version, debug=settings.debug)
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,4 +16,4 @@ app.add_middleware(
 
 @app.get("/health")
 async def health() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok", "app": settings.app_name, "version": settings.app_version}

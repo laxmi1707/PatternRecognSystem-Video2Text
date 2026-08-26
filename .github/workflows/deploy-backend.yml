@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "backend/**"
+      - "SourceCode/backend/**"
       - ".github/workflows/deploy-backend.yml"
   workflow_dispatch: {}
 
@@ -34,7 +34,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push image
-        working-directory: backend
+        working-directory: SourceCode/backend
         env:
           REGISTRY: ${{ steps.ecr-login.outputs.registry }}
           REPOSITORY: ${{ vars.ECR_REPOSITORY }}
