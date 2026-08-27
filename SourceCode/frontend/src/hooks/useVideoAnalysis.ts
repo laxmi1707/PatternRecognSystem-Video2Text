@@ -9,26 +9,38 @@ export function useVideoAnalysis(analysisSeconds = 3) {
   const [progress, setProgress] = useState(0);
   const [current, setCurrent] = useState<AnalysisResult | null>(null);
   const [history, setHistory] = useState<AnalysisResult[]>(() => getMockHistory());
+  const [error, setError] = useState<string | null>(null);
   const handleRef = useRef<AnalyzeHandle | null>(null);
 
   const startAnalysis = useCallback((file: File) => {
     handleRef.current?.cancel();
     setFileName(file.name);
     setProgress(0);
+    setError(null);
     setScreen('analyzing');
     const url = URL.createObjectURL(file);
     setVideoUrl(url);
-    handleRef.current = analyzeVideo(file, analysisSeconds, setProgress, (result) => {
-      setCurrent(result);
-      setHistory(h => [result, ...h]);
-      setScreen('results');
-    });
+    handleRef.current = analyzeVideo(
+      file,
+      analysisSeconds,
+      setProgress,
+      (result) => {
+        setCurrent(result);
+        setHistory(h => [result, ...h]);
+        setScreen('results');
+      },
+      (message) => {
+        setError(message);
+        setScreen('upload');
+      }
+    );
   }, [analysisSeconds]);
 
   const goUpload = useCallback(() => {
     handleRef.current?.cancel();
     setScreen('upload');
     setProgress(0);
+    setError(null);
   }, []);
 
   const goHistory = useCallback(() => setScreen('history'), []);
@@ -38,5 +50,5 @@ export function useVideoAnalysis(analysisSeconds = 3) {
     setScreen('results');
   }, []);
 
-  return { screen, fileName, videoUrl, progress, current, history, startAnalysis, goUpload, goHistory, viewHistory };
+  return { screen, fileName, videoUrl, progress, current, history, error, startAnalysis, goUpload, goHistory, viewHistory };
 }

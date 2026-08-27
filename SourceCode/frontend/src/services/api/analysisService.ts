@@ -1,5 +1,7 @@
 import type { AnalysisResult, WorkflowStep } from '../../types/analysis';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export const SCREEN_RECORDING_STEPS: WorkflowStep[] = [
   { n: 1, time: '0:00-0:07', title: 'Opened the code editor', description: 'The project folder loads in the editor with the file tree visible in the sidebar.' },
   { n: 2, time: '0:07-0:16', title: 'Opened the integrated terminal', description: 'A terminal panel opens at the bottom of the editor window.' },
@@ -53,7 +55,15 @@ export interface AnalyzeHandle {
   cancel: () => void;
 }
 
-export function analyzeVideo(
+/** Wire shape the backend speaks (see SourceCode/backend/app/schemas/analysis.py). */
+interface AnalysisStatusResponse {
+  status: 'processing' | 'complete' | 'failed';
+  progress: number;
+  result: AnalysisResult | null;
+  error: string | null;
+}
+
+function simulateAnalysis(
   file: File,
   durationSeconds: number,
   onProgress: (pct: number) => void,
@@ -84,4 +94,88 @@ export function analyzeVideo(
     }
   }, tickMs);
   return { cancel: () => clearInterval(timer) };
+}
+
+function toMessage(err: unknown): string {
+  if (err instanceof Error) return err.name === 'AbortError' ? 'Cancelled' : err.message;
+  return 'Analysis failed';
+}
+
+function runRealAnalysis(
+  file: File,
+  onProgress: (pct: number) => void,
+  onComplete: (result: AnalysisResult) => void,
+  onError: (message: string) => void
+): AnalyzeHandle {
+  const controller = new AbortController();
+  let pollTimer: ReturnType<typeof setInterval> | undefined;
+  let cancelled = false;
+
+  const fail = (message: string) => {
+    if (cancelled) return;
+    if (pollTimer) clearInterval(pollTimer);
+    onError(message);
+  };
+
+  (async () => {
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const uploadRes = await fetch(`${API_BASE_URL}/api/v1/analyses`, {
+        method: 'POST',
+        body: form,
+        signal: controller.signal,
+      });
+      if (!uploadRes.ok) {
+        fail(`Upload failed (HTTP ${uploadRes.status})`);
+        return;
+      }
+      const { id } = (await uploadRes.json()) as { id: string };
+
+      pollTimer = setInterval(async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/v1/analyses/${id}`, {
+            signal: controller.signal,
+          });
+          if (!res.ok) {
+            fail(`Status check failed (HTTP ${res.status})`);
+            return;
+          }
+          const data = (await res.json()) as AnalysisStatusResponse;
+          onProgress(data.progress);
+          if (data.status === 'complete' && data.result) {
+            if (pollTimer) clearInterval(pollTimer);
+            if (!cancelled) onComplete(data.result);
+          } else if (data.status === 'failed') {
+            fail(data.error ?? 'Analysis failed');
+          }
+        } catch (err) {
+          if (!cancelled) fail(toMessage(err));
+        }
+      }, 1000);
+    } catch (err) {
+      if (!cancelled) fail(toMessage(err));
+    }
+  })();
+
+  return {
+    cancel: () => {
+      cancelled = true;
+      controller.abort();
+      if (pollTimer) clearInterval(pollTimer);
+    },
+  };
+}
+
+export function analyzeVideo(
+  file: File,
+  durationSeconds: number,
+  onProgress: (pct: number) => void,
+  onComplete: (result: AnalysisResult) => void,
+  onError?: (message: string) => void
+): AnalyzeHandle {
+  if (API_BASE_URL) {
+    return runRealAnalysis(file, onProgress, onComplete, onError ?? (() => {}));
+  }
+  return simulateAnalysis(file, durationSeconds, onProgress, onComplete);
 }

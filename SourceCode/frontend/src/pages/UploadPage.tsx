@@ -2,9 +2,10 @@ import { VideoDropzone } from '../components/video/VideoDropzone';
 
 interface UploadPageProps {
   onFileSelected: (file: File) => void;
+  error?: string | null;
 }
 
-export function UploadPage({ onFileSelected }: UploadPageProps) {
+export function UploadPage({ onFileSelected, error }: UploadPageProps) {
   return (
     <div className="page page-narrow">
       <h6 style={{ color: 'var(--color-accent-700)' }}>New analysis</h6>
@@ -13,6 +14,7 @@ export function UploadPage({ onFileSelected }: UploadPageProps) {
         Runbook watches the recording and writes out what happened as a plain-language workflow -
         the tools opened, the commands run, the actions taken.
       </p>
+      {error && <p className="dropzone-error" role="alert" style={{ marginTop: 'var(--space-4)' }}>{error}</p>}
       <VideoDropzone onFileSelected={onFileSelected} />
     </div>
   );
