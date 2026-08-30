@@ -79,14 +79,79 @@ Target Classes (10): git_operations, docker_workflow, kubernetes_ops, terraform_
 
 ECS Fargate + SageMaker (not EKS). See Architecture/README.md for full rationale.
 
-## Branch Strategy
+---
+
+## Git Branching Strategy
+
+### Branch Flow
+
+    Joshua:  feat/frontend-dashboard --+
+                                       |
+    Muneeswaran: feat/pattern-recognition --+---> develop ---> release/* ---> main
+                                       |      (dev env)    (uat env)     (prd env)
+    Stalin:  feat/preprocessing -------+
+                                       |
+    Lakshmi: feat/infra-data ----------+
+
+### Branch Purposes
 
 | Branch | Purpose | Deploys To | Approvers |
 |--------|---------|------------|-----------|
-| main | Production-ready | stg, prd | 2 required |
-| develop | Integration | dev | 1 required |
-| feat/* | Feature work | local | None |
-| release/* | Release candidates | uat | 2 required |
+| feat/* | Individual feature work. Each member works here daily. | Local only | None |
+| develop | Integration branch. All members merge here to test together. | dev environment | 1 approver |
+| release/* | Release candidate. Frozen for UAT testing before presentations. | uat environment | 2 approvers |
+| main | Production-ready. Only verified, tested code lives here. | stg, prd environments | 2 approvers |
+
+### Why We Use a develop Branch
+
+Without develop:
+
+    feat/* --> main (RISKY: untested integration, could break production)
+
+With develop:
+
+    feat/* --> develop (test together, catch conflicts) --> main (safe, verified)
+
+### How Each Member Works
+
+    # 1. Start new work
+    git checkout develop
+    git pull origin develop
+    git checkout -b feat/my-feature
+
+    # 2. Work on your feature
+    git add .
+    git commit -m "feat(ml): add SVM classifier"
+    git push origin feat/my-feature
+
+    # 3. Create Pull Request to develop (on GitHub)
+    #    1 team member reviews and approves
+    #    Merge to develop -> auto-deploys to dev
+
+    # 4. For release (before presentations)
+    #    PR from develop to release/v0.2.0
+    #    Auto-deploys to uat, team tests
+
+    # 5. Promote to production
+    #    PR from release/* to main
+    #    2 approvers required
+    #    Auto-deploys to stg, manual promote to prd
+
+### Commit Message Convention
+
+    feat(ml): add SVM classifier with probability support
+    feat(api): add video upload endpoint
+    feat(frontend): add video dropzone component
+    fix(ml): correct confusion matrix label ordering
+    test(ml): add cross-validation tests for Tier 1
+    docs: update architecture README
+    chore: update pyproject.toml dependencies
+
+    Format: type(scope): description
+    Types: feat, fix, test, docs, chore, refactor, ci
+    Scopes: ml, api, frontend, infra, db
+
+---
 
 ## Documentation
 
