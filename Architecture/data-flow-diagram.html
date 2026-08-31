@@ -299,13 +299,13 @@
                 <span class="flow-arrow">→</span>
                 <div class="data-box data-box-process">
                     <div class="data-box-label">Process</div>
-                    <div class="data-box-content">FFmpeg: extract audio track (WAV)<br>OpenCV: extract frames @ 1-2 FPS<br>Scene detection: keyframe boundaries<br>Segment into temporal windows</div>
+                    <div class="data-box-content">OpenCV: extract frames @ 1-2 FPS<br>Scene detection: keyframe boundaries<br>Cursor position tracking per frame<br>Segment into temporal windows</div>
                     <div class="data-box-tech">Lambda + OpenCV + FFmpeg + scenedetect</div>
                 </div>
                 <span class="flow-arrow">→</span>
                 <div class="data-box data-box-output">
                     <div class="data-box-label">Output</div>
-                    <div class="data-box-content">s3://videos/{job_id}/frames/*.jpg<br>s3://videos/{job_id}/audio.wav<br>scenes.json (timestamps + boundaries)</div>
+                    <div class="data-box-content">s3://videos/{job_id}/frames/*.jpg<br>s3://videos/{job_id}/cursor_events.json<br>scenes.json (timestamps + boundaries)</div>
                 </div>
             </div>
         </div>
@@ -316,17 +316,17 @@
         <div class="stage stage-3">
             <div class="stage-header">
                 <div class="stage-num">3</div>
-                <div><div class="stage-title">Parallel Feature Extraction</div><div class="stage-desc">4 parallel pipelines extract multimodal features</div></div>
+                <div><div class="stage-title">Parallel Feature Extraction</div><div class="stage-desc">4 parallel pipelines extract visual & interaction features</div></div>
             </div>
             <div class="parallel-container">
                 <div class="parallel-label">Parallel Execution (Step Functions)</div>
                 <div class="parallel-branches">
                     <div class="branch">
-                        <div class="branch-icon">🗣️</div>
-                        <div class="branch-name">Speech Pipeline</div>
-                        <div class="branch-in">audio.wav</div>
-                        <div class="branch-out">Timestamped transcript + speaker IDs + confidence scores</div>
-                        <div class="branch-tech">AWS Transcribe / Whisper + pyannote.audio</div>
+                        <div class="branch-icon">🖱️</div>
+                        <div class="branch-name">Cursor & Click Pipeline</div>
+                        <div class="branch-in">frames/*.jpg (sequential)</div>
+                        <div class="branch-out">Click events + cursor trajectory + selection regions + timestamps</div>
+                        <div class="branch-tech">OpenCV template matching + motion analysis</div>
                     </div>
                     <div class="branch">
                         <div class="branch-icon">🔤</div>
@@ -343,11 +343,11 @@
                         <div class="branch-tech">YOLOv11 + OpenCV template matching</div>
                     </div>
                     <div class="branch">
-                        <div class="branch-icon">🎵</div>
-                        <div class="branch-name">Audio Feature Pipeline</div>
-                        <div class="branch-in">audio.wav</div>
-                        <div class="branch-out">MFCC vectors + spectrograms + VAD segments + silence detection</div>
-                        <div class="branch-tech">librosa + pyannote.audio</div>
+                        <div class="branch-icon">🪟</div>
+                        <div class="branch-name">Window State Pipeline</div>
+                        <div class="branch-in">frames/*.jpg (keyframes)</div>
+                        <div class="branch-out">Active app labels + window transitions + tab changes + focus events</div>
+                        <div class="branch-tech">OpenCV + template matching + histogram comparison</div>
                     </div>
                 </div>
             </div>
@@ -364,7 +364,7 @@
             <div class="data-flow" style="margin-bottom: 12px;">
                 <div class="data-box data-box-input">
                     <div class="data-box-label">Fused Input</div>
-                    <div class="data-box-content">Per-segment feature vector:<br>• Speech transcript tokens<br>• OCR text content<br>• UI element labels<br>• Audio MFCC features<br>• Scene classification</div>
+                    <div class="data-box-content">Per-segment feature vector:<br>• OCR text content<br>• UI element labels<br>• Cursor & click events<br>• Window state transitions<br>• Scene classification</div>
                 </div>
                 <span class="flow-arrow">→</span>
                 <div class="data-box data-box-process">
@@ -430,7 +430,7 @@
             <div class="data-flow">
                 <div class="data-box data-box-input">
                     <div class="data-box-label">Input</div>
-                    <div class="data-box-content">Classified workflow steps (ordered)<br>Transcript + OCR text<br>Timestamps + confidence<br>UI context annotations</div>
+                    <div class="data-box-content">Classified workflow steps (ordered)<br>OCR text + UI labels<br>Timestamps + confidence<br>Cursor events + window context</div>
                 </div>
                 <span class="flow-arrow">→</span>
                 <div class="data-box data-box-process">
@@ -457,7 +457,7 @@
             <div class="data-flow">
                 <div class="data-box data-box-input">
                     <div class="data-box-label">Input</div>
-                    <div class="data-box-content">Generated documents<br>Classified workflow data<br>Transcript + OCR text<br>Feature vectors</div>
+                    <div class="data-box-content">Generated documents<br>Classified workflow data<br>OCR text + interaction events<br>Feature vectors</div>
                 </div>
                 <span class="flow-arrow">→</span>
                 <div class="data-box data-box-process">
@@ -508,7 +508,7 @@
                     <div class="store-icon">🪣</div>
                     <div class="store-name">S3</div>
                     <div class="store-aws">Raw + Processed Storage</div>
-                    <div class="store-data">Videos, frames, audio, SOPs, artifacts</div>
+                    <div class="store-data">Videos, frames, SOPs, artifacts</div>
                     <div class="store-writes">WRITE: Stages 1, 2, 5</div>
                     <div class="store-reads">READ: Stages 2, 3, 7</div>
                 </div>

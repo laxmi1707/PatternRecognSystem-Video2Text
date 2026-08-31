@@ -22,7 +22,7 @@ Open in a browser to view:
     |  API Gateway -> ECS Fargate (FastAPI) -> Cognito -> SQS   |
     +-----------------------------------------------------------+
     |  L3: Preprocessing & Feature Extraction (Stalin)          |
-    |  Lambda -> Transcribe/Whisper -> Textract/OCR -> YOLO     |
+    |  Lambda -> Textract/OCR -> YOLO -> Cursor/Click -> Window |
     +-----------------------------------------------------------+
     |  L4: Multi-Tier Classifier (Muneeswaran)                  |
     |  SageMaker -> Tier1 (ML) -> Tier2 (DL) -> Tier3 (Ensemble)|
@@ -51,7 +51,7 @@ Decision: ECS Fargate lets the team focus on pattern recognition (core deliverab
 
 ---
 
-## AWS Services (24 Components)
+## AWS Services (23 Components)
 
 ### Compute and Networking
 
@@ -71,7 +71,6 @@ Decision: ECS Fargate lets the team focus on pattern recognition (core deliverab
 | SageMaker Training | Model training jobs (GPU support) |
 | SageMaker Endpoints | Real-time inference (multi-tier classifier) |
 | SageMaker Model Monitor | Model drift detection |
-| AWS Transcribe | Speech-to-text (ASR) |
 | AWS Textract | OCR for screen text extraction |
 | AWS Rekognition | Image analysis, UI element detection |
 | AWS Bedrock (Claude) | LLM for SOP generation + RAG |
@@ -130,9 +129,9 @@ Decision: ECS Fargate lets the team focus on pattern recognition (core deliverab
         |    Step Functions (orchestrate pipeline)
         |       |
         |       +---> Lambda: Frame extraction (OpenCV + FFmpeg)
-        |       +---> AWS Transcribe: Speech -> text
         |       +---> AWS Textract: Screen -> OCR text
-        |       +---> Lambda: Audio features (librosa)
+        |       +---> Lambda: Cursor & click detection (OpenCV)
+        |       +---> Lambda: Window state detection (OpenCV)
         |               |
         |               v (all features collected)
         |

@@ -420,10 +420,10 @@
                     <div class="service-detail">Frame extraction @ 1-2 FPS</div>
                 </div>
                 <div class="service">
-                    <div class="service-icon">🗣️</div>
-                    <div class="service-name">Speech-to-Text</div>
-                    <div class="service-aws">AWS Transcribe / Whisper</div>
-                    <div class="service-detail">Timestamped transcript + diarization</div>
+                    <div class="service-icon">🖱️</div>
+                    <div class="service-name">Cursor & Click Detection</div>
+                    <div class="service-aws">Lambda + OpenCV</div>
+                    <div class="service-detail">Mouse tracking, click events, selections</div>
                 </div>
                 <div class="service">
                     <div class="service-icon">🔤</div>
@@ -438,10 +438,10 @@
                     <div class="service-detail">Keyframe detection + scene segmentation</div>
                 </div>
                 <div class="service">
-                    <div class="service-icon">🎵</div>
-                    <div class="service-name">Audio Features</div>
-                    <div class="service-aws">Lambda + librosa</div>
-                    <div class="service-detail">MFCC, spectrograms, VAD</div>
+                    <div class="service-icon">🪟</div>
+                    <div class="service-name">Window State Detection</div>
+                    <div class="service-aws">Lambda + OpenCV</div>
+                    <div class="service-detail">App focus, tab changes, window transitions</div>
                 </div>
                 <div class="service">
                     <div class="service-icon">🏷️</div>
@@ -648,10 +648,10 @@
                 <div class="team-role" style="color: #f0883e;">Preprocessing + Feature Extraction</div>
                 <ul class="team-tasks">
                     <li>Video ingestion + frame extraction</li>
-                    <li>Speech-to-text (Whisper/Transcribe)</li>
+                    <li>Cursor & click detection (OpenCV)</li>
                     <li>OCR pipeline (EasyOCR/Textract)</li>
                     <li>UI element detection (YOLOv11)</li>
-                    <li>Audio feature extraction (librosa)</li>
+                    <li>Window state detection (OpenCV)</li>
                     <li>Scene segmentation (OpenCV)</li>
                 </ul>
             </div>
@@ -672,7 +672,7 @@
 
     <!-- AWS Components -->
     <div class="aws-section">
-        <div class="flow-title">AWS Components Summary (24 Services)</div>
+        <div class="flow-title">AWS Components Summary (23 Services)</div>
         <div class="aws-grid">
             <div class="aws-item"><span class="aws-item-icon">🌐</span><div><div class="aws-item-name">CloudFront</div><div class="aws-item-purpose">CDN for frontend SPA</div></div></div>
             <div class="aws-item"><span class="aws-item-icon">🔒</span><div><div class="aws-item-name">Route 53</div><div class="aws-item-purpose">DNS management</div></div></div>
@@ -689,7 +689,6 @@
             <div class="aws-item"><span class="aws-item-icon">⚡</span><div><div class="aws-item-name">ElastiCache (Redis)</div><div class="aws-item-purpose">Session + query caching</div></div></div>
             <div class="aws-item"><span class="aws-item-icon">📄</span><div><div class="aws-item-name">DynamoDB</div><div class="aws-item-purpose">Generated docs + SOP metadata</div></div></div>
             <div class="aws-item"><span class="aws-item-icon">🧠</span><div><div class="aws-item-name">SageMaker</div><div class="aws-item-purpose">Model training + inference endpoints</div></div></div>
-            <div class="aws-item"><span class="aws-item-icon">🗣️</span><div><div class="aws-item-name">Transcribe</div><div class="aws-item-purpose">Speech-to-text (ASR)</div></div></div>
             <div class="aws-item"><span class="aws-item-icon">🔤</span><div><div class="aws-item-name">Textract</div><div class="aws-item-purpose">OCR for screen text extraction</div></div></div>
             <div class="aws-item"><span class="aws-item-icon">👁️</span><div><div class="aws-item-name">Rekognition</div><div class="aws-item-purpose">Image analysis + label detection</div></div></div>
             <div class="aws-item"><span class="aws-item-icon">🤖</span><div><div class="aws-item-name">Bedrock</div><div class="aws-item-purpose">LLM for SOP generation + RAG</div></div></div>
@@ -711,11 +710,11 @@
             </div>
             <div class="flow-step">
                 <div class="flow-step-num">2. PREPROCESS</div>
-                <div class="flow-step-text">Lambda extracts frames + audio tracks → scene segmentation → keyframe detection</div>
+                <div class="flow-step-text">Lambda extracts frames → scene segmentation → keyframe detection → cursor tracking</div>
             </div>
             <div class="flow-step">
                 <div class="flow-step-num">3. FEATURE EXTRACTION</div>
-                <div class="flow-step-text">Parallel: Speech→text (Transcribe) | OCR→text (Textract) | UI detection (YOLO) | Audio features (librosa)</div>
+                <div class="flow-step-text">Parallel: OCR→text (Textract) | UI detection (YOLO) | Cursor/click detection | Window state tracking</div>
             </div>
             <div class="flow-step">
                 <div class="flow-step-num">4. TIER-1 CLASSIFY</div>
