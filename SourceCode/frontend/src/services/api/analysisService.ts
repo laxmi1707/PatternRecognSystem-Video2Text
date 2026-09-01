@@ -56,10 +56,9 @@ export interface AnalyzeHandle {
 }
 
 /** Wire shape the backend speaks (see SourceCode/backend/app/schemas/analysis.py). */
-interface AnalysisStatusResponse {
+interface JobStatusResponse {
   status: 'processing' | 'complete' | 'failed';
   progress: number;
-  result: AnalysisResult | null;
   error: string | null;
 }
 
@@ -128,7 +127,7 @@ function runRealAnalysis(
     try {
       const form = new FormData();
       form.append('file', file);
-      const uploadRes = await fetch(`${API_BASE_URL}/api/v1/analyses`, {
+      const uploadRes = await fetch(`${API_BASE_URL}/api/v1/videos/upload`, {
         method: 'POST',
         body: form,
         signal: controller.signal,
@@ -143,18 +142,26 @@ function runRealAnalysis(
 
       pollTimer = setInterval(async () => {
         try {
-          const res = await fetch(`${API_BASE_URL}/api/v1/analyses/${id}`, {
+          const res = await fetch(`${API_BASE_URL}/api/v1/jobs/${id}`, {
             signal: controller.signal,
           });
           if (!res.ok) {
             fail(`Status check failed (HTTP ${res.status})`);
             return;
           }
-          const data = (await res.json()) as AnalysisStatusResponse;
+          const data = (await res.json()) as JobStatusResponse;
           onProgress(data.progress);
-          if (data.status === 'complete' && data.result) {
+          if (data.status === 'complete') {
             if (pollTimer) clearInterval(pollTimer);
-            if (!cancelled) onComplete(data.result);
+            const resultsRes = await fetch(`${API_BASE_URL}/api/v1/jobs/${id}/results`, {
+              signal: controller.signal,
+            });
+            if (!resultsRes.ok) {
+              fail(`Fetching results failed (HTTP ${resultsRes.status})`);
+              return;
+            }
+            const result = (await resultsRes.json()) as AnalysisResult;
+            if (!cancelled) onComplete(result);
           } else if (data.status === 'failed') {
             fail(data.error ?? 'Analysis failed');
           }

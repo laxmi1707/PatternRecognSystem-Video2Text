@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import analyses
+from app.routers import jobs, videos
 
 app = FastAPI(title=settings.app_name, version=settings.app_version, debug=settings.debug)
 
@@ -14,7 +14,8 @@ app.add_middleware(
     allow_headers=settings.allowed_headers,
 )
 
-app.include_router(analyses.router)
+app.include_router(videos.router)
+app.include_router(jobs.router)
 
 
 @app.get("/health")

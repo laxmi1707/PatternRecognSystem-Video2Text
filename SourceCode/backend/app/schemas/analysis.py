@@ -30,12 +30,11 @@ class AnalysisResult(CamelModel):
     steps: list[WorkflowStep]
 
 
-class AnalysisCreateResponse(BaseModel):
+class VideoUploadResponse(BaseModel):
     id: str
 
 
-class AnalysisStatusResponse(CamelModel):
+class JobStatusResponse(CamelModel):
     status: Literal["processing", "complete", "failed"]
     progress: float
-    result: AnalysisResult | None = None
     error: str | None = None

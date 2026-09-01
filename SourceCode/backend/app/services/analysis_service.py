@@ -7,8 +7,9 @@ from app.schemas.analysis import AnalysisResult, WorkflowStep
 
 # Stub: no real video processing yet. Progress is simulated purely from elapsed
 # wall-clock time so the frontend has a real endpoint to poll against. Swap the
-# body of `get_status` for a real pipeline (video_processing/ml/rag) later --
-# the AnalysisStatusResponse contract is what the frontend actually depends on.
+# internals of get_status/get_result for a real pipeline (video_processing/ml/rag)
+# later -- the JobStatusResponse/AnalysisResult contracts are what the frontend
+# actually depends on.
 SIMULATED_DURATION_SECONDS = 3.0
 
 _SAMPLE_STEPS = [
@@ -31,6 +32,14 @@ _SAMPLE_STEPS = [
 ]
 
 
+class JobNotFound(Exception):
+    """No job exists with the given id."""
+
+
+class JobNotReady(Exception):
+    """The job exists but hasn't finished processing yet."""
+
+
 @dataclass
 class _Job:
     id: str
@@ -47,19 +56,26 @@ class AnalysisService:
         self._jobs[job_id] = _Job(id=job_id, filename=filename)
         return job_id
 
-    def get_status(
-        self, job_id: str
-    ) -> tuple[Literal["processing", "complete"], float, AnalysisResult | None] | None:
-        job = self._jobs.get(job_id)
-        if job is None:
-            return None
-
+    def _progress(self, job: _Job) -> tuple[Literal["processing", "complete"], float]:
         elapsed = time.monotonic() - job.started_at
         progress = min(100.0, (elapsed / SIMULATED_DURATION_SECONDS) * 100)
-        if progress < 100:
-            return "processing", progress, None
+        return ("complete", 100.0) if progress >= 100 else ("processing", progress)
 
-        result = AnalysisResult(
+    def get_status(self, job_id: str) -> tuple[Literal["processing", "complete"], float]:
+        job = self._jobs.get(job_id)
+        if job is None:
+            raise JobNotFound(job_id)
+        return self._progress(job)
+
+    def get_result(self, job_id: str) -> AnalysisResult:
+        job = self._jobs.get(job_id)
+        if job is None:
+            raise JobNotFound(job_id)
+        job_status, _ = self._progress(job)
+        if job_status != "complete":
+            raise JobNotReady(job_id)
+
+        return AnalysisResult(
             id=job.id,
             name=job.filename,
             date="Today",
@@ -73,7 +89,6 @@ class AnalysisService:
             ),
             steps=_SAMPLE_STEPS,
         )
-        return "complete", 100.0, result
 
 
 analysis_service = AnalysisService()
