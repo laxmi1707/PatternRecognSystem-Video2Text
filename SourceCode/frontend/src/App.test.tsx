@@ -39,4 +39,21 @@ describe('App', () => {
     fireEvent.click(screen.getByText('Analyze another video'));
     expect(screen.getByText('Upload a screen recording')).toBeInTheDocument();
   });
+
+  it('cancelling mid-analysis returns to upload and stops progress', () => {
+    render(<App />);
+    const file = new File(['x'], 'session.mp4', { type: 'video/mp4' });
+    const input = screen.getByTestId('file-input') as HTMLInputElement;
+    act(() => {
+      fireEvent.change(input, { target: { files: [file] } });
+    });
+    act(() => { vi.advanceTimersByTime(400); });
+    expect(screen.getByText('Analyzing your recording')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Cancel'));
+    expect(screen.getByText('Upload a screen recording')).toBeInTheDocument();
+
+    act(() => { vi.advanceTimersByTime(3500); });
+    expect(screen.getByText('Upload a screen recording')).toBeInTheDocument();
+  });
 });

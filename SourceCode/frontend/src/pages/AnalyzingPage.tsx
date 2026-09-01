@@ -4,12 +4,14 @@ interface AnalyzingPageProps {
   fileName: string;
   videoUrl: string | null;
   progress: number;
+  phase?: 'uploading' | 'processing';
+  onCancel?: () => void;
 }
 
-export function AnalyzingPage({ fileName, videoUrl, progress }: AnalyzingPageProps) {
+export function AnalyzingPage({ fileName, videoUrl, progress, phase, onCancel }: AnalyzingPageProps) {
   return (
     <div className="page page-center">
-      <AnalyzingProgress fileName={fileName} videoUrl={videoUrl} progress={progress} />
+      <AnalyzingProgress fileName={fileName} videoUrl={videoUrl} progress={progress} phase={phase} onCancel={onCancel} />
     </div>
   );
 }

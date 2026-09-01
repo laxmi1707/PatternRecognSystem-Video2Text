@@ -63,12 +63,16 @@ interface AnalysisStatusResponse {
   error: string | null;
 }
 
+export type AnalysisPhase = 'uploading' | 'processing';
+
 function simulateAnalysis(
   file: File,
   durationSeconds: number,
   onProgress: (pct: number) => void,
-  onComplete: (result: AnalysisResult) => void
+  onComplete: (result: AnalysisResult) => void,
+  onPhaseChange?: (phase: AnalysisPhase) => void
 ): AnalyzeHandle {
+  onPhaseChange?.('processing');
   const videoUrl = URL.createObjectURL(file);
   let progress = 0;
   const tickMs = 180;
@@ -105,7 +109,8 @@ function runRealAnalysis(
   file: File,
   onProgress: (pct: number) => void,
   onComplete: (result: AnalysisResult) => void,
-  onError: (message: string) => void
+  onError: (message: string) => void,
+  onPhaseChange?: (phase: AnalysisPhase) => void
 ): AnalyzeHandle {
   const controller = new AbortController();
   let pollTimer: ReturnType<typeof setInterval> | undefined;
@@ -116,6 +121,8 @@ function runRealAnalysis(
     if (pollTimer) clearInterval(pollTimer);
     onError(message);
   };
+
+  onPhaseChange?.('uploading');
 
   (async () => {
     try {
@@ -131,6 +138,8 @@ function runRealAnalysis(
         return;
       }
       const { id } = (await uploadRes.json()) as { id: string };
+      if (cancelled) return;
+      onPhaseChange?.('processing');
 
       pollTimer = setInterval(async () => {
         try {
@@ -172,10 +181,11 @@ export function analyzeVideo(
   durationSeconds: number,
   onProgress: (pct: number) => void,
   onComplete: (result: AnalysisResult) => void,
-  onError?: (message: string) => void
+  onError?: (message: string) => void,
+  onPhaseChange?: (phase: AnalysisPhase) => void
 ): AnalyzeHandle {
   if (API_BASE_URL) {
-    return runRealAnalysis(file, onProgress, onComplete, onError ?? (() => {}));
+    return runRealAnalysis(file, onProgress, onComplete, onError ?? (() => {}), onPhaseChange);
   }
-  return simulateAnalysis(file, durationSeconds, onProgress, onComplete);
+  return simulateAnalysis(file, durationSeconds, onProgress, onComplete, onPhaseChange);
 }

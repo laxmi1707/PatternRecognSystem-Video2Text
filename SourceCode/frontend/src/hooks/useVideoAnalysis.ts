@@ -1,12 +1,13 @@
 import { useCallback, useRef, useState } from 'react';
 import type { AnalysisResult, Screen } from '../types/analysis';
-import { analyzeVideo, getMockHistory, AnalyzeHandle } from '../services/api/analysisService';
+import { analyzeVideo, getMockHistory, AnalyzeHandle, AnalysisPhase } from '../services/api/analysisService';
 
 export function useVideoAnalysis(analysisSeconds = 3) {
   const [screen, setScreen] = useState<Screen>('upload');
   const [fileName, setFileName] = useState('');
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [phase, setPhase] = useState<AnalysisPhase>('processing');
   const [current, setCurrent] = useState<AnalysisResult | null>(null);
   const [history, setHistory] = useState<AnalysisResult[]>(() => getMockHistory());
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +33,8 @@ export function useVideoAnalysis(analysisSeconds = 3) {
       (message) => {
         setError(message);
         setScreen('upload');
-      }
+      },
+      setPhase
     );
   }, [analysisSeconds]);
 
@@ -50,5 +52,5 @@ export function useVideoAnalysis(analysisSeconds = 3) {
     setScreen('results');
   }, []);
 
-  return { screen, fileName, videoUrl, progress, current, history, error, startAnalysis, goUpload, goHistory, viewHistory };
+  return { screen, fileName, videoUrl, progress, phase, current, history, error, startAnalysis, goUpload, goHistory, viewHistory };
 }
