@@ -6,6 +6,11 @@ from app.services.analysis_service import JobNotFound, JobNotReady, analysis_ser
 router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
 
 
+@router.get("", response_model=list[AnalysisResult])
+async def list_jobs() -> list[AnalysisResult]:
+    return analysis_service.list_results()
+
+
 @router.get("/{job_id}", response_model=JobStatusResponse)
 async def get_job_status(job_id: str) -> JobStatusResponse:
     try:

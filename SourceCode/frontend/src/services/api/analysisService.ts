@@ -1,6 +1,7 @@
 import type { AnalysisResult, WorkflowStep } from '../../types/analysis';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+export const isRealApi = Boolean(API_BASE_URL);
 
 export const SCREEN_RECORDING_STEPS: WorkflowStep[] = [
   { n: 1, time: '0:00-0:07', title: 'Opened the code editor', description: 'The project folder loads in the editor with the file tree visible in the sidebar.' },
@@ -49,6 +50,13 @@ export function getMockHistory(): AnalysisResult[] {
       ],
     },
   ];
+}
+
+/** Fetches the real backend's job list. Only call when `isRealApi` is true. */
+export async function fetchHistory(): Promise<AnalysisResult[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/jobs`);
+  if (!res.ok) throw new Error(`Failed to load history (HTTP ${res.status})`);
+  return (await res.json()) as AnalysisResult[];
 }
 
 export interface AnalyzeHandle {

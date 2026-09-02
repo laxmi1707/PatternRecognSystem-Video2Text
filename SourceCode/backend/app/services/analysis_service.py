@@ -74,7 +74,14 @@ class AnalysisService:
         job_status, _ = self._progress(job)
         if job_status != "complete":
             raise JobNotReady(job_id)
+        return self._to_result(job)
 
+    def list_results(self) -> list[AnalysisResult]:
+        """Completed jobs, most recently started first."""
+        jobs = sorted(self._jobs.values(), key=lambda j: j.started_at, reverse=True)
+        return [self._to_result(job) for job in jobs if self._progress(job)[0] == "complete"]
+
+    def _to_result(self, job: _Job) -> AnalysisResult:
         return AnalysisResult(
             id=job.id,
             name=job.filename,

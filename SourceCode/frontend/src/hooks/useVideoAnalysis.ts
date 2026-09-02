@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AnalysisResult, Screen } from '../types/analysis';
-import { analyzeVideo, getMockHistory, AnalyzeHandle, AnalysisPhase } from '../services/api/analysisService';
+import { analyzeVideo, getMockHistory, fetchHistory, isRealApi, AnalyzeHandle, AnalysisPhase } from '../services/api/analysisService';
 
 export function useVideoAnalysis(analysisSeconds = 3) {
   const [screen, setScreen] = useState<Screen>('upload');
@@ -9,9 +9,18 @@ export function useVideoAnalysis(analysisSeconds = 3) {
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState<AnalysisPhase>('processing');
   const [current, setCurrent] = useState<AnalysisResult | null>(null);
-  const [history, setHistory] = useState<AnalysisResult[]>(() => getMockHistory());
+  const [history, setHistory] = useState<AnalysisResult[]>(() => (isRealApi ? [] : getMockHistory()));
   const [error, setError] = useState<string | null>(null);
   const handleRef = useRef<AnalyzeHandle | null>(null);
+
+  useEffect(() => {
+    if (!isRealApi) return;
+    let cancelled = false;
+    fetchHistory()
+      .then(items => { if (!cancelled) setHistory(items); })
+      .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load history'); });
+    return () => { cancelled = true; };
+  }, []);
 
   const startAnalysis = useCallback((file: File) => {
     handleRef.current?.cancel();

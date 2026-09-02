@@ -39,6 +39,22 @@ async def test_results_not_ready_returns_409(client: AsyncClient):
     assert results_resp.status_code == 409
 
 
+async def test_list_jobs_only_includes_completed(client: AsyncClient):
+    files = {"file": ("clip.mp4", b"fake video bytes", "video/mp4")}
+    upload_resp = await client.post("/api/v1/videos/upload", files=files)
+    job_id = upload_resp.json()["id"]
+
+    list_resp = await client.get("/api/v1/jobs")
+    assert list_resp.status_code == 200
+    assert job_id not in [item["id"] for item in list_resp.json()]
+
+    await asyncio.sleep(0.1)
+
+    list_resp = await client.get("/api/v1/jobs")
+    ids = [item["id"] for item in list_resp.json()]
+    assert job_id in ids
+
+
 async def test_upload_then_poll_then_fetch_results(client: AsyncClient):
     files = {"file": ("clip.mp4", b"fake video bytes", "video/mp4")}
     upload_resp = await client.post("/api/v1/videos/upload", files=files)

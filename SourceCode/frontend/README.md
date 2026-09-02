@@ -59,11 +59,13 @@ Owner: Joshua
 | upload() | POST /api/v1/videos/upload |
 | getStatus() | GET /api/v1/jobs/{id} |
 | getResults() | GET /api/v1/jobs/{id}/results |
+| fetchHistory() | GET /api/v1/jobs |
 
 ## Backend wiring
-- With no `VITE_API_BASE_URL` set, `analysisService.ts` runs entirely on mocked data (simulated progress, fixed workflow steps) — no backend needed.
+- With no `VITE_API_BASE_URL` set, `analysisService.ts` runs entirely on mocked data (simulated progress, fixed workflow steps, 3 canned history entries) — no backend needed.
 - Set `VITE_API_BASE_URL` (e.g. `http://localhost:8000`) to switch to real calls, matching the API Integration table above:
   1. `POST {base}/api/v1/videos/upload` — multipart upload, returns `{ id }`
   2. `GET {base}/api/v1/jobs/{id}` — polled every second, returns `{ status, progress, error }`
   3. Once `status` is `complete`, `GET {base}/api/v1/jobs/{id}/results` is fetched once for the `AnalysisResult` — see `SourceCode/backend/app/schemas/analysis.py` for its exact shape
+  4. On mount, `GET {base}/api/v1/jobs` is fetched once for the History page's list of completed `AnalysisResult`s
 - `useVideoAnalysis`'s `analysisSeconds` argument only affects the mock path's simulated duration.
