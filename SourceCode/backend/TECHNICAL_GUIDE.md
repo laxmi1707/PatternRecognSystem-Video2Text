@@ -17,7 +17,8 @@ Written for team members and lecturers to understand the design decisions and im
 8. ROC Curves
 9. Report Generator
 10. Multi-Tier Classifier Architecture
-11. How Everything Connects
+11. Tier 2 Deep Learning Classifiers
+12. How Everything Connects
 
 ---
 
@@ -490,7 +491,7 @@ Add a new model to the registry -> it automatically appears in the report.
 | Tier | Type | Purpose | Algorithms |
 |------|------|---------|------------|
 | Tier 1 | Classical ML | Fast baseline, interpretable | SVM, Naive Bayes, Decision Tree, Random Forest, KNN, XGBoost, LightGBM |
-| Tier 2 | Deep Learning | Capture complex patterns | CNN, LSTM, Transformer, ViT, MLP |
+| Tier 2 | Deep Learning | Capture complex patterns | MLP, CNN1D, LSTM, Transformer |
 | Tier 3 | Ensemble + Fusion | Maximize accuracy | Voting, Stacking, Multimodal Late Fusion |
 
 ### Why Three Tiers?
@@ -506,20 +507,288 @@ Add a new model to the registry -> it automatically appears in the report.
 | Supervised learning | All classifiers use labeled data |
 | ML + Deep Learning | Tier 1 (classical ML) + Tier 2 (deep learning) |
 | Hybrid / Ensemble | Tier 3 combines Tier 1 and Tier 2 predictions |
-| Intelligent sensing | Multimodal fusion (video + audio + text + UI) |
+| Intelligent sensing | Multimodal fusion (visual + OCR text + cursor events + UI detection) |
 
 We cover ALL FOUR requirements — this is a strong differentiator.
 
 ---
 
-## 11. How Everything Connects
+## 11. Tier 2 Deep Learning Classifiers
+
+**Files:** `app/ml/classifiers/tier2/`
+
+Tier 2 uses PyTorch to capture complex, non-linear patterns that classical ML (Tier 1) misses. All four models share a common base class that handles the training loop, prediction, and serialization — each model only defines its unique architecture and how it interprets the input data.
+
+### Why Deep Learning After Classical ML?
+
+    Tier 1 (SVM, Random Forest):
+        - Treats features as independent columns in a table
+        - Fast, interpretable, good baseline
+        - Cannot learn spatial patterns or temporal sequences
+
+    Tier 2 (CNN, LSTM, Transformer):
+        - Learns patterns WITHIN the feature vector
+        - CNN finds local patterns (adjacent features)
+        - LSTM learns sequential dependencies (temporal order)
+        - Transformer uses self-attention (any feature can attend to any other)
+
+### TorchBaseClassifier — The Shared Base
+
+**File:** `app/ml/classifiers/tier2/_torch_base.py`
+
+Every Tier 2 classifier inherits from this. It extends `BaseClassifier` and provides:
+
+    TorchBaseClassifier(BaseClassifier)
+        |
+        |-- Concrete (shared by all 4 models):
+        |     tier           -> "tier2"
+        |     fit(X, y)      -> full training loop (DataLoader, Adam, CrossEntropyLoss)
+        |     predict(X)     -> forward pass with softmax, delegates to _timed_predict
+        |     save(path)     -> torch.save(state_dict + metadata)
+        |     load(path)     -> torch.load + rebuild model + load weights
+        |
+        |-- Abstract (each model implements):
+              name           -> "mlp", "cnn1d", "lstm", "transformer"
+              _build_model() -> constructs the nn.Module architecture
+              _reshape_input()-> reshapes flat (batch, features) to model-expected shape
+
+### Why This Design?
+
+Without the shared base, each classifier duplicates ~60% of the same code:
+
+    # BAD: every model repeats the same training loop
+    class MLPClassifier:
+        def fit(self, X, y):
+            X_t = torch.tensor(X, ...)       # duplicated
+            loader = DataLoader(...)          # duplicated
+            optimizer = Adam(...)             # duplicated
+            for epoch in range(epochs):       # duplicated
+                for batch in loader:          # duplicated
+                    ...
+
+With the shared base, each model is just ~50 lines defining its unique architecture.
+
+### The Training Loop (Inside fit)
+
+    def fit(X, y):
+        1. Seed everything (torch.manual_seed(42))      # reproducibility
+        2. Build the model (_build_model)                # subclass creates nn.Module
+        3. Move model to device (CPU or GPU)
+        4. Create DataLoader (batches of 32, shuffled)
+        5. For 20 epochs:
+           - For each batch:
+             a. Reshape input (_reshape_input)           # subclass reshapes
+             b. Forward pass -> logits
+             c. CrossEntropyLoss(logits, labels)
+             d. Backpropagation (loss.backward)
+             e. Update weights (optimizer.step)
+        6. Set model to eval mode
+
+### The Prediction Flow (Inside predict)
+
+    def predict(X):
+        1. Convert numpy array to torch tensor
+        2. Reshape (_reshape_input)                # subclass reshapes
+        3. Forward pass (no gradients)             # torch.no_grad()
+        4. Softmax on logits -> probabilities      # F.softmax(logits, dim=1)
+        5. Argmax -> predicted labels
+        6. Convert back to numpy arrays
+        7. Return via _timed_predict               # measures latency
+
+### The Four Tier 2 Models
+
+#### MLP (Multi-Layer Perceptron)
+
+**File:** `app/ml/classifiers/tier2/mlp.py`
+
+The simplest deep learning model — stacked fully-connected layers.
+
+    Input: (batch, 50 features) — NO reshape needed
+
+    Architecture:
+        Linear(50 → 128) → ReLU → Dropout(0.3)
+        Linear(128 → 128) → ReLU → Dropout(0.3)
+        Linear(128 → 10)  → [softmax applied in predict]
+
+    Think of it as:
+        50 features → hidden layer learns 128 abstractions → another layer refines
+        → final layer picks 1 of 10 classes
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| hidden_dim | 128 | Width of hidden layers |
+| num_layers | 2 | Depth (more layers = more abstraction) |
+| dropout | 0.3 | Randomly zeros 30% of neurons during training (prevents overfitting) |
+
+#### CNN1D (1D Convolutional Neural Network)
+
+**File:** `app/ml/classifiers/tier2/cnn1d.py`
+
+Treats the feature vector as a 1D signal and slides filters across it to detect local patterns.
+
+    Input: (batch, 50) → reshape to (batch, 1, 50) — add channel dimension
+
+    Architecture:
+        Conv1d(1→64 filters, kernel=3) → ReLU → BatchNorm
+        Conv1d(64→64 filters, kernel=3) → ReLU → BatchNorm
+        AdaptiveAvgPool1d(1)  → collapses signal to single value per filter
+        Flatten → Dropout(0.3) → Linear(64 → 10)
+
+    Think of it as:
+        A sliding window of size 3 moves across the 50 features
+        Each filter detects a specific local pattern (e.g., features 5-7 spiking together)
+        64 different filters look for 64 different patterns
+        Pooling summarizes "was this pattern present anywhere?"
+
+    Why 1D (not 2D)?
+        2D convolutions are for images (height × width)
+        Our data is a flat feature vector — 1D is the correct choice
+        Each position in the vector represents a different extracted feature
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| num_filters | 64 | Number of patterns to detect |
+| kernel_size | 3 | Width of the sliding window |
+| dropout | 0.3 | Regularization |
+
+#### LSTM (Long Short-Term Memory)
+
+**File:** `app/ml/classifiers/tier2/lstm.py`
+
+A recurrent neural network that processes the features as a sequence, maintaining memory of what it has seen.
+
+    Input: (batch, 50) → reshape to (batch, 10 steps, 5 features per step)
+
+    Architecture:
+        LSTM(input=5, hidden=64, layers=1)
+        Take last hidden state → Dropout(0.3) → Linear(64 → 10)
+
+    Think of it as:
+        Break 50 features into 10 "timesteps" of 5 features each
+        LSTM reads step-by-step: step 1 → step 2 → ... → step 10
+        At each step, it updates its memory (hidden state)
+        After reading all 10 steps, the final memory captures the full sequence
+        That memory is used to predict the class
+
+    Why LSTM for screen recordings?
+        Screen recordings are temporal — actions happen in sequence
+        Even on flat features, LSTM learns sequential dependencies
+        When real temporal data arrives (frame-by-frame features),
+        LSTM is ready to capture "first user opened terminal, then typed git commit"
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| hidden_dim | 64 | Size of the LSTM memory |
+| num_layers | 1 | Number of stacked LSTM layers |
+| seq_len | 10 | How many timesteps to split features into |
+| dropout | 0.3 | Regularization |
+
+#### Transformer
+
+**File:** `app/ml/classifiers/tier2/transformer.py`
+
+Uses self-attention to let every part of the input attend to every other part — the same mechanism behind GPT and BERT.
+
+    Input: (batch, 50) → reshape to (batch, 10 tokens, 5 features per token)
+
+    Architecture:
+        Linear(5 → 32)                       # project tokens to d_model dimension
+        + Sinusoidal Positional Encoding      # inject position information
+        TransformerEncoder(
+            2 layers × (self-attention + feedforward)
+            4 attention heads, feedforward dim=128
+        )
+        Mean pooling across tokens → Linear(32 → 10)
+
+    Think of it as:
+        Break 50 features into 10 "tokens" of 5 features each
+        Add position info so the model knows token order
+        Self-attention: each token asks "which other tokens matter to me?"
+          - Token 3 might attend to tokens 1 and 7
+          - Token 8 might attend to tokens 2, 5, and 9
+        This captures long-range dependencies (unlike CNN's local window)
+        After attention, average all tokens and classify
+
+    LSTM vs Transformer:
+        LSTM reads left-to-right sequentially (step 1 → 2 → 3 → ...)
+        Transformer sees ALL tokens at once (parallel attention)
+        Transformer is better at long-range patterns but needs more data
+
+    Sinusoidal Positional Encoding:
+        Transformers have no built-in sense of order
+        We add sine/cosine waves of different frequencies to each position
+        Position 0: sin(0), cos(0), sin(0), cos(0), ...
+        Position 1: sin(1/10000^0), cos(1/10000^0), sin(1/10000^(2/32)), ...
+        Each position gets a unique "fingerprint" the model can learn from
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| d_model | 32 | Internal representation size |
+| nhead | 4 | Number of attention heads (4 different "perspectives") |
+| num_encoder_layers | 2 | Depth of the transformer |
+| dim_feedforward | 128 | Size of feedforward network inside each layer |
+| seq_len | 10 | How many tokens to split features into |
+| dropout | 0.1 | Regularization (lower than others — transformers need it) |
+
+### How _reshape_input Works
+
+The key design insight: all data enters as flat `(batch, n_features)` numpy arrays. Each model reshapes differently:
+
+    Original data: (batch, 50)     ← same for all models
+
+    MLP:         (batch, 50)       ← no change (identity)
+    CNN1D:       (batch, 1, 50)    ← add channel dimension
+    LSTM:        (batch, 10, 5)    ← 10 timesteps × 5 features
+    Transformer: (batch, 10, 5)    ← 10 tokens × 5 features
+
+    What if 50 features is not divisible by seq_len=10?
+        token_dim = ceil(features / seq_len)
+        Zero-pad to the next multiple, then reshape
+        Example: 53 features, seq_len=10 → pad to 60 → (batch, 10, 6)
+
+### Tier 2 Results (Synthetic Data)
+
+    Model                Tier        Acc   Prec    Rec     F1    AUC       ms
+    -------------------------------------------------------------------------
+    mlp                  tier2     0.983  0.980  0.980  0.978  1.000     0.17
+    lstm                 tier2     0.967  0.960  0.969  0.963  0.999     1.27
+    transformer          tier2     0.967  0.965  0.955  0.959  0.998     1.54
+    cnn1d                tier2     0.900  0.887  0.906  0.884  0.989     7.17
+
+**Why MLP outperforms here:** On synthetic data with well-separated class clusters, the simple MLP has enough capacity. On real data with noisy, overlapping features, LSTM and Transformer are expected to outperform because they capture sequential and long-range patterns.
+
+**Why CNN1D is slowest:** Convolutional operations on short 1D signals (50 features) have overhead from BatchNorm and pooling that does not amortize well. On longer real feature vectors (200+), CNN1D becomes more efficient relative to the others.
+
+### Save/Load (Model Persistence)
+
+Unlike Tier 1 (which uses pickle), Tier 2 uses PyTorch's native serialization:
+
+    # Save — stores model weights + metadata
+    torch.save({
+        "state_dict": model.state_dict(),   # all learned weights
+        "input_dim": 50,                    # needed to rebuild architecture
+    }, "mlp_model.pt")
+
+    # Load — rebuilds architecture, then loads weights
+    checkpoint = torch.load("mlp_model.pt")
+    model = _build_model(checkpoint["input_dim"])   # rebuild empty model
+    model.load_state_dict(checkpoint["state_dict"]) # fill in weights
+
+Why not pickle for PyTorch?
+- `torch.save` is optimized for tensors (smaller files, faster I/O)
+- `state_dict` is architecture-independent — can load weights into a modified model
+- Standard practice in the PyTorch ecosystem
+
+---
+
+## 12. How Everything Connects
 
 ### Full Pipeline
 
     1. Video uploaded by user
        |
     2. Preprocessing (Stalin's pipeline)
-       |  Extracts: transcript, OCR text, UI labels, audio MFCC, scene labels
+       |  Extracts: OCR text, UI labels, cursor/click events, window state, scene labels
        |
     3. Feature Engineering
        |  Converts raw features into model-ready vectors
@@ -553,7 +822,12 @@ We cover ALL FOUR requirements — this is a strong differentiator.
     +-- feature_engineering.py <- Feature transforms (TODO)
     +-- classifiers/
     |   +-- tier1/           <- 7 classical ML models (DONE)
-    |   +-- tier2/           <- 5 deep learning models (TODO)
+    |   +-- tier2/           <- 4 deep learning models (DONE)
+    |   |   +-- _torch_base.py   <- shared PyTorch training/predict/save base
+    |   |   +-- mlp.py           <- Multi-Layer Perceptron
+    |   |   +-- cnn1d.py         <- 1D Convolutional Network
+    |   |   +-- lstm.py          <- Long Short-Term Memory
+    |   |   +-- transformer.py   <- Transformer Encoder
     |   +-- tier3/           <- 3 ensemble models (TODO)
     +-- evaluation/
         +-- metrics.py       <- Accuracy, F1, AUC per model (DONE)
@@ -566,7 +840,9 @@ We cover ALL FOUR requirements — this is a strong differentiator.
         +-- embeddings.py    <- t-SNE / UMAP (TODO)
         +-- error_analysis.py <- (TODO)
 
-### Current Tier 1 Results (Synthetic Data)
+### Current Results (Synthetic Data)
+
+#### Tier 1 — Classical ML
 
     Model                Tier        Acc     F1    AUC       ms
     SVM                  tier1     1.000  1.000  1.000     1.72
@@ -577,4 +853,12 @@ We cover ALL FOUR requirements — this is a strong differentiator.
     LightGBM             tier1     0.967  0.960  0.999     1.36
     Decision Tree        tier1     0.900  0.917  0.961     0.11
 
-Note: High scores are expected on synthetic data. Real data from the preprocessing pipeline will show more realistic differences between models.
+#### Tier 2 — Deep Learning
+
+    Model                Tier        Acc     F1    AUC       ms
+    MLP                  tier2     0.983  0.978  1.000     0.17
+    LSTM                 tier2     0.967  0.963  0.999     1.27
+    Transformer          tier2     0.967  0.959  0.998     1.54
+    CNN1D                tier2     0.900  0.884  0.989     7.17
+
+Note: High scores are expected on synthetic data (well-separated class clusters). Real data from the preprocessing pipeline will show more realistic differences between models — deep learning models (LSTM, Transformer) are expected to improve relative to classical ML on noisy, overlapping real-world features.
