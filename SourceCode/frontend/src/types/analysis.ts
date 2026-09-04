@@ -15,6 +15,15 @@ export interface AnalysisResult {
   videoUrl: string | null;
   summary: string;
   steps: WorkflowStep[];
+  /** One of the 10 classes in the project ReadMe.md's "Target Classes" list. */
+  category: string;
 }
 
-export type Screen = 'upload' | 'analyzing' | 'results' | 'history';
+export interface SearchResultItem {
+  jobId: string;
+  videoName: string;
+  snippet: string;
+  score: number;
+}
+
+export type Screen = 'upload' | 'analyzing' | 'results' | 'history' | 'dashboard' | 'search';

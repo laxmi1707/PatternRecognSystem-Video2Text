@@ -55,11 +55,13 @@ export function useVideoAnalysis(analysisSeconds = 3) {
   }, []);
 
   const goHistory = useCallback(() => setScreen('history'), []);
+  const goDashboard = useCallback(() => setScreen('dashboard'), []);
+  const goSearch = useCallback(() => setScreen('search'), []);
 
   const viewHistory = useCallback((item: AnalysisResult) => {
     setCurrent(item);
     setScreen('results');
   }, []);
 
-  return { screen, fileName, videoUrl, progress, phase, current, history, error, startAnalysis, goUpload, goHistory, viewHistory };
+  return { screen, fileName, videoUrl, progress, phase, current, history, error, startAnalysis, goUpload, goHistory, goDashboard, goSearch, viewHistory };
 }

@@ -16,5 +16,10 @@ class Settings(BaseSettings):
     allowed_headers: list[str] = ["Authorization", "Content-Type"]
     allow_credentials: bool = True
 
+    # Optional local folder of app/<task_id>/video2knowledge_labels.jsonl documents
+    # to build the search index from. None (the default) means Search returns no
+    # results -- there's no shared corpus checked into the repo yet.
+    search_corpus_dir: str | None = None
+
 
 settings = Settings()

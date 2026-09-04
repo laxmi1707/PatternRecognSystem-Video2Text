@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import jobs, videos
+from app.routers import jobs, search, videos
 
 app = FastAPI(title=settings.app_name, version=settings.app_version, debug=settings.debug)
 
@@ -16,6 +16,7 @@ app.add_middleware(
 
 app.include_router(videos.router)
 app.include_router(jobs.router)
+app.include_router(search.router)
 
 
 @app.get("/health")

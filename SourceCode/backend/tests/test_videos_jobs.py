@@ -77,3 +77,4 @@ async def test_upload_then_poll_then_fetch_results(client: AsyncClient):
     assert result["name"] == "clip.mp4"
     assert result["stepCount"] == len(result["steps"])
     assert result["status"] == "Complete"
+    assert result["category"] in analysis_service_module.CATEGORIES

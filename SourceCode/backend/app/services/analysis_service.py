@@ -1,5 +1,6 @@
 import time
 import uuid
+import zlib
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -11,6 +12,13 @@ from app.schemas.analysis import AnalysisResult, WorkflowStep
 # later -- the JobStatusResponse/AnalysisResult contracts are what the frontend
 # actually depends on.
 SIMULATED_DURATION_SECONDS = 3.0
+
+# Matches ReadMe.md's "Target Classes (10)" list for the multi-tier classifier.
+CATEGORIES = [
+    "git_operations", "docker_workflow", "kubernetes_ops", "terraform_iac",
+    "aws_console", "jenkins_ci_cd", "coding_editing", "debugging",
+    "documentation", "other",
+]
 
 _SAMPLE_STEPS = [
     WorkflowStep(
@@ -95,6 +103,7 @@ class AnalysisService:
                 "installing dependencies, and verifying the app in the browser."
             ),
             steps=_SAMPLE_STEPS,
+            category=CATEGORIES[zlib.crc32(job.filename.encode()) % len(CATEGORIES)],
         )
 
 

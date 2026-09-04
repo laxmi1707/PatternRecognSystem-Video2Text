@@ -1,4 +1,4 @@
-import type { AnalysisResult, WorkflowStep } from '../../types/analysis';
+import type { AnalysisResult, SearchResultItem, WorkflowStep } from '../../types/analysis';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 export const isRealApi = Boolean(API_BASE_URL);
@@ -17,7 +17,7 @@ export function getMockHistory(): AnalysisResult[] {
   return [
     {
       id: 'h1', name: 'onboarding-demo.mov', date: 'Aug 5, 2026', duration: '2:14', stepCount: 4,
-      status: 'Complete', videoUrl: null,
+      status: 'Complete', videoUrl: null, category: 'coding_editing',
       summary: 'A new engineer clones the starter repo, installs dependencies, and runs the app for the first time.',
       steps: [
         { n: 1, time: '0:00-0:18', title: 'Cloned the starter repository', description: '"git clone" is run in a fresh terminal window.' },
@@ -28,7 +28,7 @@ export function getMockHistory(): AnalysisResult[] {
     },
     {
       id: 'h2', name: 'bug-repro.mp4', date: 'Aug 3, 2026', duration: '0:58', stepCount: 4,
-      status: 'Complete', videoUrl: null,
+      status: 'Complete', videoUrl: null, category: 'debugging',
       summary: 'A reported bug is reproduced by navigating to a settings page and triggering a failing action.',
       steps: [
         { n: 1, time: '0:00-0:11', title: 'Opened the app in the browser', description: 'The staging environment loads in a new tab.' },
@@ -39,7 +39,7 @@ export function getMockHistory(): AnalysisResult[] {
     },
     {
       id: 'h3', name: 'deploy-walkthrough.webm', date: 'Jul 29, 2026', duration: '3:02', stepCount: 5,
-      status: 'Complete', videoUrl: null,
+      status: 'Complete', videoUrl: null, category: 'jenkins_ci_cd',
       summary: 'A production deploy is walked through, from branch merge to live verification.',
       steps: [
         { n: 1, time: '0:00-0:24', title: 'Merged the release branch', description: 'A pull request is merged into main.' },
@@ -57,6 +57,24 @@ export async function fetchHistory(): Promise<AnalysisResult[]> {
   const res = await fetch(`${API_BASE_URL}/api/v1/jobs`);
   if (!res.ok) throw new Error(`Failed to load history (HTTP ${res.status})`);
   return (await res.json()) as AnalysisResult[];
+}
+
+const MOCK_SEARCH_RESULTS: SearchResultItem[] = [
+  { jobId: 'h3', videoName: 'deploy-walkthrough.webm', snippet: 'The CI dashboard shows the build starting.', score: 0.82 },
+  { jobId: 'h1', videoName: 'onboarding-demo.mov', snippet: 'A .env file is created and filled in with local credentials.', score: 0.41 },
+];
+
+/** Real backend: POST /api/v1/search. Mock mode: a couple of canned results. */
+export async function searchVideos(query: string): Promise<SearchResultItem[]> {
+  if (!isRealApi) return query.trim() ? MOCK_SEARCH_RESULTS : [];
+  const res = await fetch(`${API_BASE_URL}/api/v1/search`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+  });
+  if (!res.ok) throw new Error(`Search failed (HTTP ${res.status})`);
+  const data = (await res.json()) as { results: SearchResultItem[] };
+  return data.results;
 }
 
 export interface AnalyzeHandle {
@@ -99,6 +117,7 @@ function simulateAnalysis(
         stepCount: steps.length,
         status: 'Complete',
         videoUrl,
+        category: 'coding_editing',
         summary: 'The recording shows a developer pulling the latest changes, installing dependencies, and verifying the app in the browser.',
         steps,
       });

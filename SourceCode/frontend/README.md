@@ -17,7 +17,7 @@ Owner: Joshua
 | Hosting | AWS S3 + CloudFront |
 
 ## Structure
-- `src/pages/` — Upload, Analyzing, Results, History screens
+- `src/pages/` — Upload, Analyzing, Results, History, Dashboard, Search screens
 - `src/components/video/` — dropzone, progress, workflow steps, results view
 - `src/components/common/` — NavBar
 - `src/hooks/useVideoAnalysis.ts` — screen state machine + analysis flow (mock or real, see below)
@@ -41,6 +41,8 @@ Owner: Joshua
 | Analyzing | /analyzing | Real-time analysis progress |
 | Results | /results | Classification results + workflow steps |
 | History | /history | Browse past analyses |
+| Dashboard | /dashboard | Analysis counts by category (computed client-side from History) |
+| Search | /search | Search analyzed workflows for a matching step |
 
 ## Components
 
@@ -60,6 +62,7 @@ Owner: Joshua
 | getStatus() | GET /api/v1/jobs/{id} |
 | getResults() | GET /api/v1/jobs/{id}/results |
 | fetchHistory() | GET /api/v1/jobs |
+| searchVideos() | POST /api/v1/search |
 
 ## Backend wiring
 - With no `VITE_API_BASE_URL` set, `analysisService.ts` runs entirely on mocked data (simulated progress, fixed workflow steps, 3 canned history entries) — no backend needed.
@@ -68,4 +71,7 @@ Owner: Joshua
   2. `GET {base}/api/v1/jobs/{id}` — polled every second, returns `{ status, progress, error }`
   3. Once `status` is `complete`, `GET {base}/api/v1/jobs/{id}/results` is fetched once for the `AnalysisResult` — see `SourceCode/backend/app/schemas/analysis.py` for its exact shape
   4. On mount, `GET {base}/api/v1/jobs` is fetched once for the History page's list of completed `AnalysisResult`s
+  5. `POST {base}/api/v1/search` with `{ query }`, called on submit from the Search page
 - `useVideoAnalysis`'s `analysisSeconds` argument only affects the mock path's simulated duration.
+- Dashboard has no backend endpoint of its own -- it aggregates the same History data client-side. `AnalysisResult.category` is one of the 10 classes in the project ReadMe.md; the stub assigns it deterministically per filename until the real classifier (feat/pattern-recognition) is wired up.
+- Search currently returns real results only if the backend's `SEARCH_CORPUS_DIR` is configured locally (see `SourceCode/backend/.env.example`) -- there's no corpus checked into the repo yet, so by default it returns an empty list rather than erroring.

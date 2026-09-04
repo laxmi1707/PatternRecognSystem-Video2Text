@@ -28,6 +28,10 @@ class AnalysisResult(CamelModel):
     video_url: str | None = None
     summary: str
     steps: list[WorkflowStep]
+    # One of the 10 classes in ReadMe.md's "Target Classes" list. The stub
+    # assigns this deterministically from the filename -- the real classifier
+    # (app/ml/ on feat/pattern-recognition) will replace it once it's wired up.
+    category: str
 
 
 class VideoUploadResponse(BaseModel):

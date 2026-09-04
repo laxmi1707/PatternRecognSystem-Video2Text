@@ -19,6 +19,7 @@ ml = [
     # Keep heavy ML deps optional so the API can be installed/run without them.
     "torch>=2.4.0",
     "numpy>=1.26.0",
+    "scikit-learn>=1.5.0",
 ]
 dev = [
     "pytest>=8.3.0",
