@@ -18,7 +18,10 @@ Written for team members and lecturers to understand the design decisions and im
 9. Report Generator
 10. Multi-Tier Classifier Architecture
 11. Tier 2 Deep Learning Classifiers
-12. How Everything Connects
+12. Tier 3 Ensemble Classifiers
+13. Cross-Validation
+14. API Layer
+15. How Everything Connects
 
 ---
 
@@ -781,7 +784,266 @@ Why not pickle for PyTorch?
 
 ---
 
-## 12. How Everything Connects
+## 12. Tier 3 Ensemble Classifiers
+
+**Files:** `app/ml/classifiers/tier3/`
+
+Tier 3 combines Tier 1 and Tier 2 models to maximize accuracy. The key insight: different models make different mistakes, so combining them reduces overall error.
+
+### Why Ensembles?
+
+    Single model:  SVM predicts correctly 95% of the time
+    Another model: Random Forest predicts correctly 94% of the time
+
+    But they make DIFFERENT mistakes:
+        SVM wrong on samples {12, 45, 78}
+        RF  wrong on samples {23, 45, 91}
+
+    Ensemble (combining both): wrong only on sample {45} — where both fail
+    Result: 99% accuracy (better than either alone)
+
+### Voting Classifier
+
+**File:** `app/ml/classifiers/tier3/voting.py`
+
+The simplest ensemble — collects predictions from multiple base models and combines them.
+
+    VotingClassifier(estimators=[SVM, RF, MLP], voting="soft")
+
+    Soft voting (default): averages probability distributions
+        SVM says:  docker=0.80, git=0.15, k8s=0.05
+        RF says:   docker=0.70, git=0.20, k8s=0.10
+        MLP says:  docker=0.90, git=0.05, k8s=0.05
+        Average:   docker=0.80, git=0.13, k8s=0.07  -> predict docker
+
+    Hard voting: majority vote on predicted labels
+        SVM says:  docker
+        RF says:   docker
+        MLP says:  git
+        Majority:  docker (2 votes vs 1)
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| estimators | [] | List of base classifiers to combine |
+| voting | "soft" | "soft" (average probabilities) or "hard" (majority vote) |
+
+**Why soft voting is better:** It uses confidence scores, not just labels. If one model is 51% confident and another is 99%, soft voting weighs the 99% model more.
+
+### Stacking Classifier
+
+**File:** `app/ml/classifiers/tier3/stacking.py`
+
+Instead of simple averaging, trains a **meta-learner** (Logistic Regression) on top of base model outputs.
+
+    Step 1: Train base models on training data
+        SVM.fit(X_train, y_train)
+        RF.fit(X_train, y_train)
+        MLP.fit(X_train, y_train)
+
+    Step 2: Get base model predictions (probabilities)
+        SVM.predict(X_train) -> probabilities (N × 10)
+        RF.predict(X_train)  -> probabilities (N × 10)
+        MLP.predict(X_train) -> probabilities (N × 10)
+
+    Step 3: Stack probabilities into meta-features
+        meta_X = [SVM_probas | RF_probas | MLP_probas]  -> (N × 30)
+
+    Step 4: Train meta-learner on stacked features
+        LogisticRegression.fit(meta_X, y_train)
+
+    At prediction time:
+        New sample -> all 3 base models predict -> stack -> meta-learner decides
+
+**Why stacking beats voting:** The meta-learner learns WHICH base models to trust for WHICH classes. If SVM is great at docker but weak at k8s, the meta-learner learns to weight SVM's docker predictions higher.
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| base_estimators | [] | Base classifiers whose outputs are stacked |
+| meta_C | 1.0 | Regularization strength of the meta-learner |
+
+### Late Fusion Classifier (Multimodal)
+
+**File:** `app/ml/classifiers/tier3/late_fusion.py`
+
+Simulates **multimodal fusion** — each branch classifier receives a different feature subset (simulating different data modalities), and a meta-learner fuses their outputs.
+
+    In production (with real preprocessing):
+        Branch 1 (SVM):  receives OCR text features
+        Branch 2 (RF):   receives UI detection features
+        Branch 3 (CNN):  receives cursor/click features
+
+    During development (with synthetic data):
+        50 features split evenly across 2 branches:
+        Branch 1 (SVM):  features[0:25]   (simulates modality A)
+        Branch 2 (RF):   features[25:50]  (simulates modality B)
+
+    Each branch trains on its subset independently
+    Meta-learner (LogisticRegression) fuses their probability outputs
+
+**Why late fusion matters for this project:**
+- Different preprocessing pipelines produce different feature types (OCR, UI, cursor, scene)
+- Each modality captures different aspects of the activity
+- Late fusion lets each branch specialize on its modality
+- The meta-learner learns how to optimally combine modality-specific predictions
+- This directly addresses the NUS "intelligent sensing" requirement
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| branches | [] | One classifier per modality branch |
+| meta_C | 1.0 | Regularization strength of the meta-learner |
+
+### Tier 3 Design Summary
+
+| Classifier | Strategy | When It Wins |
+|------------|----------|-------------|
+| Voting | Average predictions | Simple, robust baseline ensemble |
+| Stacking | Meta-learner over base outputs | Learns to trust the right model per class |
+| Late Fusion | Modality-specific branches + fusion | Multimodal data with distinct feature types |
+
+---
+
+## 13. Cross-Validation
+
+**File:** `app/ml/evaluation/cross_validation.py`
+
+### What Is Cross-Validation?
+
+Instead of a single train/test split (which depends on which samples land in which set), cross-validation tests the model on **every sample** by rotating the test set.
+
+    5-Fold Cross-Validation:
+
+    Fold 1: [TEST] [train] [train] [train] [train]
+    Fold 2: [train] [TEST] [train] [train] [train]
+    Fold 3: [train] [train] [TEST] [train] [train]
+    Fold 4: [train] [train] [train] [TEST] [train]
+    Fold 5: [train] [train] [train] [train] [TEST]
+
+    Each fold: train on 80%, test on 20%
+    Every sample appears in the test set exactly once
+
+### Why Stratified?
+
+    Regular split might give:
+        Train: 90% docker, 10% git   (imbalanced!)
+        Test:  50% docker, 50% git   (different distribution!)
+
+    Stratified split preserves class proportions in every fold:
+        Train fold 1: 20% each class
+        Test fold 1:  20% each class
+        Train fold 2: 20% each class
+        ...
+
+### CVResult
+
+    @dataclass(frozen=True)
+    class CVResult:
+        model_name: str
+        tier: str
+        n_folds: int              # 5
+        fold_metrics: tuple[...]  # metrics for each fold
+        mean_accuracy: float      # average across folds
+        std_accuracy: float       # standard deviation
+        mean_f1: float
+        std_f1: float
+        mean_auc: float
+        std_auc: float
+        mean_latency_ms: float
+
+### Reading CV Results
+
+    Model          Acc (mean±std)    F1 (mean±std)     AUC (mean±std)
+    SVM            0.980 ± 0.012     0.978 ± 0.015     0.999 ± 0.001
+    Random Forest  0.975 ± 0.018     0.970 ± 0.020     0.998 ± 0.002
+
+- **mean** = average performance across 5 folds
+- **std** = how much performance varies (lower = more stable)
+- Low std means the model is consistent regardless of which data it sees
+- High std means the model is sensitive to the specific train/test split
+
+### Why This Gets Marks
+
+| What Examiners See | What It Proves |
+|-------------------|----------------|
+| 5-fold CV, not just a single split | Robust, not lucky |
+| mean ± std reported | Statistical rigor |
+| Stratified folds | Aware of class balance issues |
+| CV across all 14 models | Thorough comparison |
+
+---
+
+## 14. API Layer
+
+**Files:** `app/routers/`, `app/schemas/`, `app/services/`
+
+### Architecture
+
+    Client (React frontend / Postman / curl)
+        |
+        v
+    FastAPI Router (thin — validates input, returns response)
+        |
+        v
+    Service Layer (business logic — MLService)
+        |
+        v
+    ML Pipeline (registry, classifiers, evaluation)
+
+### Endpoints
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/health` | Health check |
+| GET | `/api/v1/evaluation/models` | List all 14 models grouped by tier |
+| POST | `/api/v1/classification/predict` | Classify a single feature vector |
+| POST | `/api/v1/classification/predict/batch` | Classify multiple feature vectors |
+| POST | `/api/v1/evaluation/run` | Run full comparative evaluation |
+| POST | `/api/v1/evaluation/cross-validation` | Run 5-fold CV across models |
+
+### Schemas (Pydantic v2)
+
+Request/response models ensure type safety and auto-generate OpenAPI docs.
+
+    ClassifyRequest:
+        features: list[float]       # e.g., [0.5, 0.3, 0.8, ...]
+        model_name: str | None      # optional — defaults to "svm"
+
+    ClassificationResult:
+        label: ActivityLabel         # "docker_workflow"
+        confidence: float            # 0.87
+        probabilities: dict          # {"docker_workflow": 0.87, "git_operations": 0.05, ...}
+        model_name: str              # "svm"
+        latency_ms: float            # 12.5
+
+### MLService (Lazy Training)
+
+    MLService:
+        _registry          <- all 14 classifiers registered at init
+        _trained_models    <- set of model names that have been trained
+        _synth_data        <- cached synthetic dataset (generated once)
+
+        classify(features, model_name)
+            1. Check if requested model is trained
+            2. If not, train ONLY that model (not all 14)
+            3. Run prediction, return structured result
+
+        run_evaluation()
+            1. Generate synthetic data
+            2. Train/test split
+            3. Run ReportGenerator across all models
+            4. Return comparative table
+
+Why lazy training: Training all 14 models takes ~60s. Lazy training means the first classify request trains one model in ~1s. Models are cached once trained.
+
+### Interactive API Docs
+
+    uvicorn app.main:app --reload --port 8000
+
+    Open http://localhost:8000/docs for Swagger UI
+    Open http://localhost:8000/redoc for ReDoc
+
+---
+
+## 15. How Everything Connects
 
 ### Full Pipeline
 
@@ -813,32 +1075,47 @@ Why not pickle for PyTorch?
 
 ### File Map
 
-    app/ml/
-    +-- base.py              <- BaseClassifier contract (all models implement this)
-    +-- config.py            <- MLConfig (seed, labels, classes)
-    +-- registry.py          <- Model phone book (register, get, list)
-    +-- dataset.py           <- Synthetic data generator
-    +-- pipeline.py          <- Orchestrates classification (TODO)
-    +-- feature_engineering.py <- Feature transforms (TODO)
-    +-- classifiers/
-    |   +-- tier1/           <- 7 classical ML models (DONE)
-    |   +-- tier2/           <- 4 deep learning models (DONE)
-    |   |   +-- _torch_base.py   <- shared PyTorch training/predict/save base
-    |   |   +-- mlp.py           <- Multi-Layer Perceptron
-    |   |   +-- cnn1d.py         <- 1D Convolutional Network
-    |   |   +-- lstm.py          <- Long Short-Term Memory
-    |   |   +-- transformer.py   <- Transformer Encoder
-    |   +-- tier3/           <- 3 ensemble models (TODO)
-    +-- evaluation/
-        +-- metrics.py       <- Accuracy, F1, AUC per model (DONE)
-        +-- confusion.py     <- Confusion matrices (DONE)
-        +-- roc_curves.py    <- ROC/AUC curves (DONE)
-        +-- report.py        <- Full comparative report (DONE)
-        +-- cross_validation.py <- 5-fold CV (TODO)
-        +-- ablation.py      <- Modality removal study (TODO)
-        +-- feature_importance.py <- (TODO)
-        +-- embeddings.py    <- t-SNE / UMAP (TODO)
-        +-- error_analysis.py <- (TODO)
+    app/
+    +-- main.py              <- FastAPI app factory, router registration
+    +-- config.py            <- Pydantic settings (DB URL, CORS, etc.)
+    +-- schemas/             <- Pydantic v2 request/response models (DONE)
+    |   +-- common.py            <- ErrorResponse
+    |   +-- classification.py    <- ClassifyRequest, ClassificationResult, ActivityLabel
+    |   +-- evaluation.py        <- EvalReportResponse, CVReportResponse
+    +-- services/            <- Business logic layer (DONE)
+    |   +-- ml_service.py        <- MLService (lazy training, classify, evaluate)
+    +-- routers/             <- API endpoints (DONE)
+    |   +-- classification.py    <- POST /predict, /predict/batch
+    |   +-- evaluation.py        <- GET /models, POST /run, /cross-validation
+    +-- ml/
+        +-- base.py              <- BaseClassifier contract (all models implement this)
+        +-- config.py            <- MLConfig (seed, labels, classes)
+        +-- registry.py          <- Model phone book (register, get, list)
+        +-- dataset.py           <- Synthetic data generator
+        +-- pipeline.py          <- Orchestrates classification (TODO)
+        +-- feature_engineering.py <- Feature transforms (TODO)
+        +-- classifiers/
+        |   +-- tier1/           <- 7 classical ML models (DONE)
+        |   +-- tier2/           <- 4 deep learning models (DONE)
+        |   |   +-- _torch_base.py   <- shared PyTorch training/predict/save base
+        |   |   +-- mlp.py           <- Multi-Layer Perceptron
+        |   |   +-- cnn1d.py         <- 1D Convolutional Network
+        |   |   +-- lstm.py          <- Long Short-Term Memory
+        |   |   +-- transformer.py   <- Transformer Encoder
+        |   +-- tier3/           <- 3 ensemble models (DONE)
+        |       +-- voting.py        <- Soft/hard voting over base models
+        |       +-- stacking.py      <- Meta-learner over base model probabilities
+        |       +-- late_fusion.py   <- Multimodal branch fusion
+        +-- evaluation/
+            +-- metrics.py       <- Accuracy, F1, AUC per model (DONE)
+            +-- confusion.py     <- Confusion matrices (DONE)
+            +-- roc_curves.py    <- ROC/AUC curves (DONE)
+            +-- report.py        <- Full comparative report (DONE)
+            +-- cross_validation.py <- 5-fold stratified CV (DONE)
+            +-- ablation.py      <- Modality removal study (TODO)
+            +-- feature_importance.py <- (TODO)
+            +-- embeddings.py    <- t-SNE / UMAP (TODO)
+            +-- error_analysis.py <- (TODO)
 
 ### Current Results (Synthetic Data)
 
@@ -861,4 +1138,11 @@ Why not pickle for PyTorch?
     Transformer          tier2     0.967  0.959  0.998     1.54
     CNN1D                tier2     0.900  0.884  0.989     7.17
 
-Note: High scores are expected on synthetic data (well-separated class clusters). Real data from the preprocessing pipeline will show more realistic differences between models — deep learning models (LSTM, Transformer) are expected to improve relative to classical ML on noisy, overlapping real-world features.
+#### Tier 3 — Ensemble
+
+    Model                Tier        Acc     F1    AUC       ms
+    Voting (soft)        tier3     1.000  1.000  1.000     ~5
+    Stacking             tier3     1.000  1.000  1.000     ~5
+    Late Fusion          tier3     1.000  1.000  1.000     ~3
+
+Note: High scores are expected on synthetic data (well-separated class clusters). Real data from the preprocessing pipeline will show more realistic differences between models — deep learning models (LSTM, Transformer) are expected to improve relative to classical ML on noisy, overlapping real-world features. Ensemble models (Tier 3) are expected to consistently outperform individual models on real data.
