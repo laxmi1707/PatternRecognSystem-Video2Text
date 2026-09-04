@@ -1,10 +1,28 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.database import engine
+from app.models.base import Base
 from app.routers import classification, evaluation
+from app.routers import videos, jobs
 
-app = FastAPI(title=settings.app_name, version=settings.app_version, debug=settings.debug)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
+
+app = FastAPI(
+    title=settings.app_name,
+    version=settings.app_version,
+    debug=settings.debug,
+    lifespan=lifespan,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,6 +34,8 @@ app.add_middleware(
 
 app.include_router(classification.router)
 app.include_router(evaluation.router)
+app.include_router(videos.router)
+app.include_router(jobs.router)
 
 
 @app.get("/health")
