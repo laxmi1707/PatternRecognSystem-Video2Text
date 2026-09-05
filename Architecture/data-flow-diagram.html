@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video2Knowledge - Data Flow Diagram</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 40px;
+            min-height: 100vh;
+        }
+        h1 { text-align: center; font-size: 26px; margin-bottom: 8px; color: #f0f6fc; }
+        .subtitle { text-align: center; font-size: 13px; color: #8b949e; margin-bottom: 40px; }
+        .container { max-width: 1300px; margin: 0 auto; }
+
+        /* Pipeline stages */
+        .stage {
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .stage-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .stage-num {
+            background: #21262d;
+            border: 2px solid;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        .stage-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #f0f6fc;
+        }
+        .stage-desc {
+            font-size: 11px;
+            color: #8b949e;
+        }
+
+        .stage-1 { border-color: #58a6ff33; }
+        .stage-1 .stage-num { border-color: #58a6ff; color: #58a6ff; }
+        .stage-2 { border-color: #f0883e33; }
+        .stage-2 .stage-num { border-color: #f0883e; color: #f0883e; }
+        .stage-3 { border-color: #7ee78733; }
+        .stage-3 .stage-num { border-color: #7ee787; color: #7ee787; }
+        .stage-4 { border-color: #d2a8ff33; }
+        .stage-4 .stage-num { border-color: #d2a8ff; color: #d2a8ff; }
+        .stage-5 { border-color: #ff7b7233; }
+        .stage-5 .stage-num { border-color: #ff7b72; color: #ff7b72; }
+        .stage-6 { border-color: #ffa65733; }
+        .stage-6 .stage-num { border-color: #ffa657; color: #ffa657; }
+        .stage-7 { border-color: #79c0ff33; }
+        .stage-7 .stage-num { border-color: #79c0ff; color: #79c0ff; }
+
+        .data-flow {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .data-box {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 12px 16px;
+            min-width: 140px;
+            flex: 1;
+        }
+        .data-box-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .data-box-input .data-box-label { color: #58a6ff; }
+        .data-box-process .data-box-label { color: #d2a8ff; }
+        .data-box-output .data-box-label { color: #7ee787; }
+        .data-box-store .data-box-label { color: #ffa657; }
+        .data-box-content {
+            font-size: 11px;
+            color: #c9d1d9;
+            line-height: 1.5;
+        }
+        .data-box-tech {
+            font-size: 9px;
+            color: #6e7681;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        .flow-arrow {
+            color: #484f58;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Parallel branches */
+        .parallel-container {
+            border: 1px dashed #30363d;
+            border-radius: 8px;
+            padding: 14px;
+            margin-top: 12px;
+        }
+        .parallel-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #484f58;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .parallel-branches {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .branch {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .branch-icon { font-size: 20px; text-align: center; margin-bottom: 4px; }
+        .branch-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: #f0f6fc;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+        .branch-in, .branch-out {
+            font-size: 10px;
+            color: #8b949e;
+            padding: 2px 0;
+        }
+        .branch-in::before { content: "IN: "; color: #58a6ff; font-weight: 600; font-size: 9px; }
+        .branch-out::before { content: "OUT: "; color: #7ee787; font-weight: 600; font-size: 9px; }
+        .branch-tech {
+            font-size: 9px;
+            color: #6e7681;
+            font-style: italic;
+            margin-top: 4px;
+        }
+
+        /* Classifier tier detail */
+        .tier-detail {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .tier-box {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .tier-box-title {
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            text-align: center;
+        }
+        .tier-1-title { color: #7ee787; }
+        .tier-2-title { color: #d2a8ff; }
+        .tier-3-title { color: #ff7b72; }
+        .tier-items {
+            font-size: 10px;
+            color: #8b949e;
+            line-height: 1.6;
+        }
+
+        .stage-connector {
+            display: flex;
+            justify-content: center;
+            padding: 4px 0;
+        }
+        .stage-connector-arrow {
+            color: #484f58;
+            font-size: 24px;
+        }
+
+        /* Data stores at bottom */
+        .stores-section {
+            margin-top: 32px;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .stores-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #f0f6fc;
+            margin-bottom: 16px;
+        }
+        .stores-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .store-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+        }
+        .store-icon { font-size: 24px; margin-bottom: 6px; }
+        .store-name { font-size: 12px; font-weight: 600; color: #f0f6fc; }
+        .store-aws { font-size: 10px; color: #8b949e; }
+        .store-data { font-size: 10px; color: #6e7681; margin-top: 4px; }
+        .store-reads, .store-writes {
+            font-size: 9px;
+            margin-top: 4px;
+        }
+        .store-reads { color: #58a6ff; }
+        .store-writes { color: #7ee787; }
+
+        .legend {
+            margin-top: 24px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #8b949e; }
+        .legend-box { width: 12px; height: 12px; border-radius: 3px; border: 1px solid; }
+
+        @media (max-width: 768px) {
+            .tier-detail { grid-template-columns: 1fr; }
+            .data-flow { flex-direction: column; }
+            .flow-arrow { transform: rotate(90deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Video2Knowledge - Data Flow Diagram</h1>
+    <p class="subtitle">End-to-End Pipeline: Video Upload → Multi-Tier Classification → SOP Generation → RAG Retrieval</p>
+
+    <div class="container">
+
+        <!-- Stage 1: Ingestion -->
+        <div class="stage stage-1">
+            <div class="stage-header">
+                <div class="stage-num">1</div>
+                <div><div class="stage-title">Video Ingestion</div><div class="stage-desc">User uploads video → S3 storage → triggers pipeline</div></div>
+            </div>
+            <div class="data-flow">
+                <div class="data-box data-box-input">
+                    <div class="data-box-label">Input</div>
+                    <div class="data-box-content">Video file (.mp4, .mov, .webm)<br>Max 2GB, 1080p</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="data-box data-box-process">
+                    <div class="data-box-label">Process</div>
+                    <div class="data-box-content">Presigned URL upload → S3<br>S3 event → Lambda trigger<br>Job record created in DB</div>
+                    <div class="data-box-tech">React UI → API Gateway → FastAPI → S3 → Lambda</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="data-box data-box-output">
+                    <div class="data-box-label">Output</div>
+                    <div class="data-box-content">s3://videos/{job_id}/raw.mp4<br>Job ID + status: QUEUED</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-connector"><span class="stage-connector-arrow">⬇</span></div>
+
+        <!-- Stage 2: Preprocessing -->
+        <div class="stage stage-2">
+            <div class="stage-header">
+                <div class="stage-num">2</div>
+                <div><div class="stage-title">Preprocessing & Segmentation</div><div class="stage-desc">Split video into processable units</div></div>
+            </div>
+            <div class="data-flow">
+                <div class="data-box data-box-input">
+                    <div class="data-box-label">Input</div>
+                    <div class="data-box-content">Raw video from S3</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="data-box data-box-process">
+                    <div class="data-box-label">Process</div>
+                    <div class="data-box-content">OpenCV: extract frames @ 1-2 FPS<br>Scene detection: keyframe boundaries<br>Cursor position tracking per frame<br>Segment into temporal windows</div>
+                    <div class="data-box-tech">Lambda + OpenCV + FFmpeg + scenedetect</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="data-box data-box-output">
+                    <div class="data-box-label">Output</div>
+                    <div class="data-box-content">s3://videos/{job_id}/frames/*.jpg<br>s3://videos/{job_id}/cursor_events.json<br>scenes.json (timestamps + boundaries)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-connector"><span class="stage-connector-arrow">⬇</span></div>
+
+        <!-- Stage 3: Parallel Feature Extraction -->
+        <div class="stage stage-3">
+            <div class="stage-header">
+                <div class="stage-num">3</div>
+                <div><div class="stage-title">Parallel Feature Extraction</div><div class="stage-desc">4 parallel pipelines extract visual & interaction features</div></div>
+            </div>
+            <div class="parallel-container">
+                <div class="parallel-label">Parallel Execution (Step Functions)</div>
+                <div class="parallel-branches">
+                    <div class="branch">
+                        <div class="branch-icon">🖱️</div>
+                        <div class="branch-name">Cursor & Click Pipeline</div>
+                        <div class="branch-in">frames/*.jpg (sequential)</div>
+                        <div class="branch-out">Click events + cursor trajectory + selection regions + timestamps</div>
+                        <div class="branch-tech">OpenCV template matching + motion analysis</div>
+                    </div>
+                    <div class="branch">
+                        <div class="branch-icon">🔤</div>
+                        <div class="branch-name">OCR Pipeline</div>
+                        <div class="branch-in">frames/*.jpg (keyframes)</div>
+                        <div class="branch-out">Detected text regions + bounding boxes + text content per frame</div>
+                        <div class="branch-tech">Textract + EasyOCR + PaddleOCR</div>
+                    </div>
+                    <div class="branch">
+                        <div class="branch-icon">🏷️</div>
+                        <div class="branch-name">Visual Detection Pipeline</div>
+                        <div class="branch-in">frames/*.jpg</div>
+                        <div class="branch-out">UI element labels (IDE, Terminal, Browser, AWS Console) + bounding boxes</div>
+                        <div class="branch-tech">YOLOv11 + OpenCV template matching</div>
+                    </div>
+                    <div class="branch">
+                        <div class="branch-icon">🪟</div>
+                        <div class="branch-name">Window State Pipeline</div>
+                        <div class="branch-in">frames/*.jpg (keyframes)</div>
+                        <div class="branch-out">Active app labels + window transitions + tab changes + focus events</div>
+                        <div class="branch-tech">OpenCV + template matching + histogram comparison</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-connector"><span class="stage-connector-arrow">⬇</span></div>
+
+        <!-- Stage 4: Multi-Tier Classification -->
+        <div class="stage stage-4">
+            <div class="stage-header">
+                <div class="stage-num">4</div>
+                <div><div class="stage-title">Multi-Tier Classification</div><div class="stage-desc">3-tier classifier hierarchy: Classical ML → Deep Learning → Ensemble Fusion</div></div>
+            </div>
+            <div class="data-flow" style="margin-bottom: 12px;">
+                <div class="data-box data-box-input">
+                    <div class="data-box-label">Fused Input</div>
+                    <div class="data-box-content">Per-segment feature vector:<br>• OCR text content<br>• UI element labels<br>• Cursor & click events<br>• Window state transitions<br>• Scene classification</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="data-box data-box-process">
+                    <div class="data-box-label">Target Classes</div>
+                    <div class="data-box-content">
+                        git_operations<br>
+                        docker_workflow<br>
+                        kubernetes_ops<br>
+                        terraform_iac<br>
+                        aws_console<br>
+                        jenkins_ci_cd<br>
+                        coding_editing<br>
+                        debugging<br>
+                        documentation<br>
+                        other
+                    </div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="data-box data-box-output">
+                    <div class="data-box-label">Output</div>
+                    <div class="data-box-content">workflow_label: string<br>confidence: float (0-1)<br>tier_votes: {t1, t2, t3}<br>temporal_sequence: ordered steps<br>explanation: feature importance</div>
+                </div>
+            </div>
+            <div class="tier-detail">
+                <div class="tier-box">
+                    <div class="tier-box-title tier-1-title">Tier 1: Classical ML</div>
+                    <div class="tier-items">
+                        <strong>Input:</strong> TF-IDF + hand-crafted features<br>
+                        <strong>Models:</strong> SVM, Naive Bayes, Decision Tree, Random Forest, KNN, XGBoost, LightGBM<br>
+                        <strong>Output:</strong> Per-model class probabilities<br>
+                        <strong>Purpose:</strong> Fast baseline + interpretable
+                    </div>
+                </div>
+                <div class="tier-box">
+                    <div class="tier-box-title tier-2-title">Tier 2: Deep Learning</div>
+                    <div class="tier-items">
+                        <strong>Input:</strong> Raw embeddings + sequences<br>
+                        <strong>Models:</strong> CNN (scene), LSTM (temporal), Transformer (action), ViT (visual), HMM/CRF (sequence)<br>
+                        <strong>Output:</strong> Learned representations + class probs<br>
+                        <strong>Purpose:</strong> Capture complex patterns
+                    </div>
+                </div>
+                <div class="tier-box">
+                    <div class="tier-box-title tier-3-title">Tier 3: Ensemble + Fusion</div>
+                    <div class="tier-items">
+                        <strong>Input:</strong> Tier 1 + Tier 2 predictions<br>
+                        <strong>Models:</strong> Voting Classifier, Stacking Classifier, Multimodal Late Fusion, CLIP alignment<br>
+                        <strong>Output:</strong> Final label + confidence + explanation<br>
+                        <strong>Purpose:</strong> Maximize accuracy
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-connector"><span class="stage-connector-arrow">⬇</span></div>
+
+        <!-- Stage 5: Document Generation -->
+        <div class="stage stage-5">
+            <div class="stage-header">
+                <div class="stage-num">5</div>
+                <div><div class="stage-title">Knowledge & SOP Generation</div><div class="stage-desc">LLM generates structured documentation from classified workflow</div></div>
+            </div>
+            <div class="data-flow">
+                <div class="data-box data-box-input">
+                    <div class="data-box-label">Input</div>
+                    <div class="data-box-content">Classified workflow steps (ordered)<br>OCR text + UI labels<br>Timestamps + confidence<br>Cursor events + window context</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="data-box data-box-process">
+                    <div class="data-box-label">Process</div>
+                    <div class="data-box-content">Prompt engineering: structured SOP template<br>LLM: generate step-by-step instructions<br>LLM: generate knowledge article<br>LLM: generate timeline summary<br>Format: DOCX, PDF, Markdown</div>
+                    <div class="data-box-tech">AWS Bedrock (Claude) + LangChain + python-docx + ReportLab</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="data-box data-box-output">
+                    <div class="data-box-label">Output</div>
+                    <div class="data-box-content">SOP document (structured steps)<br>Knowledge article (narrative)<br>Timeline (visual chronology)<br>Searchable metadata</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-connector"><span class="stage-connector-arrow">⬇</span></div>
+
+        <!-- Stage 6: Embedding & Storage -->
+        <div class="stage stage-6">
+            <div class="stage-header">
+                <div class="stage-num">6</div>
+                <div><div class="stage-title">Embedding & Storage</div><div class="stage-desc">Generate embeddings and persist all artifacts</div></div>
+            </div>
+            <div class="data-flow">
+                <div class="data-box data-box-input">
+                    <div class="data-box-label">Input</div>
+                    <div class="data-box-content">Generated documents<br>Classified workflow data<br>OCR text + interaction events<br>Feature vectors</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="data-box data-box-process">
+                    <div class="data-box-label">Process</div>
+                    <div class="data-box-content">Sentence Transformers: generate embeddings<br>Chunk documents for RAG<br>Store vectors in pgvector / OpenSearch<br>Store metadata in PostgreSQL<br>Store documents in S3</div>
+                    <div class="data-box-tech">Sentence Transformers + pgvector + PostgreSQL + S3</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="data-box data-box-store">
+                    <div class="data-box-label">Stored</div>
+                    <div class="data-box-content">Embeddings (768-dim vectors)<br>Document chunks (JSON)<br>Workflow metadata (SQL rows)<br>Generated files (S3 objects)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-connector"><span class="stage-connector-arrow">⬇</span></div>
+
+        <!-- Stage 7: RAG Retrieval -->
+        <div class="stage stage-7">
+            <div class="stage-header">
+                <div class="stage-num">7</div>
+                <div><div class="stage-title">RAG Retrieval & Search</div><div class="stage-desc">User queries → semantic search → LLM-augmented answers</div></div>
+            </div>
+            <div class="data-flow">
+                <div class="data-box data-box-input">
+                    <div class="data-box-label">User Query</div>
+                    <div class="data-box-content">"How do I deploy with Terraform?"<br>"Show me Docker build steps"<br>"Find all K8s deployments"</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="data-box data-box-process">
+                    <div class="data-box-label">RAG Pipeline</div>
+                    <div class="data-box-content">1. Embed query (Sentence Transformers)<br>2. Vector similarity search (pgvector)<br>3. Retrieve top-K chunks<br>4. Re-rank results<br>5. LLM generates answer with citations</div>
+                    <div class="data-box-tech">FastAPI → pgvector → Bedrock (Claude) → Response</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="data-box data-box-output">
+                    <div class="data-box-label">Response</div>
+                    <div class="data-box-content">LLM answer with source citations<br>Linked SOP documents<br>Video timestamp references<br>Confidence score per source</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Stores -->
+        <div class="stores-section">
+            <div class="stores-title">Data Stores (Read/Write Matrix)</div>
+            <div class="stores-grid">
+                <div class="store-card">
+                    <div class="store-icon">🪣</div>
+                    <div class="store-name">S3</div>
+                    <div class="store-aws">Raw + Processed Storage</div>
+                    <div class="store-data">Videos, frames, SOPs, artifacts</div>
+                    <div class="store-writes">WRITE: Stages 1, 2, 5</div>
+                    <div class="store-reads">READ: Stages 2, 3, 7</div>
+                </div>
+                <div class="store-card">
+                    <div class="store-icon">🐘</div>
+                    <div class="store-name">PostgreSQL</div>
+                    <div class="store-aws">Relational Metadata</div>
+                    <div class="store-data">Jobs, workflows, users, analysis history</div>
+                    <div class="store-writes">WRITE: Stages 1, 4, 5, 6</div>
+                    <div class="store-reads">READ: Stages 4, 5, 7</div>
+                </div>
+                <div class="store-card">
+                    <div class="store-icon">🔍</div>
+                    <div class="store-name">pgvector / OpenSearch</div>
+                    <div class="store-aws">Vector Store</div>
+                    <div class="store-data">Document embeddings (768-dim), chunk index</div>
+                    <div class="store-writes">WRITE: Stage 6</div>
+                    <div class="store-reads">READ: Stage 7 (RAG retrieval)</div>
+                </div>
+                <div class="store-card">
+                    <div class="store-icon">⚡</div>
+                    <div class="store-name">Redis</div>
+                    <div class="store-aws">Cache Layer</div>
+                    <div class="store-data">Session tokens, query cache, job status</div>
+                    <div class="store-writes">WRITE: Stages 1, 7</div>
+                    <div class="store-reads">READ: Stages 1, 7</div>
+                </div>
+                <div class="store-card">
+                    <div class="store-icon">📄</div>
+                    <div class="store-name">DynamoDB</div>
+                    <div class="store-aws">Document Metadata</div>
+                    <div class="store-data">Generated SOP index, knowledge article metadata</div>
+                    <div class="store-writes">WRITE: Stage 5</div>
+                    <div class="store-reads">READ: Stage 7</div>
+                </div>
+                <div class="store-card">
+                    <div class="store-icon">📨</div>
+                    <div class="store-name">SQS</div>
+                    <div class="store-aws">Message Queue</div>
+                    <div class="store-data">Job messages between stages</div>
+                    <div class="store-writes">WRITE: Stages 1, 2, 3, 4</div>
+                    <div class="store-reads">READ: Stages 2, 3, 4, 5</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+        <div class="legend-item"><div class="legend-box" style="border-color: #58a6ff; background: #58a6ff22;"></div>Input Data</div>
+        <div class="legend-item"><div class="legend-box" style="border-color: #d2a8ff; background: #d2a8ff22;"></div>Processing</div>
+        <div class="legend-item"><div class="legend-box" style="border-color: #7ee787; background: #7ee78722;"></div>Output Data</div>
+        <div class="legend-item"><div class="legend-box" style="border-color: #ffa657; background: #ffa65722;"></div>Data Store</div>
+    </div>
+</body>
+</html>
