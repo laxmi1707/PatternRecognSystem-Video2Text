@@ -6,7 +6,7 @@ from pydantic.alias_generators import to_camel
 
 class CamelModel(BaseModel):
     """Base for schemas that must serialize as camelCase to match the frontend's
-    AnalysisResult/WorkflowStep types (src/types/analysis.ts) exactly."""
+    types (src/types/analysis.ts) exactly."""
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
@@ -18,20 +18,29 @@ class WorkflowStep(CamelModel):
     description: str
 
 
-class AnalysisResult(CamelModel):
+class ClassificationResult(CamelModel):
+    """Matches Eshwaran's real /jobs/{id}/results shape (label/confidence/
+    probabilities) agreed on 2026-09-05 -- this is the classifier's raw
+    output, not a narrative. See SopReport for the separate SOP writeup."""
+
     id: str
     name: str
     date: str
     duration: str
-    step_count: int
     status: Literal["Complete"]
     video_url: str | None = None
+    label: str
+    confidence: float
+    probabilities: dict[str, float]
+
+
+class SopReport(CamelModel):
+    """The narrative writeup (summary + step-by-step breakdown), fetched
+    separately via GET /jobs/{id}/sop. Prototype data until the real
+    LLM/RAG generation stage exists (ReadMe.md timeline: Oct 15)."""
+
     summary: str
     steps: list[WorkflowStep]
-    # One of the 10 classes in ReadMe.md's "Target Classes" list. The stub
-    # assigns this deterministically from the filename -- the real classifier
-    # (app/ml/ on feat/pattern-recognition) will replace it once it's wired up.
-    category: str
 
 
 class VideoUploadResponse(BaseModel):

@@ -1,15 +1,16 @@
-import type { AnalysisResult } from '../types/analysis';
-import { VideoResults } from '../components/video/VideoResults';
+import type { ClassificationResult } from '../types/analysis';
+import { ClassificationResults } from '../components/video/ClassificationResults';
 
 interface ResultsPageProps {
-  result: AnalysisResult;
+  result: ClassificationResult;
   onAnalyzeAnother: () => void;
+  onViewReport: () => void;
 }
 
-export function ResultsPage({ result, onAnalyzeAnother }: ResultsPageProps) {
+export function ResultsPage({ result, onAnalyzeAnother, onViewReport }: ResultsPageProps) {
   return (
     <div className="page page-wide">
-      <VideoResults result={result} onAnalyzeAnother={onAnalyzeAnother} />
+      <ClassificationResults result={result} onAnalyzeAnother={onAnalyzeAnother} onViewReport={onViewReport} />
     </div>
   );
 }

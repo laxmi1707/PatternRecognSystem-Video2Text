@@ -11,12 +11,12 @@ describe('DashboardPage', () => {
     expect(card).toHaveTextContent(String(history.length));
   });
 
-  it('renders one bar per category present in history', () => {
+  it('renders one bar per label present in history', () => {
     const history = getMockHistory();
     render(<DashboardPage history={history} />);
-    const categories = new Set(history.map(h => h.category));
-    categories.forEach(category => {
-      expect(screen.getByText(category)).toBeInTheDocument();
+    const labels = new Set(history.map(h => h.label));
+    labels.forEach(label => {
+      expect(screen.getByText(label)).toBeInTheDocument();
     });
   });
 

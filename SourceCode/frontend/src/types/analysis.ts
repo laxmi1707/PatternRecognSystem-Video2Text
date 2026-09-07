@@ -5,18 +5,26 @@ export interface WorkflowStep {
   description: string;
 }
 
-export interface AnalysisResult {
+/** Matches the real backend's /jobs/{id}/results shape (agreed with Eshwaran
+ * 2026-09-05) -- the classifier's raw output, not a narrative. */
+export interface ClassificationResult {
   id: string;
   name: string;
   date: string;
   duration: string;
-  stepCount: number;
   status: 'Complete';
   videoUrl: string | null;
+  /** One of the 10 classes in the project ReadMe.md's "Target Classes" list. */
+  label: string;
+  confidence: number;
+  probabilities: Record<string, number>;
+}
+
+/** The narrative SOP writeup, fetched separately from the classification.
+ * Prototype data until the real LLM/RAG generation stage exists. */
+export interface SopReport {
   summary: string;
   steps: WorkflowStep[];
-  /** One of the 10 classes in the project ReadMe.md's "Target Classes" list. */
-  category: string;
 }
 
 export interface SearchResultItem {
@@ -26,4 +34,4 @@ export interface SearchResultItem {
   score: number;
 }
 
-export type Screen = 'upload' | 'analyzing' | 'results' | 'history' | 'dashboard' | 'search';
+export type Screen = 'upload' | 'analyzing' | 'results' | 'history' | 'dashboard' | 'search' | 'report';

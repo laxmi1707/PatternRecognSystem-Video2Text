@@ -5,12 +5,14 @@ import { ResultsPage } from './pages/ResultsPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { SearchPage } from './pages/SearchPage';
+import { ReportPage } from './pages/ReportPage';
 import { useVideoAnalysis } from './hooks/useVideoAnalysis';
 
 export default function App() {
   const {
     screen, fileName, videoUrl, progress, phase, current, history, error,
-    startAnalysis, goUpload, goHistory, goDashboard, goSearch, viewHistory,
+    reportTarget, report, reportLoading,
+    startAnalysis, goUpload, goHistory, goDashboard, goSearch, viewHistory, viewReport,
   } = useVideoAnalysis(3);
 
   return (
@@ -20,10 +22,15 @@ export default function App() {
       {screen === 'analyzing' && (
         <AnalyzingPage fileName={fileName} videoUrl={videoUrl} progress={progress} phase={phase} onCancel={goUpload} />
       )}
-      {screen === 'results' && current && <ResultsPage result={current} onAnalyzeAnother={goUpload} />}
-      {screen === 'history' && <HistoryPage history={history} onView={viewHistory} />}
+      {screen === 'results' && current && (
+        <ResultsPage result={current} onAnalyzeAnother={goUpload} onViewReport={() => viewReport(current)} />
+      )}
+      {screen === 'history' && <HistoryPage history={history} onView={viewHistory} onViewReport={viewReport} />}
       {screen === 'dashboard' && <DashboardPage history={history} />}
       {screen === 'search' && <SearchPage />}
+      {screen === 'report' && reportTarget && (
+        <ReportPage target={reportTarget} report={report} loading={reportLoading} onBack={() => viewHistory(reportTarget)} />
+      )}
     </div>
   );
 }

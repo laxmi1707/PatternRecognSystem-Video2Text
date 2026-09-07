@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AnalysisResult, Screen } from '../types/analysis';
-import { analyzeVideo, getMockHistory, fetchHistory, isRealApi, AnalyzeHandle, AnalysisPhase } from '../services/api/analysisService';
+import type { ClassificationResult, Screen, SopReport } from '../types/analysis';
+import { analyzeVideo, getMockHistory, fetchHistory, fetchSopReport, isRealApi, AnalyzeHandle, AnalysisPhase } from '../services/api/analysisService';
 
 export function useVideoAnalysis(analysisSeconds = 3) {
   const [screen, setScreen] = useState<Screen>('upload');
@@ -8,9 +8,12 @@ export function useVideoAnalysis(analysisSeconds = 3) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState<AnalysisPhase>('processing');
-  const [current, setCurrent] = useState<AnalysisResult | null>(null);
-  const [history, setHistory] = useState<AnalysisResult[]>(() => (isRealApi ? [] : getMockHistory()));
+  const [current, setCurrent] = useState<ClassificationResult | null>(null);
+  const [history, setHistory] = useState<ClassificationResult[]>(() => (isRealApi ? [] : getMockHistory()));
   const [error, setError] = useState<string | null>(null);
+  const [reportTarget, setReportTarget] = useState<ClassificationResult | null>(null);
+  const [report, setReport] = useState<SopReport | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
   const handleRef = useRef<AnalyzeHandle | null>(null);
 
   useEffect(() => {
@@ -58,10 +61,25 @@ export function useVideoAnalysis(analysisSeconds = 3) {
   const goDashboard = useCallback(() => setScreen('dashboard'), []);
   const goSearch = useCallback(() => setScreen('search'), []);
 
-  const viewHistory = useCallback((item: AnalysisResult) => {
+  const viewHistory = useCallback((item: ClassificationResult) => {
     setCurrent(item);
     setScreen('results');
   }, []);
 
-  return { screen, fileName, videoUrl, progress, phase, current, history, error, startAnalysis, goUpload, goHistory, goDashboard, goSearch, viewHistory };
+  const viewReport = useCallback((item: ClassificationResult) => {
+    setReportTarget(item);
+    setReport(null);
+    setReportLoading(true);
+    setScreen('report');
+    fetchSopReport(item.id)
+      .then(setReport)
+      .catch(err => setError(err instanceof Error ? err.message : 'Failed to load report'))
+      .finally(() => setReportLoading(false));
+  }, []);
+
+  return {
+    screen, fileName, videoUrl, progress, phase, current, history, error,
+    reportTarget, report, reportLoading,
+    startAnalysis, goUpload, goHistory, goDashboard, goSearch, viewHistory, viewReport,
+  };
 }

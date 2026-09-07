@@ -34,6 +34,16 @@ describe('useVideoAnalysis', () => {
     expect(result.current.current).toBe(item);
   });
 
+  it('viewReport fetches and shows the SOP report for an item', async () => {
+    const { result } = renderHook(() => useVideoAnalysis(1));
+    const item = result.current.history[0];
+    await act(async () => { result.current.viewReport(item); });
+    expect(result.current.screen).toBe('report');
+    expect(result.current.reportTarget).toBe(item);
+    expect(result.current.reportLoading).toBe(false);
+    expect(result.current.report?.steps.length).toBeGreaterThan(0);
+  });
+
   it('goUpload resets progress and returns to upload', () => {
     const { result } = renderHook(() => useVideoAnalysis(1));
     act(() => { result.current.startAnalysis(new File(['x'], 'a.mp4')); });

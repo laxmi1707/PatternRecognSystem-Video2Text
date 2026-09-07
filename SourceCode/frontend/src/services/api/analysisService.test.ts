@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { analyzeVideo, getMockHistory, SCREEN_RECORDING_STEPS } from './analysisService';
+import { analyzeVideo, getMockHistory } from './analysisService';
 
 describe('getMockHistory', () => {
-  it('returns entries whose stepCount matches their steps array', () => {
+  it('returns entries whose label appears in their own probabilities', () => {
     const history = getMockHistory();
     expect(history.length).toBeGreaterThan(0);
     history.forEach(item => {
-      expect(item.stepCount).toBe(item.steps.length);
+      expect(item.probabilities[item.label]).toBe(item.confidence);
     });
   });
 });
@@ -15,7 +15,7 @@ describe('analyzeVideo', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it('reports progress up to 100 and completes with all steps', () => {
+  it('reports progress up to 100 and completes with a classification', () => {
     const file = new File(['x'], 'clip.mp4', { type: 'video/mp4' });
     const onProgress = vi.fn();
     const onComplete = vi.fn();
@@ -26,7 +26,9 @@ describe('analyzeVideo', () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
     const result = onComplete.mock.calls[0][0];
     expect(result.name).toBe('clip.mp4');
-    expect(result.steps).toHaveLength(SCREEN_RECORDING_STEPS.length);
+    expect(typeof result.label).toBe('string');
+    expect(result.confidence).toBeGreaterThan(0);
+    expect(result.confidence).toBeLessThanOrEqual(1);
     expect(onProgress).toHaveBeenLastCalledWith(100);
   });
 

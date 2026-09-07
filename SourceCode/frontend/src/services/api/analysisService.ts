@@ -1,4 +1,4 @@
-import type { AnalysisResult, SearchResultItem, WorkflowStep } from '../../types/analysis';
+import type { ClassificationResult, SearchResultItem, SopReport, WorkflowStep } from '../../types/analysis';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 export const isRealApi = Boolean(API_BASE_URL);
@@ -13,50 +13,50 @@ export const SCREEN_RECORDING_STEPS: WorkflowStep[] = [
   { n: 7, time: '1:30-1:47', title: 'Verified the result', description: 'The dev server restarts and the running app is reviewed in the browser.' },
 ];
 
-export function getMockHistory(): AnalysisResult[] {
+/** Prototype SOP writeup -- not produced by a real LLM/RAG stage yet, so
+ * every job gets the same canned content in mock mode (mirrors the backend
+ * stub's behavior). */
+const MOCK_SOP_REPORT: SopReport = {
+  summary: 'The recording shows a developer pulling the latest changes, installing dependencies, and verifying the app in the browser.',
+  steps: SCREEN_RECORDING_STEPS,
+};
+
+export function getMockHistory(): ClassificationResult[] {
   return [
     {
-      id: 'h1', name: 'onboarding-demo.mov', date: 'Aug 5, 2026', duration: '2:14', stepCount: 4,
-      status: 'Complete', videoUrl: null, category: 'coding_editing',
-      summary: 'A new engineer clones the starter repo, installs dependencies, and runs the app for the first time.',
-      steps: [
-        { n: 1, time: '0:00-0:18', title: 'Cloned the starter repository', description: '"git clone" is run in a fresh terminal window.' },
-        { n: 2, time: '0:18-0:52', title: 'Installed dependencies', description: '"npm install" runs, pulling down the project\'s packages.' },
-        { n: 3, time: '0:52-1:40', title: 'Configured environment variables', description: 'A .env file is created and filled in with local credentials.' },
-        { n: 4, time: '1:40-2:14', title: 'Started the dev server', description: '"npm run dev" starts the app, opened and reviewed in the browser.' },
-      ],
+      id: 'h1', name: 'onboarding-demo.mov', date: 'Aug 5, 2026', duration: '2:14',
+      status: 'Complete', videoUrl: null,
+      label: 'coding_editing', confidence: 0.82,
+      probabilities: { coding_editing: 0.82, documentation: 0.09, debugging: 0.05, other: 0.04 },
     },
     {
-      id: 'h2', name: 'bug-repro.mp4', date: 'Aug 3, 2026', duration: '0:58', stepCount: 4,
-      status: 'Complete', videoUrl: null, category: 'debugging',
-      summary: 'A reported bug is reproduced by navigating to a settings page and triggering a failing action.',
-      steps: [
-        { n: 1, time: '0:00-0:11', title: 'Opened the app in the browser', description: 'The staging environment loads in a new tab.' },
-        { n: 2, time: '0:11-0:27', title: 'Navigated to the settings page', description: 'The user opens Settings from the left sidebar.' },
-        { n: 3, time: '0:27-0:44', title: 'Triggered the failing action', description: 'Clicking "Save" produces an error toast.' },
-        { n: 4, time: '0:44-0:58', title: 'Opened developer tools', description: 'The console is opened to inspect the error.' },
-      ],
+      id: 'h2', name: 'bug-repro.mp4', date: 'Aug 3, 2026', duration: '0:58',
+      status: 'Complete', videoUrl: null,
+      label: 'debugging', confidence: 0.74,
+      probabilities: { debugging: 0.74, coding_editing: 0.15, other: 0.11 },
     },
     {
-      id: 'h3', name: 'deploy-walkthrough.webm', date: 'Jul 29, 2026', duration: '3:02', stepCount: 5,
-      status: 'Complete', videoUrl: null, category: 'jenkins_ci_cd',
-      summary: 'A production deploy is walked through, from branch merge to live verification.',
-      steps: [
-        { n: 1, time: '0:00-0:24', title: 'Merged the release branch', description: 'A pull request is merged into main.' },
-        { n: 2, time: '0:24-1:10', title: 'Triggered the deploy pipeline', description: 'The CI dashboard shows the build starting.' },
-        { n: 3, time: '1:10-2:05', title: 'Watched the build complete', description: 'Build and deploy stages finish successfully.' },
-        { n: 4, time: '2:05-2:40', title: 'Opened the production URL', description: 'The live site loads in a new browser tab.' },
-        { n: 5, time: '2:40-3:02', title: 'Verified the change', description: 'The updated feature is checked on the live site.' },
-      ],
+      id: 'h3', name: 'deploy-walkthrough.webm', date: 'Jul 29, 2026', duration: '3:02',
+      status: 'Complete', videoUrl: null,
+      label: 'jenkins_ci_cd', confidence: 0.68,
+      probabilities: { jenkins_ci_cd: 0.68, docker_workflow: 0.18, aws_console: 0.09, other: 0.05 },
     },
   ];
 }
 
 /** Fetches the real backend's job list. Only call when `isRealApi` is true. */
-export async function fetchHistory(): Promise<AnalysisResult[]> {
+export async function fetchHistory(): Promise<ClassificationResult[]> {
   const res = await fetch(`${API_BASE_URL}/api/v1/jobs`);
   if (!res.ok) throw new Error(`Failed to load history (HTTP ${res.status})`);
-  return (await res.json()) as AnalysisResult[];
+  return (await res.json()) as ClassificationResult[];
+}
+
+/** Real backend: GET /api/v1/jobs/{id}/sop. Mock mode: one canned report. */
+export async function fetchSopReport(id: string): Promise<SopReport> {
+  if (!isRealApi) return MOCK_SOP_REPORT;
+  const res = await fetch(`${API_BASE_URL}/api/v1/jobs/${id}/sop`);
+  if (!res.ok) throw new Error(`Failed to load report (HTTP ${res.status})`);
+  return (await res.json()) as SopReport;
 }
 
 const MOCK_SEARCH_RESULTS: SearchResultItem[] = [
@@ -90,11 +90,21 @@ interface JobStatusResponse {
 
 export type AnalysisPhase = 'uploading' | 'processing';
 
+function fakeMockPrediction(filename: string): { label: string; confidence: number; probabilities: Record<string, number> } {
+  const labels = ['git_operations', 'docker_workflow', 'kubernetes_ops', 'terraform_iac', 'aws_console', 'jenkins_ci_cd', 'coding_editing', 'debugging', 'documentation', 'other'];
+  let hash = 0;
+  for (let i = 0; i < filename.length; i++) hash = (hash * 31 + filename.charCodeAt(i)) >>> 0;
+  const label = labels[hash % labels.length];
+  const confidence = Math.round((0.55 + (hash % 41) / 100) * 100) / 100;
+  const remaining = Math.round((1 - confidence) * 100) / 100;
+  return { label, confidence, probabilities: { [label]: confidence, other: remaining } };
+}
+
 function simulateAnalysis(
   file: File,
   durationSeconds: number,
   onProgress: (pct: number) => void,
-  onComplete: (result: AnalysisResult) => void,
+  onComplete: (result: ClassificationResult) => void,
   onPhaseChange?: (phase: AnalysisPhase) => void
 ): AnalyzeHandle {
   onPhaseChange?.('processing');
@@ -107,19 +117,17 @@ function simulateAnalysis(
     onProgress(progress);
     if (progress >= 100) {
       clearInterval(timer);
-      const steps = SCREEN_RECORDING_STEPS;
-      const last = steps[steps.length - 1];
+      const { label, confidence, probabilities } = fakeMockPrediction(file.name);
       onComplete({
         id: String(Date.now()),
         name: file.name,
         date: 'Today',
-        duration: last.time.split('-')[1],
-        stepCount: steps.length,
+        duration: SCREEN_RECORDING_STEPS[SCREEN_RECORDING_STEPS.length - 1].time.split('-')[1],
         status: 'Complete',
         videoUrl,
-        category: 'coding_editing',
-        summary: 'The recording shows a developer pulling the latest changes, installing dependencies, and verifying the app in the browser.',
-        steps,
+        label,
+        confidence,
+        probabilities,
       });
     }
   }, tickMs);
@@ -134,7 +142,7 @@ function toMessage(err: unknown): string {
 function runRealAnalysis(
   file: File,
   onProgress: (pct: number) => void,
-  onComplete: (result: AnalysisResult) => void,
+  onComplete: (result: ClassificationResult) => void,
   onError: (message: string) => void,
   onPhaseChange?: (phase: AnalysisPhase) => void
 ): AnalyzeHandle {
@@ -187,7 +195,7 @@ function runRealAnalysis(
               fail(`Fetching results failed (HTTP ${resultsRes.status})`);
               return;
             }
-            const result = (await resultsRes.json()) as AnalysisResult;
+            const result = (await resultsRes.json()) as ClassificationResult;
             if (!cancelled) onComplete(result);
           } else if (data.status === 'failed') {
             fail(data.error ?? 'Analysis failed');
@@ -214,7 +222,7 @@ export function analyzeVideo(
   file: File,
   durationSeconds: number,
   onProgress: (pct: number) => void,
-  onComplete: (result: AnalysisResult) => void,
+  onComplete: (result: ClassificationResult) => void,
   onError?: (message: string) => void,
   onPhaseChange?: (phase: AnalysisPhase) => void
 ): AnalyzeHandle {

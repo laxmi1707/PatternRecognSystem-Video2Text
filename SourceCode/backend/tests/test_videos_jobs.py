@@ -75,6 +75,22 @@ async def test_upload_then_poll_then_fetch_results(client: AsyncClient):
     assert results_resp.status_code == 200
     result = results_resp.json()
     assert result["name"] == "clip.mp4"
-    assert result["stepCount"] == len(result["steps"])
     assert result["status"] == "Complete"
-    assert result["category"] in analysis_service_module.CATEGORIES
+    assert result["label"] in analysis_service_module.LABELS
+    assert 0.0 <= result["confidence"] <= 1.0
+    assert result["label"] in result["probabilities"]
+
+    sop_resp = await client.get(f"/api/v1/jobs/{job_id}/sop")
+    assert sop_resp.status_code == 200
+    sop = sop_resp.json()
+    assert sop["steps"]
+    assert sop["summary"]
+
+
+async def test_sop_not_ready_returns_409(client: AsyncClient):
+    files = {"file": ("clip.mp4", b"fake video bytes", "video/mp4")}
+    upload_resp = await client.post("/api/v1/videos/upload", files=files)
+    job_id = upload_resp.json()["id"]
+
+    sop_resp = await client.get(f"/api/v1/jobs/{job_id}/sop")
+    assert sop_resp.status_code == 409
