@@ -25,7 +25,14 @@ export function AnalyzingProgress({
       <div className="spinner" role="status" aria-label="Analyzing" />
       <h3>{copy.heading}</h3>
       <p className="text-muted">{fileName}</p>
-      <div className="progress-track">
+      <div
+        className="progress-track"
+        role="progressbar"
+        aria-label={copy.heading}
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
         <div className="progress-fill" style={{ width: pct + '%' }} data-testid="progress-fill" />
       </div>
       <p className="text-muted" style={{ fontSize: 12 }}>{pct}% - {copy.caption}</p>

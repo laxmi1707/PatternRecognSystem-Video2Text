@@ -11,7 +11,7 @@ import { useVideoAnalysis } from './hooks/useVideoAnalysis';
 export default function App() {
   const {
     screen, fileName, videoUrl, progress, phase, current, history, error,
-    reportTarget, report, reportLoading,
+    reportTarget, report, reportLoading, reportError,
     startAnalysis, goUpload, goHistory, goDashboard, goSearch, viewHistory, viewReport,
   } = useVideoAnalysis(3);
 
@@ -29,7 +29,13 @@ export default function App() {
       {screen === 'dashboard' && <DashboardPage history={history} />}
       {screen === 'search' && <SearchPage />}
       {screen === 'report' && reportTarget && (
-        <ReportPage target={reportTarget} report={report} loading={reportLoading} onBack={() => viewHistory(reportTarget)} />
+        <ReportPage
+          target={reportTarget}
+          report={report}
+          loading={reportLoading}
+          error={reportError}
+          onBack={() => viewHistory(reportTarget)}
+        />
       )}
     </div>
   );

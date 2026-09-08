@@ -92,3 +92,16 @@
 .classification-headline { display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }
 .classification-label { font-size: 16px; padding: 6px 14px; }
 .classification-confidence { color: color-mix(in srgb, var(--color-text) 65%, transparent); font-size: 14px; }
+
+.table-wrap { overflow-x: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2.4s; }
+}
+
+@media (max-width: 640px) {
+  .page { padding: var(--space-6) var(--space-3); }
+  .results-grid { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: 96px 1fr 32px; }
+  .bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}

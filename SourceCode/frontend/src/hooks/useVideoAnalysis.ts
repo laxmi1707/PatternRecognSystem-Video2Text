@@ -14,6 +14,7 @@ export function useVideoAnalysis(analysisSeconds = 3) {
   const [reportTarget, setReportTarget] = useState<ClassificationResult | null>(null);
   const [report, setReport] = useState<SopReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
   const handleRef = useRef<AnalyzeHandle | null>(null);
 
   useEffect(() => {
@@ -69,17 +70,18 @@ export function useVideoAnalysis(analysisSeconds = 3) {
   const viewReport = useCallback((item: ClassificationResult) => {
     setReportTarget(item);
     setReport(null);
+    setReportError(null);
     setReportLoading(true);
     setScreen('report');
     fetchSopReport(item.id)
       .then(setReport)
-      .catch(err => setError(err instanceof Error ? err.message : 'Failed to load report'))
+      .catch(err => setReportError(err instanceof Error ? err.message : 'Failed to load report'))
       .finally(() => setReportLoading(false));
   }, []);
 
   return {
     screen, fileName, videoUrl, progress, phase, current, history, error,
-    reportTarget, report, reportLoading,
+    reportTarget, report, reportLoading, reportError,
     startAnalysis, goUpload, goHistory, goDashboard, goSearch, viewHistory, viewReport,
   };
 }

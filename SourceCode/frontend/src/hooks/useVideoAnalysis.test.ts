@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useVideoAnalysis } from './useVideoAnalysis';
+import * as analysisService from '../services/api/analysisService';
 
 describe('useVideoAnalysis', () => {
   beforeEach(() => vi.useFakeTimers());
@@ -42,6 +43,18 @@ describe('useVideoAnalysis', () => {
     expect(result.current.reportTarget).toBe(item);
     expect(result.current.reportLoading).toBe(false);
     expect(result.current.report?.steps.length).toBeGreaterThan(0);
+  });
+
+  it('viewReport surfaces a fetch failure instead of spinning forever', async () => {
+    const spy = vi.spyOn(analysisService, 'fetchSopReport').mockRejectedValueOnce(new Error('network down'));
+    const { result } = renderHook(() => useVideoAnalysis(1));
+    const item = result.current.history[0];
+    await act(async () => { result.current.viewReport(item); });
+    expect(result.current.screen).toBe('report');
+    expect(result.current.reportLoading).toBe(false);
+    expect(result.current.reportError).toBe('network down');
+    expect(result.current.report).toBeNull();
+    spy.mockRestore();
   });
 
   it('goUpload resets progress and returns to upload', () => {
