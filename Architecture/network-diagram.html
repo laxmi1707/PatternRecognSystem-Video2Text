@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video2Knowledge - Network Diagram</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 40px;
+            min-height: 100vh;
+        }
+        h1 { text-align: center; font-size: 26px; margin-bottom: 8px; color: #f0f6fc; }
+        .subtitle { text-align: center; font-size: 13px; color: #8b949e; margin-bottom: 40px; }
+        .diagram {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+
+        /* Network zones */
+        .zone {
+            border: 2px solid #30363d;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        .zone-title {
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: #0d1117;
+            padding: 0 12px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .zone-cidr {
+            position: absolute;
+            top: -12px;
+            right: 20px;
+            background: #0d1117;
+            padding: 0 8px;
+            font-size: 10px;
+            font-family: monospace;
+            color: #8b949e;
+        }
+
+        .zone-internet { border-color: #f85149; }
+        .zone-internet .zone-title { color: #f85149; }
+        .zone-edge { border-color: #f0883e; }
+        .zone-edge .zone-title { color: #f0883e; }
+        .zone-vpc { border-color: #58a6ff; }
+        .zone-vpc .zone-title { color: #58a6ff; }
+        .zone-public { border-color: #7ee787; border-style: dashed; }
+        .zone-public .zone-title { color: #7ee787; }
+        .zone-private-app { border-color: #d2a8ff; border-style: dashed; }
+        .zone-private-app .zone-title { color: #d2a8ff; }
+        .zone-private-ml { border-color: #ff7b72; border-style: dashed; }
+        .zone-private-ml .zone-title { color: #ff7b72; }
+        .zone-private-data { border-color: #ffa657; border-style: dashed; }
+        .zone-private-data .zone-title { color: #ffa657; }
+
+        .nodes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+        }
+        .node {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 12px 16px;
+            text-align: center;
+            min-width: 120px;
+        }
+        .node:hover { border-color: #58a6ff; }
+        .node-icon { font-size: 24px; margin-bottom: 4px; }
+        .node-name { font-size: 11px; font-weight: 600; color: #f0f6fc; }
+        .node-detail { font-size: 9px; color: #8b949e; margin-top: 2px; }
+        .node-port { font-size: 9px; color: #7ee787; font-family: monospace; margin-top: 2px; }
+
+        .conn {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 6px 0;
+        }
+        .conn-arrow { color: #484f58; font-size: 16px; }
+        .conn-label { font-size: 10px; color: #6e7681; margin: 0 8px; font-family: monospace; }
+
+        .subnets {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .subnet {
+            border: 1px dashed #30363d;
+            border-radius: 8px;
+            padding: 14px;
+            position: relative;
+        }
+        .subnet-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .subnet-az {
+            font-size: 9px;
+            color: #484f58;
+            text-align: center;
+            margin-bottom: 6px;
+            font-family: monospace;
+        }
+
+        .sg-badge {
+            display: inline-block;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-size: 9px;
+            color: #79c0ff;
+            font-family: monospace;
+            margin-top: 4px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #f0f6fc;
+            margin: 32px auto 16px;
+            max-width: 1200px;
+        }
+        .sg-table {
+            max-width: 1200px;
+            margin: 0 auto 24px;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background: #161b22;
+            padding: 10px 14px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: #f0f6fc;
+            border-bottom: 1px solid #30363d;
+        }
+        td {
+            padding: 8px 14px;
+            font-size: 11px;
+            color: #c9d1d9;
+            border-bottom: 1px solid #21262d;
+            font-family: monospace;
+        }
+        tr:last-child td { border-bottom: none; }
+
+        .legend {
+            margin-top: 24px;
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #8b949e; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        @media (max-width: 768px) {
+            .subnets { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Video2Knowledge - Network Diagram</h1>
+    <p class="subtitle">AWS VPC Network Architecture | Multi-AZ Deployment | Security Group Boundaries</p>
+
+    <div class="diagram">
+
+        <!-- Internet / Users -->
+        <div class="zone zone-internet">
+            <span class="zone-title">Internet</span>
+            <div class="nodes">
+                <div class="node">
+                    <div class="node-icon">👤</div>
+                    <div class="node-name">End Users</div>
+                    <div class="node-detail">Browser / Mobile</div>
+                </div>
+                <div class="node">
+                    <div class="node-icon">🔒</div>
+                    <div class="node-name">Route 53</div>
+                    <div class="node-detail">DNS Resolution</div>
+                    <div class="node-port">TCP 53</div>
+                </div>
+                <div class="node">
+                    <div class="node-icon">🛡️</div>
+                    <div class="node-name">AWS WAF</div>
+                    <div class="node-detail">DDoS + SQL injection protection</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="conn">
+            <span class="conn-arrow">↕</span>
+            <span class="conn-label">HTTPS :443</span>
+            <span class="conn-arrow">↕</span>
+        </div>
+
+        <!-- Edge / CDN -->
+        <div class="zone zone-edge">
+            <span class="zone-title">AWS Edge Network</span>
+            <div class="nodes">
+                <div class="node">
+                    <div class="node-icon">🌐</div>
+                    <div class="node-name">CloudFront</div>
+                    <div class="node-detail">CDN + SSL termination</div>
+                    <div class="node-port">:443 → S3 origin</div>
+                </div>
+                <div class="node">
+                    <div class="node-icon">🚪</div>
+                    <div class="node-name">API Gateway</div>
+                    <div class="node-detail">REST API endpoint</div>
+                    <div class="node-port">:443 → VPC Link</div>
+                </div>
+                <div class="node">
+                    <div class="node-icon">🔐</div>
+                    <div class="node-name">Cognito</div>
+                    <div class="node-detail">OAuth2 / JWT issuer</div>
+                    <div class="node-port">:443 OIDC</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="conn">
+            <span class="conn-arrow">↕</span>
+            <span class="conn-label">VPC Link / PrivateLink</span>
+            <span class="conn-arrow">↕</span>
+        </div>
+
+        <!-- VPC -->
+        <div class="zone zone-vpc">
+            <span class="zone-title">VPC: video2knowledge-vpc</span>
+            <span class="zone-cidr">10.0.0.0/16</span>
+
+            <!-- Public Subnets -->
+            <div class="zone zone-public" style="margin-bottom: 16px;">
+                <span class="zone-title">Public Subnets</span>
+                <div class="subnets">
+                    <div class="subnet">
+                        <div class="subnet-az">ap-southeast-1a</div>
+                        <div class="subnet-label">Public Subnet A (10.0.1.0/24)</div>
+                        <div class="nodes">
+                            <div class="node">
+                                <div class="node-icon">🔀</div>
+                                <div class="node-name">ALB</div>
+                                <div class="node-detail">Application Load Balancer</div>
+                                <div class="node-port">:443 → :8000</div>
+                                <div class="sg-badge">sg-alb</div>
+                            </div>
+                            <div class="node">
+                                <div class="node-icon">🌐</div>
+                                <div class="node-name">NAT Gateway</div>
+                                <div class="node-detail">Outbound internet for private subnets</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="subnet">
+                        <div class="subnet-az">ap-southeast-1b</div>
+                        <div class="subnet-label">Public Subnet B (10.0.2.0/24)</div>
+                        <div class="nodes">
+                            <div class="node">
+                                <div class="node-icon">🔀</div>
+                                <div class="node-name">ALB (standby)</div>
+                                <div class="node-detail">Multi-AZ failover</div>
+                                <div class="node-port">:443 → :8000</div>
+                                <div class="sg-badge">sg-alb</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="conn">
+                <span class="conn-arrow">↕</span>
+                <span class="conn-label">:8000 (FastAPI) + :8501 (SageMaker)</span>
+                <span class="conn-arrow">↕</span>
+            </div>
+
+            <!-- Private App Subnets -->
+            <div class="zone zone-private-app" style="margin-bottom: 16px;">
+                <span class="zone-title">Private App Subnets</span>
+                <div class="subnets">
+                    <div class="subnet">
+                        <div class="subnet-az">ap-southeast-1a</div>
+                        <div class="subnet-label">App Subnet A (10.0.10.0/24)</div>
+                        <div class="nodes">
+                            <div class="node">
+                                <div class="node-icon">⚡</div>
+                                <div class="node-name">ECS Fargate</div>
+                                <div class="node-detail">FastAPI containers</div>
+                                <div class="node-port">:8000</div>
+                                <div class="sg-badge">sg-ecs</div>
+                            </div>
+                            <div class="node">
+                                <div class="node-icon">⚙️</div>
+                                <div class="node-name">Lambda</div>
+                                <div class="node-detail">Preprocessing workers</div>
+                                <div class="sg-badge">sg-lambda</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="subnet">
+                        <div class="subnet-az">ap-southeast-1b</div>
+                        <div class="subnet-label">App Subnet B (10.0.11.0/24)</div>
+                        <div class="nodes">
+                            <div class="node">
+                                <div class="node-icon">⚡</div>
+                                <div class="node-name">ECS Fargate</div>
+                                <div class="node-detail">FastAPI (replica)</div>
+                                <div class="node-port">:8000</div>
+                                <div class="sg-badge">sg-ecs</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="conn">
+                <span class="conn-arrow">↕</span>
+                <span class="conn-label">VPC Endpoint / PrivateLink</span>
+                <span class="conn-arrow">↕</span>
+            </div>
+
+            <!-- Private ML Subnets -->
+            <div class="zone zone-private-ml" style="margin-bottom: 16px;">
+                <span class="zone-title">Private ML Subnets</span>
+                <div class="subnets">
+                    <div class="subnet">
+                        <div class="subnet-az">ap-southeast-1a</div>
+                        <div class="subnet-label">ML Subnet A (10.0.20.0/24)</div>
+                        <div class="nodes">
+                            <div class="node">
+                                <div class="node-icon">🧠</div>
+                                <div class="node-name">SageMaker Endpoint</div>
+                                <div class="node-detail">Multi-tier classifier inference</div>
+                                <div class="node-port">:8501</div>
+                                <div class="sg-badge">sg-sagemaker</div>
+                            </div>
+                            <div class="node">
+                                <div class="node-icon">📐</div>
+                                <div class="node-name">SageMaker Training</div>
+                                <div class="node-detail">Model training jobs</div>
+                                <div class="sg-badge">sg-sagemaker</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="subnet">
+                        <div class="subnet-az">ap-southeast-1b</div>
+                        <div class="subnet-label">ML Subnet B (10.0.21.0/24)</div>
+                        <div class="nodes">
+                            <div class="node">
+                                <div class="node-icon">🧠</div>
+                                <div class="node-name">SageMaker Endpoint</div>
+                                <div class="node-detail">Multi-AZ inference</div>
+                                <div class="node-port">:8501</div>
+                                <div class="sg-badge">sg-sagemaker</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="conn">
+                <span class="conn-arrow">↕</span>
+                <span class="conn-label">:5432 (PG) + :6379 (Redis) + :9200 (OS)</span>
+                <span class="conn-arrow">↕</span>
+            </div>
+
+            <!-- Private Data Subnets -->
+            <div class="zone zone-private-data">
+                <span class="zone-title">Private Data Subnets (Isolated)</span>
+                <div class="subnets">
+                    <div class="subnet">
+                        <div class="subnet-az">ap-southeast-1a</div>
+                        <div class="subnet-label">Data Subnet A (10.0.30.0/24)</div>
+                        <div class="nodes">
+                            <div class="node">
+                                <div class="node-icon">🐘</div>
+                                <div class="node-name">RDS PostgreSQL</div>
+                                <div class="node-detail">Primary + pgvector</div>
+                                <div class="node-port">:5432</div>
+                                <div class="sg-badge">sg-rds</div>
+                            </div>
+                            <div class="node">
+                                <div class="node-icon">⚡</div>
+                                <div class="node-name">ElastiCache</div>
+                                <div class="node-detail">Redis primary</div>
+                                <div class="node-port">:6379</div>
+                                <div class="sg-badge">sg-redis</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="subnet">
+                        <div class="subnet-az">ap-southeast-1b</div>
+                        <div class="subnet-label">Data Subnet B (10.0.31.0/24)</div>
+                        <div class="nodes">
+                            <div class="node">
+                                <div class="node-icon">🐘</div>
+                                <div class="node-name">RDS PostgreSQL</div>
+                                <div class="node-detail">Standby replica</div>
+                                <div class="node-port">:5432</div>
+                                <div class="sg-badge">sg-rds</div>
+                            </div>
+                            <div class="node">
+                                <div class="node-icon">🔍</div>
+                                <div class="node-name">OpenSearch</div>
+                                <div class="node-detail">Vector + full-text</div>
+                                <div class="node-port">:9200</div>
+                                <div class="sg-badge">sg-opensearch</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VPC Endpoints -->
+        <div class="zone" style="border-color: #484f58; margin-top: 16px;">
+            <span class="zone-title" style="color: #484f58;">VPC Endpoints (PrivateLink)</span>
+            <div class="nodes">
+                <div class="node"><div class="node-icon">🪣</div><div class="node-name">S3 Gateway</div><div class="node-detail">com.amazonaws.ap-southeast-1.s3</div></div>
+                <div class="node"><div class="node-icon">📨</div><div class="node-name">SQS Interface</div><div class="node-detail">com.amazonaws...sqs</div></div>
+                <div class="node"><div class="node-icon">🧠</div><div class="node-name">SageMaker API</div><div class="node-detail">com.amazonaws...sagemaker.api</div></div>
+                <div class="node"><div class="node-icon">🔑</div><div class="node-name">Secrets Manager</div><div class="node-detail">com.amazonaws...secretsmanager</div></div>
+                <div class="node"><div class="node-icon">📊</div><div class="node-name">CloudWatch</div><div class="node-detail">com.amazonaws...logs</div></div>
+                <div class="node"><div class="node-icon">📦</div><div class="node-name">ECR</div><div class="node-detail">com.amazonaws...ecr.dkr</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Groups Table -->
+    <div class="section-title">Security Groups</div>
+    <div class="sg-table">
+        <table>
+            <thead>
+                <tr><th>Security Group</th><th>Inbound</th><th>Outbound</th><th>Source / Dest</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>sg-alb</td><td>:443 TCP</td><td>:8000 TCP</td><td>0.0.0.0/0 → sg-ecs</td></tr>
+                <tr><td>sg-ecs</td><td>:8000 TCP</td><td>:5432, :6379, :9200, :443</td><td>sg-alb → sg-rds, sg-redis, sg-opensearch, VPC endpoints</td></tr>
+                <tr><td>sg-lambda</td><td>— (none)</td><td>:5432, :443, S3</td><td>VPC → sg-rds, AWS services</td></tr>
+                <tr><td>sg-sagemaker</td><td>:8501 TCP</td><td>:443 (S3, ECR)</td><td>sg-ecs → S3 gateway, ECR endpoint</td></tr>
+                <tr><td>sg-rds</td><td>:5432 TCP</td><td>— (none)</td><td>sg-ecs, sg-lambda → self</td></tr>
+                <tr><td>sg-redis</td><td>:6379 TCP</td><td>— (none)</td><td>sg-ecs → self</td></tr>
+                <tr><td>sg-opensearch</td><td>:9200, :443 TCP</td><td>— (none)</td><td>sg-ecs → self</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#f85149"></div>Internet</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f0883e"></div>Edge Network</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#7ee787"></div>Public Subnet</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#d2a8ff"></div>Private App Subnet</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ff7b72"></div>Private ML Subnet</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ffa657"></div>Private Data Subnet</div>
+    </div>
+</body>
+</html>
