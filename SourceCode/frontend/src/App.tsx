@@ -14,7 +14,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <NavBar screen={screen} onUpload={goUpload} onHistory={goHistory} />
-      {screen === 'upload' && <UploadPage onFileSelected={startAnalysis} />}
+      {screen === 'upload' && <UploadPage onFileSelected={(file, model) => startAnalysis(file, model)} />}
       {screen === 'analyzing' && <AnalyzingPage fileName={fileName} videoUrl={videoUrl} progress={progress} />}
       {screen === 'results' && current && <ResultsPage result={current} onAnalyzeAnother={goUpload} />}
       {screen === 'history' && <HistoryPage history={history} onView={viewHistory} />}

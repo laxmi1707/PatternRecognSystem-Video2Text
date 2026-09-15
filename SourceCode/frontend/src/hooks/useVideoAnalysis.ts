@@ -27,7 +27,7 @@ export function useVideoAnalysis(analysisSeconds = 3) {
     };
   }, []);
 
-  const startAnalysis = useCallback((file: File) => {
+  const startAnalysis = useCallback((file: File, modelName?: string) => {
     handleRef.current?.cancel();
     setFileName(file.name);
     setProgress(0);
@@ -38,7 +38,7 @@ export function useVideoAnalysis(analysisSeconds = 3) {
       setCurrent(result);
       setHistory((h: AnalysisResult[]) => [result, ...h]);
       setScreen('results');
-    });
+    }, modelName);
   }, [analysisSeconds]);
 
   const goUpload = useCallback(() => {

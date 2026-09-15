@@ -71,6 +71,7 @@ export function analyzeVideo(
   durationSeconds: number,
   onProgress: (pct: number) => void,
   onComplete: (result: AnalysisResult) => void,
+  modelName?: string,
 ): AnalyzeHandle {
   const controller = new AbortController();
   const videoUrl = URL.createObjectURL(file);
@@ -90,7 +91,10 @@ export function analyzeVideo(
 
   (async () => {
     try {
-      const upload = await apiPostFile<VideoUploadResponse>('/videos/upload', file);
+      const upload = await apiPostFile<VideoUploadResponse>(
+        '/videos/upload', file,
+        modelName ? { model_name: modelName } : undefined,
+      );
       if (controller.signal.aborted) return;
 
       const jobResults = await apiPost<JobResultsResponse>(`/jobs/${upload.job_id}/run`);
