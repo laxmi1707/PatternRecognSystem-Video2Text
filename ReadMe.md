@@ -14,7 +14,7 @@ Recorded engineering sessions (screen recordings of cloud deployments, CI/CD exe
 
 An AI-powered workflow understanding system that:
 1. Processes recorded screen recordings
-2. Extracts speech, OCR text, terminal commands, and UI context
+2. Extracts OCR text, terminal commands, and UI context
 3. Recognizes DevOps activities using a multi-tier classifier
 4. Generates SOPs, timelines, and knowledge articles automatically
 5. Provides searchable knowledge retrieval via RAG
@@ -46,7 +46,7 @@ Target Classes (10): git_operations, docker_workflow, kubernetes_ops, terraform_
 |--------|------|-------|
 | Joshua | Frontend + UI/UX | React dashboard, video upload, workflow visualization |
 | Muneeswaran | Backend + Pattern Recognition | FastAPI API, multi-tier classifier, evaluation framework, RAG |
-| Stalin | Preprocessing + Feature Extraction | Video ingestion, speech-to-text, OCR, YOLO, audio features |
+| Stalin | Preprocessing + Feature Extraction | Video ingestion, OCR, YOLO, cursor detection |
 | Lakshmi | Infrastructure + Data + CI/CD | AWS infra, database, Docker, CI/CD, monitoring |
 
 ## Tech Stack

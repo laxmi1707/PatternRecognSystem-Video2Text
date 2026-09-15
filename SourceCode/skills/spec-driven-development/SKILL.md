@@ -1,6 +1,6 @@
 ---
 name: spec-driven-development
-description: Use before writing any non-trivial code in video2Text — video ingestion, transcription, embedding/retrieval, RAG answer generation, or the React frontend. Governs how a feature goes from problem statement to a flat, machine-checkable spec (Requirement/Invariant blocks) to an implementation plan to code, so nothing ships that isn't traceable to a written behavior.
+description: Use before writing any non-trivial code in video2Text — video ingestion, embedding/retrieval, RAG answer generation, or the React frontend. Governs how a feature goes from problem statement to a flat, machine-checkable spec (Requirement/Invariant blocks) to an implementation plan to code, so nothing ships that isn't traceable to a written behavior.
 metadata:
   origin: project
   status: active
@@ -38,7 +38,7 @@ Every behavior in this codebase is one of two things:
 
 There are no other block types. No "API Contracts" chapter, no "Business Rules" chapter — see the `spec-miner` agent's output format for the exact structure (`### Requirement:` / `### Invariant:`, `<!-- id -->`, `<!-- entities -->`, `<!-- enforced -->`, `<!-- depends_on -->`, `<!-- triggers -->`).
 
-- **New feature, no existing spec for the area**: write the spec by hand first, in the `spec-miner` output format, under `openspec/specs/<capability>/spec.md`. Example capabilities for this project: `video-ingestion`, `transcription`, `embedding-index`, `retrieval`, `rag-answer`, `frontend-chat`, `auth`.
+- **New feature, no existing spec for the area**: write the spec by hand first, in the `spec-miner` output format, under `openspec/specs/<capability>/spec.md`. Example capabilities for this project: `video-ingestion`, `embedding-index`, `retrieval`, `rag-answer`, `frontend-chat`, `auth`.
 - **Existing code, no spec yet (brownfield)**: run the `spec-miner` agent against the module first. Never hand-write a spec for code you haven't read — mine it, then edit.
 - **Changing existing behavior**: don't edit the Requirement in place and lose history. Add `## MODIFIED Requirements` matched by `<!-- id: -->` (the id is stable and does not change when the human-readable name changes). Add `## ADDED Requirements` / `## REMOVED Requirements` for net-new or deleted behavior.
 

@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AnalysisResult, Screen } from '../types/analysis';
-import { analyzeVideo, getMockHistory, AnalyzeHandle } from '../services/api/analysisService';
+import { analyzeVideo, getMockHistory, fetchHistory, AnalyzeHandle } from '../services/api/analysisService';
 
 export function useVideoAnalysis(analysisSeconds = 3) {
   const [screen, setScreen] = useState<Screen>('upload');
@@ -11,6 +11,22 @@ export function useVideoAnalysis(analysisSeconds = 3) {
   const [history, setHistory] = useState<AnalysisResult[]>(() => getMockHistory());
   const handleRef = useRef<AnalyzeHandle | null>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetchHistory().then((backendHistory: AnalysisResult[]) => {
+      if (!cancelled && backendHistory.length > 0) {
+        setHistory((prev: AnalysisResult[]) => {
+          const backendIds = new Set(backendHistory.map((h: AnalysisResult) => h.id));
+          const localOnly = prev.filter((p: AnalysisResult) => !backendIds.has(p.id));
+          return [...localOnly, ...backendHistory];
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const startAnalysis = useCallback((file: File) => {
     handleRef.current?.cancel();
     setFileName(file.name);
@@ -20,7 +36,7 @@ export function useVideoAnalysis(analysisSeconds = 3) {
     setVideoUrl(url);
     handleRef.current = analyzeVideo(file, analysisSeconds, setProgress, (result) => {
       setCurrent(result);
-      setHistory(h => [result, ...h]);
+      setHistory((h: AnalysisResult[]) => [result, ...h]);
       setScreen('results');
     });
   }, [analysisSeconds]);

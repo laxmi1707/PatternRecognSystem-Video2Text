@@ -113,10 +113,8 @@ Every classifier (15+ models) implements:
       segment_id:      str
       start_time:      float (seconds)
       end_time:        float (seconds)
-      transcript_text: str           # from Whisper/Transcribe
       ocr_text:        str           # from Textract/EasyOCR
       ui_labels:       list[str]     # from YOLOv11
-      audio_mfcc:      list[list[float]]  # from librosa
       scene_labels:    list[str]     # from scene classifier
 
 ## Commands

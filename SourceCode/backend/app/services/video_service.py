@@ -12,6 +12,8 @@ async def create_video(
     original_filename: str,
     file_size_bytes: int,
     model_name: str | None = None,
+    file_path: str | None = None,
+    duration_seconds: float | None = None,
 ) -> tuple[Video, AnalysisJob]:
     filename = f"{uuid.uuid4().hex}_{original_filename}"
 
@@ -19,6 +21,8 @@ async def create_video(
         filename=filename,
         original_filename=original_filename,
         file_size_bytes=file_size_bytes,
+        file_path=file_path,
+        duration_seconds=duration_seconds,
     )
     db.add(video)
     await db.flush()

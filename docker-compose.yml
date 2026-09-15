@@ -1,0 +1,41 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: video2knowledge
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./SourceCode/backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/video2knowledge
+      UPLOAD_DIR: /app/uploads
+      DATASET_ROOT: /app/dataset
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./dataset:/app/dataset:ro
+      - uploads:/app/uploads
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./SourceCode/frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api/v1
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  uploads:

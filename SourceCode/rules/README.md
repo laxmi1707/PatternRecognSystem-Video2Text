@@ -26,7 +26,7 @@ rules/
 - **Language directories** extend the common rules with framework-specific patterns, tools, and code examples. Each file references its common counterpart with `> This file extends [common/xxx.md](../common/xxx.md) ...`.
 - `react/*.md` also references `../typescript/*.md` directly, so `typescript/` is carried along even though this project has no standalone TypeScript-only surface.
 
-There is no AWS-specific rule directory upstream in ECC — AWS conventions for this project (S3, Lambda/Fargate, Bedrock/Transcribe, IAM least-privilege) live in the project-authored skills (`skills/spec-driven-development`, `skills/contract-freeze`, `skills/definition-of-done-gate`) and should be added here as `rules/aws/` if/when enough project-specific AWS guidance accumulates to justify a standalone ruleset (see "Adding a New Language" below).
+There is no AWS-specific rule directory upstream in ECC — AWS conventions for this project (S3, Lambda/Fargate, Bedrock, IAM least-privilege) live in the project-authored skills (`skills/spec-driven-development`, `skills/contract-freeze`, `skills/definition-of-done-gate`) and should be added here as `rules/aws/` if/when enough project-specific AWS guidance accumulates to justify a standalone ruleset (see "Adding a New Language" below).
 
 ## Rules vs Skills
 
