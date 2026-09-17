@@ -32,6 +32,8 @@ class ClassificationResult(BaseModel):
     probabilities: dict[str, float]
     model_name: str
     latency_ms: float
+    start_time: float = 0.0
+    end_time: float = 0.0
 
 
 class ClassifyBatchResponse(BaseModel):

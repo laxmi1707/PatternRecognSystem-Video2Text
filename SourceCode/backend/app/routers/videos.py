@@ -25,15 +25,16 @@ async def upload_video(
     safe_name = f"{uuid.uuid4().hex}_{file.filename or 'video.mp4'}"
     file_path = upload_dir / safe_name
 
-    content = await file.read()
+    file_size = 0
     async with aiofiles.open(file_path, "wb") as f:
-        await f.write(content)
+        while chunk := await file.read(1024 * 1024):
+            await f.write(chunk)
+            file_size += len(chunk)
 
     duration_seconds = None
     try:
         from app.pipeline.video_processor import VideoProcessor
-        vp = VideoProcessor()
-        meta = vp.get_metadata(file_path)
+        meta = VideoProcessor().get_metadata(file_path)
         duration_seconds = meta.get("duration_seconds")
     except Exception:
         pass
@@ -41,7 +42,7 @@ async def upload_video(
     video, job = await video_service.create_video(
         db,
         original_filename=file.filename or "video.mp4",
-        file_size_bytes=len(content),
+        file_size_bytes=file_size,
         model_name=model_name,
         file_path=str(file_path),
         duration_seconds=duration_seconds,

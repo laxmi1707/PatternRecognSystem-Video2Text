@@ -74,12 +74,14 @@ class InteractionFeatureExtractor:
         features[17] = n_typing / max(n_clicks, 1)
 
         # [18:24] Mouse movement features
-        positions = []
+        pos_with_ts: list[tuple[float, float, float]] = []
         for a in seg_actions:
             x = a.params.get("x")
             y = a.params.get("y")
             if x is not None and y is not None:
-                positions.append((float(x), float(y)))
+                pos_with_ts.append((float(x), float(y), a.timestamp))
+
+        positions = [(p[0], p[1]) for p in pos_with_ts]
 
         if len(positions) > 1:
             total_dist = 0.0
@@ -93,7 +95,7 @@ class InteractionFeatureExtractor:
                 dist = math.sqrt(dx * dx + dy * dy)
                 total_dist += dist
 
-                dt = max(timestamps[min(i, len(timestamps) - 1)] - timestamps[min(i - 1, len(timestamps) - 1)], 0.01)
+                dt = max(pos_with_ts[i][2] - pos_with_ts[i - 1][2], 0.01)
                 speeds.append(dist / dt)
 
                 if i > 1 and (dx * prev_dx + dy * prev_dy) < 0:
