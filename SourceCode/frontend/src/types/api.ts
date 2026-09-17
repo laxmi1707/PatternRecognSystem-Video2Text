@@ -21,8 +21,6 @@ export interface ClassificationResultDTO {
   probabilities: Record<string, number>;
   model_name: string;
   latency_ms: number;
-  start_time: number;
-  end_time: number;
 }
 
 export interface JobResponse {
