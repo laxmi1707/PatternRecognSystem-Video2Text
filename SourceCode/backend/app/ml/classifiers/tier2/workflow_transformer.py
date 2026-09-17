@@ -78,6 +78,10 @@ class WorkflowTransformerClassifier(BaseClassifier):
         learning_rate: float = 1e-3,
         seed: int = 42,
     ) -> None:
+        if feature_dim % 2 != 0:
+            raise ValueError(f"feature_dim must be even for positional encoding, got {feature_dim}")
+        if feature_dim % num_heads != 0:
+            raise ValueError(f"feature_dim ({feature_dim}) must be divisible by num_heads ({num_heads})")
         self._feature_dim = feature_dim
         self._max_segments = max_segments
         self._num_heads = num_heads

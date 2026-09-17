@@ -110,4 +110,11 @@ class ExperimentTracker:
             return run.info.run_id
 
 
-tracker = ExperimentTracker()
+_tracker: ExperimentTracker | None = None
+
+
+def get_tracker() -> ExperimentTracker:
+    global _tracker
+    if _tracker is None:
+        _tracker = ExperimentTracker()
+    return _tracker

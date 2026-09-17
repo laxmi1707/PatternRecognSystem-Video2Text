@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video2Knowledge — Data Flow Diagram</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #fff; padding: 40px; }
+  h1 { text-align: center; color: #1e293b; font-size: 22px; margin-bottom: 6px; }
+  .subtitle { text-align: center; color: #64748b; font-size: 13px; margin-bottom: 30px; }
+  .diagram { display: flex; justify-content: center; }
+  svg text { font-family: 'Segoe UI', system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Video2Knowledge — Data Flow Diagram</h1>
+<p class="subtitle">ISY5002 Pattern Recognition Systems &bull; Group 21</p>
+<div class="diagram">
+<svg width="1100" height="820" viewBox="0 0 1100 820">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" fill="#475569"><polygon points="0 0, 10 3.5, 0 7"/></marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" fill="#2563eb"><polygon points="0 0, 10 3.5, 0 7"/></marker>
+    <linearGradient id="g-input" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#dbeafe"/><stop offset="100%" stop-color="#bfdbfe"/></linearGradient>
+    <linearGradient id="g-process" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#e0e7ff"/><stop offset="100%" stop-color="#c7d2fe"/></linearGradient>
+    <linearGradient id="g-ml" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#fce7f3"/><stop offset="100%" stop-color="#fbcfe8"/></linearGradient>
+    <linearGradient id="g-output" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#d1fae5"/><stop offset="100%" stop-color="#a7f3d0"/></linearGradient>
+    <linearGradient id="g-data" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#fef3c7"/><stop offset="100%" stop-color="#fde68a"/></linearGradient>
+  </defs>
+
+  <!-- Row 1: Input -->
+  <rect x="420" y="20" width="260" height="56" rx="8" fill="url(#g-input)" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="550" y="44" text-anchor="middle" font-size="14" font-weight="600" fill="#1e40af">Screen Recording (Video)</text>
+  <text x="550" y="62" text-anchor="middle" font-size="11" fill="#3b82f6">MP4 / MOV / WebM</text>
+
+  <!-- Arrow down -->
+  <line x1="550" y1="76" x2="550" y2="110" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Row 2: Frame Extraction -->
+  <rect x="400" y="110" width="300" height="50" rx="8" fill="url(#g-process)" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="550" y="134" text-anchor="middle" font-size="13" font-weight="600" fill="#3730a3">Frame Extraction &amp; Segmentation</text>
+  <text x="550" y="150" text-anchor="middle" font-size="10" fill="#6366f1">OpenCV &bull; Action-based clustering &bull; Keyframe sampling</text>
+
+  <!-- Arrow down to fan-out -->
+  <line x1="550" y1="160" x2="550" y2="195" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Row 3: Multimodal Extraction (4 parallel boxes) -->
+  <text x="550" y="210" text-anchor="middle" font-size="12" font-weight="600" fill="#64748b">Multimodal Evidence Extraction</text>
+
+  <!-- OCR -->
+  <rect x="50" y="228" width="220" height="65" rx="8" fill="url(#g-process)" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="160" y="252" text-anchor="middle" font-size="13" font-weight="600" fill="#3730a3">OCR / Text</text>
+  <text x="160" y="268" text-anchor="middle" font-size="10" fill="#6366f1">EasyOCR + Tesseract</text>
+  <text x="160" y="282" text-anchor="middle" font-size="10" fill="#6366f1">TF-IDF → 50 dims</text>
+
+  <!-- YOLO/UI -->
+  <rect x="300" y="228" width="220" height="65" rx="8" fill="url(#g-process)" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="410" y="252" text-anchor="middle" font-size="13" font-weight="600" fill="#3730a3">UI / Object Detection</text>
+  <text x="410" y="268" text-anchor="middle" font-size="10" fill="#6366f1">YOLOv8</text>
+  <text x="410" y="282" text-anchor="middle" font-size="10" fill="#6366f1">Element counts → 30 dims</text>
+
+  <!-- Visual -->
+  <rect x="550" y="228" width="220" height="65" rx="8" fill="url(#g-process)" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="660" y="252" text-anchor="middle" font-size="13" font-weight="600" fill="#3730a3">Visual Features</text>
+  <text x="660" y="268" text-anchor="middle" font-size="10" fill="#6366f1">Color, Edges, Gabor, Layout</text>
+  <text x="660" y="282" text-anchor="middle" font-size="10" fill="#6366f1">OpenCV → 40 dims</text>
+
+  <!-- Interaction -->
+  <rect x="800" y="228" width="220" height="65" rx="8" fill="url(#g-process)" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="910" y="252" text-anchor="middle" font-size="13" font-weight="600" fill="#3730a3">Interaction Features</text>
+  <text x="910" y="268" text-anchor="middle" font-size="10" fill="#6366f1">Clicks, Typing, Movement</text>
+  <text x="910" y="282" text-anchor="middle" font-size="10" fill="#6366f1">Action log → 30 dims</text>
+
+  <!-- Fan-out arrows from center -->
+  <line x1="550" y1="220" x2="160" y2="228" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="550" y1="220" x2="410" y2="228" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="550" y1="220" x2="660" y2="228" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="550" y1="220" x2="910" y2="228" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- Fan-in arrows to fusion -->
+  <line x1="160" y1="293" x2="450" y2="335" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="410" y1="293" x2="490" y2="335" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="660" y1="293" x2="610" y2="335" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="910" y1="293" x2="650" y2="335" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- Row 4: Feature Fusion -->
+  <rect x="380" y="335" width="340" height="55" rx="8" fill="url(#g-data)" stroke="#d97706" stroke-width="1.5"/>
+  <text x="550" y="358" text-anchor="middle" font-size="14" font-weight="700" fill="#92400e">Multimodal Feature Fusion</text>
+  <text x="550" y="376" text-anchor="middle" font-size="11" fill="#b45309">Concatenation → 150-dim feature vector per segment</text>
+
+  <!-- Arrow down -->
+  <line x1="550" y1="390" x2="550" y2="430" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Row 5: Three Tier Classification (fan-out) -->
+  <text x="550" y="445" text-anchor="middle" font-size="12" font-weight="600" fill="#64748b">Multi-Tier Pattern Recognition</text>
+
+  <!-- Tier 1 -->
+  <rect x="80" y="460" width="260" height="70" rx="8" fill="url(#g-ml)" stroke="#db2777" stroke-width="1.5"/>
+  <text x="210" y="484" text-anchor="middle" font-size="13" font-weight="600" fill="#9d174d">Tier 1 — Classical ML</text>
+  <text x="210" y="500" text-anchor="middle" font-size="10" fill="#db2777">SVM, Naive Bayes, Decision Tree</text>
+  <text x="210" y="514" text-anchor="middle" font-size="10" fill="#db2777">Random Forest, KNN, XGBoost, LightGBM</text>
+
+  <!-- Tier 2 -->
+  <rect x="380" y="460" width="260" height="70" rx="8" fill="url(#g-ml)" stroke="#db2777" stroke-width="1.5"/>
+  <text x="510" y="484" text-anchor="middle" font-size="13" font-weight="600" fill="#9d174d">Tier 2 — Deep Learning</text>
+  <text x="510" y="500" text-anchor="middle" font-size="10" fill="#db2777">MLP, CNN1D, LSTM, Transformer</text>
+  <text x="510" y="514" text-anchor="middle" font-size="10" fill="#db2777">Workflow LSTM, Workflow Transformer</text>
+
+  <!-- Tier 3 -->
+  <rect x="680" y="460" width="260" height="70" rx="8" fill="url(#g-ml)" stroke="#db2777" stroke-width="1.5"/>
+  <text x="810" y="484" text-anchor="middle" font-size="13" font-weight="600" fill="#9d174d">Tier 3 — Ensemble / Fusion</text>
+  <text x="810" y="500" text-anchor="middle" font-size="10" fill="#db2777">Voting, Stacking</text>
+  <text x="810" y="514" text-anchor="middle" font-size="10" fill="#db2777">Multimodal Late Fusion</text>
+
+  <!-- Fan-out arrows -->
+  <line x1="550" y1="450" x2="210" y2="460" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="550" y1="450" x2="510" y2="460" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="550" y1="450" x2="810" y2="460" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- Fan-in arrows to Activity Labels -->
+  <line x1="210" y1="530" x2="450" y2="565" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="510" y1="530" x2="510" y2="565" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="810" y1="530" x2="610" y2="565" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- Row 6: Activity Recognition Output -->
+  <rect x="380" y="565" width="300" height="50" rx="8" fill="url(#g-output)" stroke="#059669" stroke-width="1.5"/>
+  <text x="530" y="588" text-anchor="middle" font-size="13" font-weight="600" fill="#065f46">Activity Labels + Confidence</text>
+  <text x="530" y="604" text-anchor="middle" font-size="10" fill="#059669">Per-segment classification results</text>
+
+  <!-- Arrow down -->
+  <line x1="530" y1="615" x2="530" y2="650" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Row 7: Temporal Workflow Recognition -->
+  <rect x="370" y="650" width="320" height="50" rx="8" fill="url(#g-process)" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="530" y="674" text-anchor="middle" font-size="13" font-weight="600" fill="#3730a3">Temporal Workflow Recognition</text>
+  <text x="530" y="690" text-anchor="middle" font-size="10" fill="#6366f1">Activity₁ → Activity₂ → ... → Activityₙ → Workflow Pattern</text>
+
+  <!-- Arrow down -->
+  <line x1="530" y1="700" x2="530" y2="735" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Row 8: Knowledge Generation (2 outputs) -->
+  <rect x="250" y="735" width="230" height="55" rx="8" fill="url(#g-output)" stroke="#059669" stroke-width="1.5"/>
+  <text x="365" y="758" text-anchor="middle" font-size="13" font-weight="600" fill="#065f46">SOP Generation</text>
+  <text x="365" y="776" text-anchor="middle" font-size="10" fill="#059669">Step-by-step procedures</text>
+
+  <rect x="520" y="735" width="230" height="55" rx="8" fill="url(#g-output)" stroke="#059669" stroke-width="1.5"/>
+  <text x="635" y="758" text-anchor="middle" font-size="13" font-weight="600" fill="#065f46">Runbook Generation</text>
+  <text x="635" y="776" text-anchor="middle" font-size="10" fill="#059669">Operational runbooks + commands</text>
+
+  <line x1="530" y1="735" x2="365" y2="735" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="530" y1="735" x2="635" y2="735" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- Legend -->
+  <rect x="20" y="750" width="180" height="60" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+  <rect x="30" y="760" width="14" height="10" rx="2" fill="url(#g-input)"/><text x="50" y="769" font-size="10" fill="#475569">Input / Output</text>
+  <rect x="30" y="775" width="14" height="10" rx="2" fill="url(#g-process)"/><text x="50" y="784" font-size="10" fill="#475569">Processing</text>
+  <rect x="30" y="790" width="14" height="10" rx="2" fill="url(#g-ml)"/><text x="50" y="799" font-size="10" fill="#475569">ML Classification</text>
+  <rect x="110" y="760" width="14" height="10" rx="2" fill="url(#g-data)"/><text x="130" y="769" font-size="10" fill="#475569">Fusion</text>
+  <rect x="110" y="775" width="14" height="10" rx="2" fill="url(#g-output)"/><text x="130" y="784" font-size="10" fill="#475569">Output</text>
+</svg>
+</div>
+</body>
+</html>

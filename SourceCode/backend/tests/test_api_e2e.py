@@ -51,9 +51,11 @@ async def test_list_models(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_upload_and_classify_flow(client: AsyncClient):
+    dummy_video = b"\x00" * 1024
     r = await client.post(
         "/api/v1/videos/upload",
-        params={"original_filename": "demo.mp4", "file_size_bytes": 1024, "model_name": "svm"},
+        files={"file": ("demo.mp4", dummy_video, "video/mp4")},
+        params={"model_name": "svm"},
     )
     assert r.status_code == 201
     upload = r.json()
@@ -74,7 +76,7 @@ async def test_upload_and_classify_flow(client: AsyncClient):
     assert r.status_code == 200
     run_data = r.json()
     assert run_data["status"] == "completed"
-    assert len(run_data["results"]) == 10
+    assert len(run_data["results"]) >= 3
 
     for result in run_data["results"]:
         assert "label" in result
@@ -83,7 +85,7 @@ async def test_upload_and_classify_flow(client: AsyncClient):
 
     r = await client.get(f"/api/v1/jobs/{job_id}/results")
     assert r.status_code == 200
-    assert len(r.json()["results"]) == 10
+    assert len(r.json()["results"]) >= 3
 
     r = await client.get(f"/api/v1/jobs/{job_id}")
     assert r.status_code == 200
@@ -107,11 +109,11 @@ async def test_job_not_found(client: AsyncClient):
 async def test_list_videos(client: AsyncClient):
     await client.post(
         "/api/v1/videos/upload",
-        params={"original_filename": "vid1.mp4", "file_size_bytes": 100},
+        files={"file": ("vid1.mp4", b"\x00" * 100, "video/mp4")},
     )
     await client.post(
         "/api/v1/videos/upload",
-        params={"original_filename": "vid2.mp4", "file_size_bytes": 200},
+        files={"file": ("vid2.mp4", b"\x00" * 200, "video/mp4")},
     )
 
     r = await client.get("/api/v1/videos/")

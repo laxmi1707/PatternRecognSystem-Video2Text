@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     app_version: str = "0.2.0"
     debug: bool = False
 
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/video2knowledge"
+    database_url: str = "sqlite+aiosqlite:///./video2text.db"
     upload_dir: str = "./uploads"
     dataset_root: str = "./dataset"
 

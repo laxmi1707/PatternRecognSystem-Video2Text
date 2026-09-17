@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video2Knowledge — Network / Deployment Diagram</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #fff; padding: 40px; }
+  h1 { text-align: center; color: #1e293b; font-size: 22px; margin-bottom: 6px; }
+  .subtitle { text-align: center; color: #64748b; font-size: 13px; margin-bottom: 30px; }
+  .diagram { display: flex; justify-content: center; }
+  svg text { font-family: 'Segoe UI', system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Video2Knowledge — Network / Deployment Diagram</h1>
+<p class="subtitle">ISY5002 Pattern Recognition Systems &bull; Group 21</p>
+<div class="diagram">
+<svg width="1060" height="700" viewBox="0 0 1060 700">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" fill="#475569"><polygon points="0 0, 10 3.5, 0 7"/></marker>
+    <marker id="arr-b" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto" fill="#475569"><polygon points="10 0, 0 3.5, 10 7"/></marker>
+    <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/></filter>
+  </defs>
+
+  <!-- Docker container boundary -->
+  <rect x="280" y="130" width="740" height="540" rx="12" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="8 4"/>
+  <text x="300" y="155" font-size="13" font-weight="600" fill="#64748b">Docker Compose Environment</text>
+
+  <!-- ==================== CLIENT ==================== -->
+  <rect x="30" y="280" width="200" height="120" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="130" y="310" text-anchor="middle" font-size="15" font-weight="700" fill="#1e40af">Client Browser</text>
+  <line x1="50" y1="322" x2="210" y2="322" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="130" y="342" text-anchor="middle" font-size="11" fill="#3b82f6">React SPA</text>
+  <text x="130" y="358" text-anchor="middle" font-size="11" fill="#3b82f6">Video Upload UI</text>
+  <text x="130" y="374" text-anchor="middle" font-size="11" fill="#3b82f6">Model Selection</text>
+  <text x="130" y="390" text-anchor="middle" font-size="11" fill="#3b82f6">SOP / Runbook Viewer</text>
+
+  <!-- ==================== FRONTEND SERVER ==================== -->
+  <rect x="310" y="180" width="220" height="100" rx="10" fill="#e0e7ff" stroke="#6366f1" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="420" y="210" text-anchor="middle" font-size="14" font-weight="700" fill="#3730a3">Frontend Server</text>
+  <line x1="325" y1="220" x2="515" y2="220" stroke="#c7d2fe" stroke-width="1"/>
+  <text x="420" y="240" text-anchor="middle" font-size="11" fill="#6366f1">Vite Dev Server</text>
+  <text x="420" y="256" text-anchor="middle" font-size="11" fill="#6366f1">Port 5173</text>
+  <text x="420" y="272" text-anchor="middle" font-size="11" fill="#6366f1">API Proxy → :8000</text>
+
+  <!-- ==================== BACKEND API ==================== -->
+  <rect x="310" y="340" width="220" height="140" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="420" y="370" text-anchor="middle" font-size="14" font-weight="700" fill="#92400e">FastAPI Backend</text>
+  <line x1="325" y1="380" x2="515" y2="380" stroke="#fde68a" stroke-width="1"/>
+  <text x="420" y="398" text-anchor="middle" font-size="11" fill="#b45309">Port 8000</text>
+  <text x="420" y="414" text-anchor="middle" font-size="11" fill="#b45309">/api/v1/videos</text>
+  <text x="420" y="430" text-anchor="middle" font-size="11" fill="#b45309">/api/v1/jobs</text>
+  <text x="420" y="446" text-anchor="middle" font-size="11" fill="#b45309">/api/v1/classification</text>
+  <text x="420" y="462" text-anchor="middle" font-size="11" fill="#b45309">/api/v1/knowledge</text>
+
+  <!-- ==================== ML PIPELINE ==================== -->
+  <rect x="600" y="180" width="220" height="140" rx="10" fill="#fce7f3" stroke="#db2777" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="710" y="210" text-anchor="middle" font-size="14" font-weight="700" fill="#9d174d">ML Pipeline</text>
+  <line x1="615" y1="220" x2="805" y2="220" stroke="#fbcfe8" stroke-width="1"/>
+  <text x="710" y="240" text-anchor="middle" font-size="11" fill="#db2777">OCR (EasyOCR + Tesseract)</text>
+  <text x="710" y="256" text-anchor="middle" font-size="11" fill="#db2777">UI Detection (YOLOv8)</text>
+  <text x="710" y="272" text-anchor="middle" font-size="11" fill="#db2777">Visual Feature Extraction</text>
+  <text x="710" y="288" text-anchor="middle" font-size="11" fill="#db2777">15 Classifiers (Tier 1/2/3)</text>
+  <text x="710" y="304" text-anchor="middle" font-size="11" fill="#db2777">Feature Assembler (150-dim)</text>
+
+  <!-- ==================== DATABASE ==================== -->
+  <rect x="600" y="380" width="220" height="100" rx="10" fill="#d1fae5" stroke="#059669" stroke-width="1.5" filter="url(#shadow)"/>
+  <!-- Cylinder shape on top -->
+  <ellipse cx="710" cy="385" rx="100" ry="12" fill="#a7f3d0" stroke="#059669" stroke-width="1"/>
+  <text x="710" y="420" text-anchor="middle" font-size="14" font-weight="700" fill="#065f46">PostgreSQL</text>
+  <line x1="615" y1="430" x2="805" y2="430" stroke="#a7f3d0" stroke-width="1"/>
+  <text x="710" y="448" text-anchor="middle" font-size="11" fill="#059669">pgvector extension</text>
+  <text x="710" y="464" text-anchor="middle" font-size="11" fill="#059669">Port 5432</text>
+
+  <!-- ==================== FILE STORAGE ==================== -->
+  <rect x="600" y="530" width="220" height="80" rx="10" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="710" y="560" text-anchor="middle" font-size="14" font-weight="700" fill="#334155">File Storage</text>
+  <line x1="615" y1="568" x2="805" y2="568" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="710" y="586" text-anchor="middle" font-size="11" fill="#64748b">./uploads (video files)</text>
+  <text x="710" y="602" text-anchor="middle" font-size="11" fill="#64748b">./dataset (CUA-Suite)</text>
+
+  <!-- ==================== MLFLOW ==================== -->
+  <rect x="870" y="280" width="160" height="80" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="950" y="310" text-anchor="middle" font-size="14" font-weight="700" fill="#5b21b6">MLflow</text>
+  <line x1="882" y1="318" x2="1018" y2="318" stroke="#ddd6fe" stroke-width="1"/>
+  <text x="950" y="336" text-anchor="middle" font-size="11" fill="#7c3aed">Experiment Tracking</text>
+  <text x="950" y="352" text-anchor="middle" font-size="11" fill="#7c3aed">Model Registry</text>
+
+  <!-- ==================== ARROWS ==================== -->
+  <!-- Client → Frontend -->
+  <line x1="230" y1="320" x2="305" y2="250" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="262" y="270" font-size="10" fill="#64748b" transform="rotate(-20, 262, 270)">HTTP :5173</text>
+
+  <!-- Frontend → Backend (proxy) -->
+  <line x1="420" y1="280" x2="420" y2="335" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="435" y="310" font-size="10" fill="#64748b">Proxy</text>
+
+  <!-- Client → Backend (direct API) -->
+  <line x1="230" y1="360" x2="305" y2="400" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="248" y="395" font-size="10" fill="#64748b">REST API</text>
+
+  <!-- Backend → ML Pipeline -->
+  <line x1="530" y1="380" x2="595" y2="300" stroke="#db2777" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="545" y="332" font-size="10" fill="#9d174d">classify()</text>
+
+  <!-- Backend → Database -->
+  <line x1="530" y1="430" x2="595" y2="430" stroke="#059669" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="562" y="424" font-size="10" fill="#059669">asyncpg</text>
+
+  <!-- Backend → File Storage -->
+  <line x1="480" y1="480" x2="620" y2="555" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="525" y="530" font-size="10" fill="#64748b">save/load</text>
+
+  <!-- ML Pipeline → MLflow -->
+  <line x1="820" y1="280" x2="866" y2="305" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="838" y="282" font-size="10" fill="#7c3aed">log</text>
+
+  <!-- ML Pipeline → File Storage (model weights) -->
+  <line x1="710" y1="320" x2="710" y2="375" stroke="#64748b" stroke-width="1" stroke-dasharray="4 3"/>
+
+  <!-- Legend -->
+  <rect x="30" y="560" width="200" height="100" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="130" y="580" text-anchor="middle" font-size="11" font-weight="600" fill="#334155">Legend</text>
+  <rect x="45" y="590" width="12" height="10" rx="2" fill="#dbeafe"/><text x="62" y="599" font-size="10" fill="#475569">Client</text>
+  <rect x="45" y="605" width="12" height="10" rx="2" fill="#fef3c7"/><text x="62" y="614" font-size="10" fill="#475569">API Server</text>
+  <rect x="45" y="620" width="12" height="10" rx="2" fill="#fce7f3"/><text x="62" y="629" font-size="10" fill="#475569">ML Services</text>
+  <rect x="130" y="590" width="12" height="10" rx="2" fill="#d1fae5"/><text x="147" y="599" font-size="10" fill="#475569">Database</text>
+  <rect x="130" y="605" width="12" height="10" rx="2" fill="#f1f5f9"/><text x="147" y="614" font-size="10" fill="#475569">Storage</text>
+  <rect x="130" y="620" width="12" height="10" rx="2" fill="#ede9fe"/><text x="147" y="629" font-size="10" fill="#475569">Tracking</text>
+</svg>
+</div>
+</body>
+</html>

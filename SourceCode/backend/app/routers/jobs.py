@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -28,7 +28,7 @@ async def get_job(job_id: int, db: AsyncSession = Depends(get_db)):
     )
 
 
-@router.post("/{job_id}/run")
+@router.post("/{job_id}/run", response_model=JobResultsResponse)
 async def run_job(job_id: int, db: AsyncSession = Depends(get_db)):
     job = await job_service.get_job(db, job_id)
     if job is None:
@@ -51,6 +51,8 @@ async def run_job(job_id: int, db: AsyncSession = Depends(get_db)):
                 probabilities=r.probabilities,
                 model_name=r.model_name,
                 latency_ms=r.latency_ms,
+                start_time=r.start_time,
+                end_time=r.end_time,
             )
             for r in results
         ],
@@ -75,6 +77,8 @@ async def get_job_results(job_id: int, db: AsyncSession = Depends(get_db)):
                 probabilities=r.probabilities,
                 model_name=r.model_name,
                 latency_ms=r.latency_ms,
+                start_time=r.start_time,
+                end_time=r.end_time,
             )
             for r in results
         ],

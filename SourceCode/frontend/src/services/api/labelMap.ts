@@ -55,14 +55,11 @@ const LABEL_META: Record<string, { title: string; descriptionTemplate: string }>
   },
 };
 
-export function mapResultsToSteps(
-  results: ClassificationResultDTO[],
-  segmentDurationSec = 5,
-): WorkflowStep[] {
+export function mapResultsToSteps(results: ClassificationResultDTO[]): WorkflowStep[] {
   return results.map((r, i) => {
     const meta = LABEL_META[r.label] ?? LABEL_META['other'];
-    const startSec = i * segmentDurationSec;
-    const endSec = (i + 1) * segmentDurationSec;
+    const startSec = r.start_time ?? i * 5;
+    const endSec = r.end_time ?? (i + 1) * 5;
     const confidencePct = Math.round(r.confidence * 100);
 
     return {

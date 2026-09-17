@@ -144,7 +144,7 @@ class MLService:
         self, n_samples: int = 500, n_features: int | None = None, use_real: bool = True,
     ) -> EvaluationReport:
         if use_real:
-            X, y = self._get_training_data()
+            X, y = self._get_training_data(prefer_real=True)
         else:
             X, y = generate_synthetic_dataset(
                 n_samples=n_samples,
@@ -164,7 +164,7 @@ class MLService:
         use_real: bool = True,
     ) -> list[CVResult]:
         if use_real:
-            X, y = self._get_training_data()
+            X, y = self._get_training_data(prefer_real=True)
         else:
             X, y = generate_synthetic_dataset(
                 n_samples=n_samples,
