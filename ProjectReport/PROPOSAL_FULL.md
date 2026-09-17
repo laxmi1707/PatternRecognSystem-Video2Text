@@ -30,7 +30,7 @@ Potential industry applicability: DevOps, Cloud Engineering, IT Operations, Fina
 
 Organizations record software engineering activities such as cloud deployments, infrastructure provisioning, CI/CD execution, troubleshooting, and production support. These recordings contain rich operational knowledge — terminal commands, deployment sequences, configuration changes, and troubleshooting steps.
 
-Existing transcription tools convert speech into text but cannot understand engineering workflows, UI interactions, terminal commands, or deployment intent. Video2Knowledge addresses this gap through multimodal AI that combines speech recognition, OCR, computer vision, pattern recognition, and LLMs to automatically understand workflows and generate structured documentation.
+Existing tools cannot understand engineering workflows, UI interactions, terminal commands, or deployment intent. Video2Knowledge addresses this gap through multimodal AI that combines OCR, computer vision, pattern recognition, and LLMs to automatically understand workflows and generate structured documentation.
 
 ## 5. Problem Statement
 
@@ -43,7 +43,7 @@ Develop an AI-powered workflow understanding system capable of recognizing softw
 ## 7. Project Objectives
 
 1. Process recorded screen recordings to extract multimodal features.
-2. Extract speech (Whisper), OCR text (Textract/EasyOCR), terminal commands, UI context (YOLO), and cursor/click events.
+2. Extract OCR text (Textract/EasyOCR), terminal commands, UI context (YOLO), and cursor/click events.
 3. Recognize 10 categories of DevOps activities using a multi-tier classifier.
 4. Compare 14 classifiers across Classical ML, Deep Learning, and Ensemble methods.
 5. Evaluate all models using 5-fold cross-validation, confusion matrices, ROC/AUC, feature importance, ablation, and error analysis.
@@ -54,14 +54,14 @@ Develop an AI-powered workflow understanding system capable of recognizing softw
 ## 8. Research Questions
 
 - RQ1: Can software engineering workflows be automatically recognized from screen recordings using multimodal pattern recognition?
-- RQ2: Does multimodal analysis (OCR + UI + cursor + speech) outperform single-modality approaches?
+- RQ2: Does multimodal analysis (OCR + UI + cursor + scene) outperform single-modality approaches?
 - RQ3: Which pattern recognition algorithm performs best for workflow classification, and does ensembling improve accuracy?
 - RQ4: Can an AI system reduce documentation effort while maintaining SOP quality?
 - RQ5: Does an agentic AI approach improve knowledge retrieval over standard RAG?
 
 ## 9. Novelty
 
-1. Multimodal analysis combining video, OCR, UI detection, cursor tracking, and speech — not just audio transcription.
+1. Multimodal analysis combining video, OCR, UI detection, cursor tracking, and scene detection — not just single-modality approaches.
 2. Multi-tier classifier architecture (Classical ML → Deep Learning → Ensemble) with 14 models and a shared BaseClassifier contract.
 3. Multimodal late fusion that trains separate branches per modality with a meta-learner fusion layer.
 4. Comprehensive 8-module evaluation framework (metrics, confusion, ROC, cross-validation, feature importance, ablation, t-SNE, error analysis).
@@ -75,7 +75,7 @@ Develop an AI-powered workflow understanding system capable of recognizing softw
 The system processes screen recordings through a 6-layer architecture:
 
 1. **Video Ingestion** — Upload or capture screen recordings
-2. **Preprocessing** — Extract frames, audio, OCR text, UI elements, cursor events
+2. **Preprocessing** — Extract frames, OCR text, UI elements, cursor events
 3. **Feature Engineering** — Build multimodal feature vectors from extracted data
 4. **Multi-Tier Classification** — Recognize activities using 14 classifiers across 3 tiers
 5. **SOP Generation** — LLM converts classified segments into structured documentation
@@ -139,9 +139,7 @@ Every classifier implements: name, tier, fit(X, y), predict(X) → PredictionRes
 
 ## 13. Detailed System Modules
 
-**Video Ingestion Module** — Capture live screen or upload recorded video; extract audio; split video into frames. Technologies: Python, OpenCV, FFmpeg, FastAPI Upload API.
-
-**Audio Processing Module** — Extract narration, speaker segmentation, timestamps. Technologies: Whisper (via AWS Transcribe), librosa.
+**Video Ingestion Module** — Capture live screen or upload recorded video; split video into frames. Technologies: Python, OpenCV, FFmpeg, FastAPI Upload API.
 
 **OCR & Terminal Understanding Module** — Read terminal commands, logs, configuration files, and browser text. Technologies: AWS Textract, EasyOCR.
 
@@ -149,7 +147,7 @@ Every classifier implements: name, tier, fit(X, y), predict(X) → PredictionRes
 
 **Cursor & Click Detection Module** — Track mouse movements, click locations, window focus changes. Technologies: OpenCV.
 
-**Feature Engineering Module** — Build feature vectors from OCR, speech, UI, cursor, and scene data. Technologies: NumPy, pandas, sentence-transformers.
+**Feature Engineering Module** — Build feature vectors from OCR, UI, cursor, and scene data. Technologies: NumPy, pandas, sentence-transformers.
 
 **Pattern Recognition Module** — Classify activities using 14 models across 3 tiers. Technologies: scikit-learn, PyTorch, XGBoost, LightGBM.
 
@@ -243,7 +241,7 @@ Every classifier implements: name, tier, fit(X, y), predict(X) → PredictionRes
 |--------|-------|-------|
 | Joshua | L1: Presentation | React dashboard, video upload, workflow visualization, UI/UX |
 | Muneeswaran | L2 + L4: Backend + ML | FastAPI API, multi-tier classifier, evaluation framework, RAG, agentic AI |
-| Stalin | L3: Preprocessing | Video ingestion, speech-to-text, OCR, YOLO, cursor detection, feature engineering |
+| Stalin | L3: Preprocessing | Video ingestion, OCR, YOLO, cursor detection, feature engineering |
 | Lakshmi | L5 + L6: Infra + Data | AWS infrastructure, database, Docker, CI/CD pipelines, monitoring |
 
 ## 21. Expected Applications

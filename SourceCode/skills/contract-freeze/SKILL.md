@@ -19,7 +19,7 @@ If the RAG pipeline lives in-process with the backend (no service boundary), bou
 ## When to Activate
 
 - Frontend and backend implementation is about to start in parallel (per the plan from `skills/spec-driven-development`).
-- A new AWS-triggered flow is being designed (e.g., video upload → S3 event → transcription job).
+- A new AWS-triggered flow is being designed (e.g., video upload → S3 event → preprocessing job).
 - Someone requests changing a field, enum, or error shape on an already-frozen boundary.
 - Two people (or a person and an agent working unattended) will independently implement the two sides of a boundary in the same work session.
 
@@ -65,7 +65,7 @@ Never change the implementation first and update the contract "to match" afterwa
 
 ## AWS Boundary Notes
 
-For the S3/event/IAM boundary specifically, the "artifact" is often a JSON Schema for the event payload plus a documented S3 key convention (e.g., `videos/{video_id}/raw.mp4`, `videos/{video_id}/transcript.json`). Freeze these the same way: named owner, committed schema, versioned changes. A silent key-naming change breaks the consumer (the ingestion Lambda/worker) exactly like a silent API field rename breaks a frontend.
+For the S3/event/IAM boundary specifically, the "artifact" is often a JSON Schema for the event payload plus a documented S3 key convention (e.g., `videos/{video_id}/raw.mp4`, `videos/{video_id}/features.json`). Freeze these the same way: named owner, committed schema, versioned changes. A silent key-naming change breaks the consumer (the ingestion Lambda/worker) exactly like a silent API field rename breaks a frontend.
 
 ## Anti-Patterns
 

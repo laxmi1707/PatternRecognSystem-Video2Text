@@ -9,7 +9,7 @@ interface NavBarProps {
 export function NavBar({ screen, onUpload, onHistory }: NavBarProps) {
   return (
     <header className="nav">
-      <span className="nav-brand">Runbook</span>
+      <span className="nav-brand">Video2Knowledge</span>
       <a href="#" onClick={e => { e.preventDefault(); onUpload(); }} aria-current={screen === 'upload' ? 'page' : undefined}>
         Upload
       </a>

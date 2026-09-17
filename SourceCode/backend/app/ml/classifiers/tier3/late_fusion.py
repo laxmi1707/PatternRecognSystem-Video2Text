@@ -19,9 +19,11 @@ class LateFusionClassifier(BaseClassifier):
         self,
         branches: list[BaseClassifier] | None = None,
         meta_C: float = 1.0,
+        modality_map: dict[str, tuple[int, int]] | None = None,
     ) -> None:
         self._branches = branches or []
         self._meta_C = meta_C
+        self._modality_map = modality_map
         self._meta_learner: LogisticRegression | None = None
         self._split_indices: list[tuple[int, int]] | None = None
 
@@ -34,6 +36,9 @@ class LateFusionClassifier(BaseClassifier):
         return "tier3"
 
     def _compute_splits(self, n_features: int) -> list[tuple[int, int]]:
+        if self._modality_map and len(self._modality_map) == len(self._branches):
+            return list(self._modality_map.values())
+
         n = len(self._branches)
         chunk = n_features // n
         splits = []

@@ -1,6 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+import uuid
+from pathlib import Path
+
+import aiofiles
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_db
 from app.schemas.video import VideoUploadResponse, VideoResponse
 from app.services import video_service
@@ -10,14 +15,36 @@ router = APIRouter(prefix="/api/v1/videos", tags=["videos"])
 
 @router.post("/upload", response_model=VideoUploadResponse, status_code=201)
 async def upload_video(
-    original_filename: str = Query(..., description="Original video filename"),
-    file_size_bytes: int = Query(0, description="File size in bytes"),
+    file: UploadFile = File(...),
     model_name: str | None = Query(None, description="Classifier model to use"),
     db: AsyncSession = Depends(get_db),
 ):
+    upload_dir = Path(settings.upload_dir)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_name = f"{uuid.uuid4().hex}_{file.filename or 'video.mp4'}"
+    file_path = upload_dir / safe_name
+
+    content = await file.read()
+    async with aiofiles.open(file_path, "wb") as f:
+        await f.write(content)
+
+    duration_seconds = None
+    try:
+        from app.pipeline.video_processor import VideoProcessor
+        vp = VideoProcessor()
+        meta = vp.get_metadata(file_path)
+        duration_seconds = meta.get("duration_seconds")
+    except Exception:
+        pass
+
     video, job = await video_service.create_video(
-        db, original_filename=original_filename,
-        file_size_bytes=file_size_bytes, model_name=model_name,
+        db,
+        original_filename=file.filename or "video.mp4",
+        file_size_bytes=len(content),
+        model_name=model_name,
+        file_path=str(file_path),
+        duration_seconds=duration_seconds,
     )
     return VideoUploadResponse(
         id=video.id,

@@ -24,6 +24,9 @@ class MLConfig:
     cv_folds: int = 5
     model_dir: str = "./models"
     num_classes: int = NUM_CLASSES
+    n_features: int = 150
+    dataset_root: str = "./dataset"
+    upload_dir: str = "./uploads"
     labels: tuple[str, ...] = field(
         default_factory=lambda: tuple(ACTIVITY_LABELS),
     )

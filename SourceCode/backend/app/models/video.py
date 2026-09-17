@@ -12,6 +12,7 @@ class Video(Base, TimestampMixin):
     original_filename: Mapped[str] = mapped_column(String(255))
     file_size_bytes: Mapped[int] = mapped_column(Integer, default=0)
     duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    file_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
     s3_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     status: Mapped[str] = mapped_column(String(50), default="uploaded")
 

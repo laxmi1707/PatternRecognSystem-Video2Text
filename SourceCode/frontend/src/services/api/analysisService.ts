@@ -1,4 +1,8 @@
 import type { AnalysisResult, WorkflowStep } from '../../types/analysis';
+import type { VideoUploadResponse, VideoResponse, JobResultsResponse } from '../../types/api';
+import { apiPost, apiPostFile, apiGet } from './client';
+import { mapResultsToSteps } from './labelMap';
+import { formatSeconds } from '../../utils/formatTime';
 
 export const SCREEN_RECORDING_STEPS: WorkflowStep[] = [
   { n: 1, time: '0:00-0:07', title: 'Opened the code editor', description: 'The project folder loads in the editor with the file tree visible in the sidebar.' },
@@ -53,35 +57,111 @@ export interface AnalyzeHandle {
   cancel: () => void;
 }
 
+function buildSummary(labels: string[]): string {
+  const uniqueLabels = [...new Set(labels)];
+  const readable = uniqueLabels.map((l) => l.replace(/_/g, ' ')).slice(0, 4);
+  if (readable.length === 0) return 'No activities were detected in this recording.';
+  if (readable.length === 1) return `The recording shows activity classified as ${readable[0]}.`;
+  const last = readable.pop()!;
+  return `The recording shows activities including ${readable.join(', ')} and ${last}.`;
+}
+
 export function analyzeVideo(
   file: File,
   durationSeconds: number,
   onProgress: (pct: number) => void,
-  onComplete: (result: AnalysisResult) => void
+  onComplete: (result: AnalysisResult) => void,
+  modelName?: string,
 ): AnalyzeHandle {
+  const controller = new AbortController();
   const videoUrl = URL.createObjectURL(file);
+
   let progress = 0;
   const tickMs = 180;
-  const stepPct = 100 / ((durationSeconds * 1000) / tickMs);
+  const maxSyntheticPct = 90;
+  const stepPct = maxSyntheticPct / ((durationSeconds * 1000) / tickMs);
   const timer = setInterval(() => {
-    progress = Math.min(100, progress + stepPct);
-    onProgress(progress);
-    if (progress >= 100) {
+    if (controller.signal.aborted) {
       clearInterval(timer);
-      const steps = SCREEN_RECORDING_STEPS;
-      const last = steps[steps.length - 1];
+      return;
+    }
+    progress = Math.min(maxSyntheticPct, progress + stepPct);
+    onProgress(Math.round(progress));
+  }, tickMs);
+
+  (async () => {
+    try {
+      const upload = await apiPostFile<VideoUploadResponse>(
+        '/videos/upload', file,
+        modelName ? { model_name: modelName } : undefined,
+      );
+      if (controller.signal.aborted) return;
+
+      const jobResults = await apiPost<JobResultsResponse>(`/jobs/${upload.job_id}/run`);
+      if (controller.signal.aborted) return;
+
+      const steps = mapResultsToSteps(jobResults.results);
+
+      clearInterval(timer);
+      onProgress(100);
+
+      const lastStep = steps[steps.length - 1];
+      const summary = buildSummary(jobResults.results.map((r) => r.label));
+
+      onComplete({
+        id: String(upload.id),
+        name: file.name,
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        duration: lastStep ? lastStep.time.split('-')[1] : '0:00',
+        stepCount: steps.length,
+        status: 'Complete',
+        videoUrl,
+        summary,
+        steps,
+      });
+    } catch (err) {
+      clearInterval(timer);
+      if (controller.signal.aborted) return;
+      console.error('Analysis API failed, falling back to mock:', err);
+      onProgress(100);
       onComplete({
         id: String(Date.now()),
         name: file.name,
         date: 'Today',
-        duration: last.time.split('-')[1],
-        stepCount: steps.length,
+        duration: SCREEN_RECORDING_STEPS[SCREEN_RECORDING_STEPS.length - 1].time.split('-')[1],
+        stepCount: SCREEN_RECORDING_STEPS.length,
         status: 'Complete',
         videoUrl,
-        summary: 'The recording shows a developer pulling the latest changes, installing dependencies, and verifying the app in the browser.',
-        steps,
+        summary:
+          'The recording shows a developer pulling the latest changes, installing dependencies, and verifying the app in the browser. (Offline fallback — backend unavailable)',
+        steps: SCREEN_RECORDING_STEPS,
       });
     }
-  }, tickMs);
-  return { cancel: () => clearInterval(timer) };
+  })();
+
+  return {
+    cancel: () => {
+      controller.abort();
+      clearInterval(timer);
+    },
+  };
+}
+
+export async function fetchHistory(): Promise<AnalysisResult[]> {
+  try {
+    const videos = await apiGet<VideoResponse[]>('/videos/');
+    return videos.map((v) => ({
+      id: String(v.id),
+      name: v.original_filename,
+      date: 'Earlier',
+      duration: v.duration_seconds ? formatSeconds(v.duration_seconds) : '--',
+      stepCount: 0,
+      status: 'Complete' as const,
+      videoUrl: null,
+      summary: '',
+      steps: [],
+    }));
+  } catch {
+    return [];
+  }
 }
