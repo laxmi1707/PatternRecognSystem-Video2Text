@@ -4,7 +4,7 @@
 
 video2Text's Claude harness is a curated, project-scoped fork of [Everything Claude Code (ECC)](https://github.com/): 14 agents, 35 skills, 21 commands, and a layered rule set — cut down from ECC's full multi-language catalog to exactly what this project needs: **Python (FastAPI backend + RAG/ML pipeline) + React (frontend) + AWS (deployment) + Claude Code (agent harness)**.
 
-This is a course project for the NUS M.Tech AIS Pattern Recognition module. The harness exists to keep implementation disciplined across a small team working on a video → transcript → retrieval pipeline, not to be a general-purpose plugin.
+This is a course project for the NUS M.Tech AIS Pattern Recognition module. The harness exists to keep implementation disciplined across a small team working on a video → classification → retrieval pipeline, not to be a general-purpose plugin.
 
 ## Core Principles
 

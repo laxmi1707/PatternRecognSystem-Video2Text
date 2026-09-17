@@ -1,5 +1,6 @@
 import type { AnalysisResult } from '../../types/analysis';
 import { WorkflowSteps } from './WorkflowSteps';
+import { KnowledgePanel } from './KnowledgePanel';
 
 interface VideoResultsProps {
   result: AnalysisResult;
@@ -36,6 +37,8 @@ export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
         </div>
         <WorkflowSteps steps={result.steps} />
       </div>
+
+      <KnowledgePanel jobId={result.id} />
     </div>
   );
 }

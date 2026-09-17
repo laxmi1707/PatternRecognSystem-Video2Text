@@ -7,26 +7,30 @@ from app.schemas.evaluation import (
     CVResultRow,
     AvailableModelsResponse,
 )
-from app.services.ml_service import ml_service
-
 router = APIRouter(prefix="/api/v1/evaluation", tags=["evaluation"])
+
+
+def _get_ml_service():
+    from app.services.ml_service import ml_service
+    return ml_service
 
 
 @router.get("/models", response_model=AvailableModelsResponse)
 async def list_models():
+    svc = _get_ml_service()
     return {
-        "models": ml_service.list_models(),
+        "models": svc.list_models(),
         "tiers": {
-            "tier1": ml_service.list_by_tier("tier1"),
-            "tier2": ml_service.list_by_tier("tier2"),
-            "tier3": ml_service.list_by_tier("tier3"),
+            "tier1": svc.list_by_tier("tier1"),
+            "tier2": svc.list_by_tier("tier2"),
+            "tier3": svc.list_by_tier("tier3"),
         },
     }
 
 
 @router.post("/run", response_model=EvalReportResponse)
 async def run_evaluation():
-    report = ml_service.run_evaluation()
+    report = _get_ml_service().run_evaluation()
     return {
         "comparison_table": [
             ModelComparisonRow(
@@ -47,7 +51,7 @@ async def run_evaluation():
 
 @router.post("/cross-validation", response_model=CVReportResponse)
 async def run_cross_validation():
-    results = ml_service.run_cross_validation()
+    results = _get_ml_service().run_cross_validation()
     return {
         "results": [
             CVResultRow(

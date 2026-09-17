@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from pathlib import Path
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.schemas.job import JobResponse, JobResultsResponse
 from app.schemas.classification import ClassificationResult
-from app.services import job_service
+from app.services import job_service, video_service
 from app.services.classification_service import run_classification_job
 
 router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
@@ -26,7 +28,7 @@ async def get_job(job_id: int, db: AsyncSession = Depends(get_db)):
     )
 
 
-@router.post("/{job_id}/run", response_model=JobResultsResponse)
+@router.post("/{job_id}/run")
 async def run_job(job_id: int, db: AsyncSession = Depends(get_db)):
     job = await job_service.get_job(db, job_id)
     if job is None:
@@ -34,7 +36,20 @@ async def run_job(job_id: int, db: AsyncSession = Depends(get_db)):
     if job.status == "completed":
         raise HTTPException(status_code=409, detail="Job already completed")
 
-    results = await run_classification_job(db, job)
+    video = await video_service.get_video(db, job.video_id)
+    video_path = Path(video.file_path) if video and video.file_path else None
+
+    action_log_path = None
+    if video and video.action_log_path:
+        action_log_path = Path(video.action_log_path)
+    elif video_path:
+        candidate = video_path.parent / "action_log.json"
+        if candidate.exists():
+            action_log_path = candidate
+
+    results = await run_classification_job(
+        db, job, video_path=video_path, action_log_path=action_log_path
+    )
 
     return JobResultsResponse(
         job_id=job.id,

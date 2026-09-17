@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**video2Text** — NUS M.Tech AIS Pattern Recognition project. A video → transcript → retrieval (RAG) pipeline: Python backend (FastAPI + ML/PyTorch pattern-recognition + retrieval pipeline), React frontend, deployed on AWS.
+**video2Text** — NUS M.Tech AIS Pattern Recognition project. A video → classification → retrieval (RAG) pipeline: Python backend (FastAPI + ML/PyTorch pattern-recognition + retrieval pipeline), React frontend, deployed on AWS.
 
 This repo's `.claude`-style harness (`agents/`, `skills/`, `commands/`, `rules/`) is a curated fork of [Everything Claude Code (ECC)](https://github.com/), cut down to Python + React + AWS + Claude Code scope only. See `SOUL.md` for the mental model and `MANIFEST.md` for exactly what was pinned and why.
 

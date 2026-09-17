@@ -1,1 +1,13 @@
 .DS_Store
+
+# Database files
+*.db
+
+# Model weights
+*.pt
+
+# Uploaded files
+SourceCode/backend/uploads/
+
+# Datasets
+dataset/

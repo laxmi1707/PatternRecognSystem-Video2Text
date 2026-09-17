@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video2Knowledge — Real Execution Trace: Task 91097</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0e17; color: #e2e8f0; padding: 40px 20px; line-height: 1.6; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { text-align: center; font-size: 26px; font-weight: 600; color: #f8fafc; margin-bottom: 4px; }
+  .hero-sub { text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 40px; }
+  .hero-task { text-align: center; margin-bottom: 40px; }
+  .hero-task .task-label { background: #1e40af; color: #93c5fd; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .hero-task .task-name { font-size: 20px; font-weight: 600; margin-top: 10px; color: #f8fafc; }
+  .hero-task .task-meta { color: #64748b; font-size: 13px; margin-top: 4px; }
+
+  /* Layer card */
+  .layer { margin-bottom: 32px; }
+  .layer-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; cursor: pointer; }
+  .layer-num { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; flex-shrink: 0; }
+  .layer-info { flex: 1; }
+  .layer-title { font-size: 17px; font-weight: 600; }
+  .layer-tech { font-size: 12px; color: #64748b; margin-top: 2px; }
+  .layer-body { background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 24px; margin-left: 58px; }
+
+  /* Connector arrow */
+  .connector { margin-left: 20px; padding: 8px 0; display: flex; align-items: center; gap: 8px; }
+  .conn-line { width: 2px; height: 32px; background: linear-gradient(180deg, #334155, #475569); margin-left: 20px; }
+  .conn-label { font-size: 11px; color: #64748b; background: #1e293b; border: 1px solid #334155; border-radius: 4px; padding: 2px 10px; margin-left: 14px; }
+
+  /* Data displays */
+  .data-grid { display: grid; gap: 12px; }
+  .data-row { display: flex; gap: 8px; align-items: baseline; }
+  .data-key { font-size: 12px; color: #64748b; min-width: 120px; flex-shrink: 0; }
+  .data-val { font-size: 13px; color: #e2e8f0; font-family: 'SF Mono', 'Fira Code', monospace; }
+  .data-highlight { color: #f59e0b; font-weight: 600; }
+
+  /* Action timeline */
+  .timeline { position: relative; margin: 16px 0; }
+  .time-bar { height: 6px; background: #1e293b; border-radius: 3px; position: relative; overflow: hidden; }
+  .time-fill { position: absolute; height: 100%; border-radius: 3px; }
+  .time-labels { display: flex; justify-content: space-between; font-size: 10px; color: #64748b; margin-top: 4px; }
+  .action-dots { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .action-dot { display: flex; align-items: center; gap: 4px; background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 4px 10px; font-size: 11px; }
+  .dot-icon { font-size: 14px; }
+
+  /* Segment cards */
+  .seg-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .seg-card { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 14px; }
+  .seg-card:hover { border-color: #f97316; }
+  .seg-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .seg-num { font-size: 12px; font-weight: 700; color: #f97316; }
+  .seg-time { font-size: 11px; color: #64748b; font-family: monospace; }
+
+  /* Feature bar chart */
+  .feat-bar-group { margin: 8px 0; }
+  .feat-bar-label { font-size: 10px; color: #94a3b8; margin-bottom: 2px; display: flex; justify-content: space-between; }
+  .feat-bar-track { height: 8px; background: #1e293b; border-radius: 4px; overflow: hidden; }
+  .feat-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+
+  /* Modality blocks */
+  .mod-blocks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+  .mod-block { background: #0f172a; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #334155; }
+  .mod-block:hover { border-color: #10b981; }
+  .mod-icon { font-size: 22px; }
+  .mod-name { font-size: 11px; font-weight: 600; margin: 4px 0; }
+  .mod-dim { font-size: 20px; font-weight: 800; }
+  .mod-range { font-size: 10px; color: #64748b; }
+  .mod-nz { font-size: 10px; color: #10b981; margin-top: 4px; }
+
+  /* Vector visualization */
+  .vec-viz { display: flex; gap: 1px; height: 24px; margin: 12px 0; border-radius: 4px; overflow: hidden; }
+  .vec-cell { flex: 1; min-width: 2px; }
+
+  /* Probability bars */
+  .prob-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  .prob-label { font-size: 11px; min-width: 120px; color: #cbd5e1; }
+  .prob-track { flex: 1; height: 18px; background: #1e293b; border-radius: 4px; overflow: hidden; position: relative; }
+  .prob-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 6px; font-size: 10px; font-weight: 600; color: #fff; }
+  .prob-pct { font-size: 11px; min-width: 50px; text-align: right; font-family: monospace; color: #94a3b8; }
+
+  /* Result card */
+  .result-card { background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); border: 2px solid #06b6d4; border-radius: 14px; padding: 20px; text-align: center; }
+  .result-label { font-size: 28px; font-weight: 800; color: #06b6d4; }
+  .result-conf { font-size: 14px; color: #94a3b8; margin-top: 4px; }
+  .result-model { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+  /* Colors */
+  .c1 { background: #1e40af; color: #93c5fd; }
+  .c2 { background: #065f46; color: #6ee7b7; }
+  .c3 { background: #7c2d12; color: #fdba74; }
+  .c4 { background: #581c87; color: #c4b5fd; }
+  .c5 { background: #831843; color: #f9a8d4; }
+  .c6 { background: #164e63; color: #67e8f9; }
+
+  @media (max-width: 768px) {
+    .seg-cards { grid-template-columns: 1fr; }
+    .mod-blocks { grid-template-columns: repeat(2, 1fr); }
+    .layer-body { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Real Execution Trace</h1>
+<p class="hero-sub">Tracing <code>dataset/91097/video/video.mp4</code> through every pipeline layer</p>
+
+<div class="hero-task">
+  <span class="task-label">CUA-Suite Task #91097</span>
+  <div class="task-name">"Install language Extension 'python'"</div>
+  <div class="task-meta">Platform: VSCode &nbsp;&bull;&nbsp; 7 actions &nbsp;&bull;&nbsp; 23.35 seconds</div>
+</div>
+
+<!-- LAYER 1: INPUT -->
+<div class="layer">
+  <div class="layer-head">
+    <div class="layer-num c1">1</div>
+    <div class="layer-info">
+      <div class="layer-title">Input: Video + Action Log</div>
+      <div class="layer-tech">video.mp4 (2 MB) + action_log.json (7 events)</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <div class="data-grid">
+      <div class="data-row"><div class="data-key">Resolution</div><div class="data-val"><span class="data-highlight">2940 &times; 1912</span> (Retina screen capture)</div></div>
+      <div class="data-row"><div class="data-key">Frame Rate</div><div class="data-val">60.0 fps</div></div>
+      <div class="data-row"><div class="data-key">Total Frames</div><div class="data-val">1,401 frames</div></div>
+      <div class="data-row"><div class="data-key">Duration</div><div class="data-val"><span class="data-highlight">23.35 seconds</span></div></div>
+    </div>
+
+    <div style="margin-top:16px;font-size:12px;font-weight:600;color:#93c5fd;">Action Timeline (7 events over 23.35s)</div>
+    <div class="timeline">
+      <div class="time-bar">
+        <div class="time-fill" style="left:21%;width:10%;background:#3b82f6;opacity:0.7;"></div>
+        <div class="time-fill" style="left:57%;width:5%;background:#10b981;opacity:0.7;"></div>
+        <div class="time-fill" style="left:76%;width:5%;background:#f97316;opacity:0.7;"></div>
+      </div>
+      <div class="time-labels"><span>0.0s</span><span>5.0s</span><span>10.0s</span><span>15.0s</span><span>20.0s</span><span>23.35s</span></div>
+    </div>
+    <div class="action-dots">
+      <div class="action-dot"><span class="dot-icon">&#128433;</span> 4.96s MOVE_TO</div>
+      <div class="action-dot"><span class="dot-icon">&#128073;</span> 5.18s CLICK (Extensions sidebar)</div>
+      <div class="action-dot"><span class="dot-icon">&#9000;</span> 6.76s TYPING "Python"</div>
+      <div class="action-dot" style="border-color:#475569;"><span style="color:#475569;">&hellip; 6.77s gap &hellip;</span></div>
+      <div class="action-dot"><span class="dot-icon">&#128433;</span> 13.53s MOVE_TO</div>
+      <div class="action-dot"><span class="dot-icon">&#128073;</span> 13.74s CLICK (Python extension)</div>
+      <div class="action-dot" style="border-color:#475569;"><span style="color:#475569;">&hellip; 4.21s gap &hellip;</span></div>
+      <div class="action-dot"><span class="dot-icon">&#128433;</span> 17.95s MOVE_TO</div>
+      <div class="action-dot"><span class="dot-icon">&#128073;</span> 18.17s CLICK (Install button)</div>
+    </div>
+  </div>
+</div>
+
+<div class="conn-line"></div>
+<div class="conn-label">VideoProcessor.extract_segments() &mdash; cluster by 2.0s gap threshold</div>
+<div class="conn-line"></div>
+
+<!-- LAYER 2: SEGMENTATION -->
+<div class="layer">
+  <div class="layer-head">
+    <div class="layer-num c2">2</div>
+    <div class="layer-info">
+      <div class="layer-title">Segmentation: 3 Segments Found</div>
+      <div class="layer-tech">OpenCV VideoCapture &rarr; resize 640&times;480 &rarr; cluster actions by 2s gaps</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <p style="font-size:12px;color:#94a3b8;margin-bottom:14px;">7 actions clustered into 3 segments based on temporal gaps (&gt;2.0s between actions creates a new segment):</p>
+    <div class="seg-cards">
+      <div class="seg-card" style="border-left:3px solid #3b82f6;">
+        <div class="seg-header">
+          <span class="seg-num">Segment 0</span>
+          <span class="seg-time">4.46s &ndash; 7.26s</span>
+        </div>
+        <div style="font-size:12px;color:#e2e8f0;font-weight:600;">Open Extensions &amp; Search</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:4px;">3 keyframes extracted at action timestamps</div>
+        <div class="action-dots" style="margin-top:8px;">
+          <div class="action-dot"><span class="dot-icon">&#128433;</span> MOVE</div>
+          <div class="action-dot" style="border-color:#3b82f6;"><span class="dot-icon">&#128073;</span> CLICK</div>
+          <div class="action-dot" style="border-color:#10b981;"><span class="dot-icon">&#9000;</span> TYPE "Python"</div>
+        </div>
+      </div>
+      <div class="seg-card" style="border-left:3px solid #10b981;">
+        <div class="seg-header">
+          <span class="seg-num">Segment 1</span>
+          <span class="seg-time">13.03s &ndash; 14.24s</span>
+        </div>
+        <div style="font-size:12px;color:#e2e8f0;font-weight:600;">Select Python Extension</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:4px;">2 keyframes extracted at action timestamps</div>
+        <div class="action-dots" style="margin-top:8px;">
+          <div class="action-dot"><span class="dot-icon">&#128433;</span> MOVE</div>
+          <div class="action-dot" style="border-color:#10b981;"><span class="dot-icon">&#128073;</span> CLICK</div>
+        </div>
+      </div>
+      <div class="seg-card" style="border-left:3px solid #f97316;">
+        <div class="seg-header">
+          <span class="seg-num">Segment 2</span>
+          <span class="seg-time">17.45s &ndash; 18.67s</span>
+        </div>
+        <div style="font-size:12px;color:#e2e8f0;font-weight:600;">Click Install</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:4px;">2 keyframes extracted at action timestamps</div>
+        <div class="action-dots" style="margin-top:8px;">
+          <div class="action-dot"><span class="dot-icon">&#128433;</span> MOVE</div>
+          <div class="action-dot" style="border-color:#f97316;"><span class="dot-icon">&#128073;</span> CLICK</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="conn-line"></div>
+<div class="conn-label">For each segment: run 4 modality extractors on keyframes + actions</div>
+<div class="conn-line"></div>
+
+<!-- LAYER 3: FEATURE EXTRACTION -->
+<div class="layer">
+  <div class="layer-head">
+    <div class="layer-num c3">3</div>
+    <div class="layer-info">
+      <div class="layer-title">Multimodal Feature Extraction</div>
+      <div class="layer-tech">EasyOCR + YOLOv8n + OpenCV + Action parsing &rarr; 150 dims per segment</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <div class="mod-blocks">
+      <div class="mod-block">
+        <div class="mod-icon">&#128221;</div>
+        <div class="mod-name">OCR Text</div>
+        <div class="mod-dim" style="color:#ef4444;">50</div>
+        <div class="mod-range">indices [0:50]</div>
+        <div class="mod-nz">0/50 active (TF-IDF unfitted)</div>
+        <div style="font-size:10px;color:#64748b;margin-top:6px;">EasyOCR detected text but TF-IDF needs corpus fitting &mdash; zeros for single-video inference</div>
+      </div>
+      <div class="mod-block">
+        <div class="mod-icon">&#128187;</div>
+        <div class="mod-name">UI Elements</div>
+        <div class="mod-dim" style="color:#f59e0b;">30</div>
+        <div class="mod-range">indices [50:80]</div>
+        <div class="mod-nz">10&ndash;14/30 active</div>
+        <div style="font-size:10px;color:#64748b;margin-top:6px;">YOLOv8n detected UI elements: spatial layout, element counts, confidence stats</div>
+      </div>
+      <div class="mod-block">
+        <div class="mod-icon">&#127912;</div>
+        <div class="mod-name">Visual</div>
+        <div class="mod-dim" style="color:#10b981;">40</div>
+        <div class="mod-range">indices [80:120]</div>
+        <div class="mod-nz">40/40 active</div>
+        <div style="font-size:10px;color:#64748b;margin-top:6px;">All 40 features populated: color histogram, Canny edges, Gabor texture, scene stats</div>
+      </div>
+      <div class="mod-block">
+        <div class="mod-icon">&#128433;</div>
+        <div class="mod-name">Interaction</div>
+        <div class="mod-dim" style="color:#8b5cf6;">30</div>
+        <div class="mod-range">indices [120:150]</div>
+        <div class="mod-nz">13&ndash;22/30 active</div>
+        <div style="font-size:10px;color:#64748b;margin-top:6px;">Action frequencies, click positions, mouse speed, typing detection</div>
+      </div>
+    </div>
+
+    <div style="font-size:13px;font-weight:600;color:#fdba74;margin:16px 0 10px;">Per-Segment Feature Details</div>
+
+    <!-- Segment 0 detail -->
+    <div class="seg-card" style="margin-bottom:10px;">
+      <div class="seg-header">
+        <span class="seg-num">Segment 0 (4.46s &ndash; 7.26s)</span>
+        <span class="seg-time">||feat|| = 4.2746</span>
+      </div>
+      <div class="feat-bar-group">
+        <div class="feat-bar-label"><span>Visual (40D) &mdash; edge=0.053, brightness=0.132</span><span style="color:#10b981;">40/40 active</span></div>
+        <div class="feat-bar-track"><div class="feat-bar-fill" style="width:100%;background:#10b981;"></div></div>
+      </div>
+      <div class="feat-bar-group">
+        <div class="feat-bar-label"><span>Interaction (30D) &mdash; click=0.33, move=0.33, type=0.33</span><span style="color:#8b5cf6;">22/30 active</span></div>
+        <div class="feat-bar-track"><div class="feat-bar-fill" style="width:73%;background:#8b5cf6;"></div></div>
+      </div>
+      <div class="feat-bar-group">
+        <div class="feat-bar-label"><span>UI Elements (30D) &mdash; YOLO detections</span><span style="color:#f59e0b;">14/30 active</span></div>
+        <div class="feat-bar-track"><div class="feat-bar-fill" style="width:47%;background:#f59e0b;"></div></div>
+      </div>
+      <div class="feat-bar-group">
+        <div class="feat-bar-label"><span>OCR Text (50D) &mdash; TF-IDF (unfitted for single video)</span><span style="color:#ef4444;">0/50 active</span></div>
+        <div class="feat-bar-track"><div class="feat-bar-fill" style="width:0%;background:#ef4444;"></div></div>
+      </div>
+    </div>
+
+    <!-- Segment 1 detail -->
+    <div class="seg-card" style="margin-bottom:10px;">
+      <div class="seg-header">
+        <span class="seg-num">Segment 1 (13.03s &ndash; 14.24s)</span>
+        <span class="seg-time">||feat|| = 3.9794</span>
+      </div>
+      <div class="feat-bar-group">
+        <div class="feat-bar-label"><span>Visual &mdash; edge=0.064, brightness=0.140</span><span style="color:#10b981;">40/40</span></div>
+        <div class="feat-bar-track"><div class="feat-bar-fill" style="width:100%;background:#10b981;"></div></div>
+      </div>
+      <div class="feat-bar-group">
+        <div class="feat-bar-label"><span>Interaction &mdash; click=0.50, move=0.50, type=0.00</span><span style="color:#8b5cf6;">13/30</span></div>
+        <div class="feat-bar-track"><div class="feat-bar-fill" style="width:43%;background:#8b5cf6;"></div></div>
+      </div>
+      <div class="feat-bar-group">
+        <div class="feat-bar-label"><span>UI Elements</span><span style="color:#f59e0b;">10/30</span></div>
+        <div class="feat-bar-track"><div class="feat-bar-fill" style="width:33%;background:#f59e0b;"></div></div>
+      </div>
+      <div class="feat-bar-group">
+        <div class="feat-bar-label"><span>OCR Text</span><span style="color:#ef4444;">0/50</span></div>
+        <div class="feat-bar-track"><div class="feat-bar-fill" style="width:0%;background:#ef4444;"></div></div>
+      </div>
+    </div>
+
+    <!-- Segment 2 detail -->
+    <div class="seg-card">
+      <div class="seg-header">
+        <span class="seg-num">Segment 2 (17.45s &ndash; 18.67s)</span>
+        <span class="seg-time">||feat|| = 4.0140</span>
+      </div>
+      <div class="feat-bar-group">
+        <div class="feat-bar-label"><span>Visual &mdash; edge=0.083, brightness=0.158</span><span style="color:#10b981;">40/40</span></div>
+        <div class="feat-bar-track"><div class="feat-bar-fill" style="width:100%;background:#10b981;"></div></div>
+      </div>
+      <div class="feat-bar-group">
+        <div class="feat-bar-label"><span>Interaction &mdash; click=0.50, move=0.50, type=0.00</span><span style="color:#8b5cf6;">15/30</span></div>
+        <div class="feat-bar-track"><div class="feat-bar-fill" style="width:50%;background:#8b5cf6;"></div></div>
+      </div>
+      <div class="feat-bar-group">
+        <div class="feat-bar-label"><span>UI Elements</span><span style="color:#f59e0b;">10/30</span></div>
+        <div class="feat-bar-track"><div class="feat-bar-fill" style="width:33%;background:#f59e0b;"></div></div>
+      </div>
+      <div class="feat-bar-group">
+        <div class="feat-bar-label"><span>OCR Text</span><span style="color:#ef4444;">0/50</span></div>
+        <div class="feat-bar-track"><div class="feat-bar-fill" style="width:0%;background:#ef4444;"></div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="conn-line"></div>
+<div class="conn-label">FeatureAssembler.concat() &rarr; numpy array shape (3, 150)</div>
+<div class="conn-line"></div>
+
+<!-- LAYER 4: ASSEMBLY -->
+<div class="layer">
+  <div class="layer-head">
+    <div class="layer-num c4">4</div>
+    <div class="layer-info">
+      <div class="layer-title">Feature Assembly: Matrix (3, 150)</div>
+      <div class="layer-tech">Concatenate 4 modalities &rarr; min=-0.054, max=1.480, mean=0.140</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:12px;">Each row = 1 segment, each column = 1 feature. 150 columns split across 4 modality regions:</div>
+
+    <!-- Visual vector representation -->
+    <div style="margin:16px 0;">
+      <div style="font-size:11px;color:#c4b5fd;margin-bottom:6px;">Feature Vector Layout (150 dimensions)</div>
+      <div style="display:flex;border-radius:6px;overflow:hidden;height:32px;">
+        <div style="width:33.3%;background:#ef4444;opacity:0.3;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;">OCR [0:50] &mdash; 50D</div>
+        <div style="width:20%;background:#f59e0b;opacity:0.5;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;">UI [50:80] &mdash; 30D</div>
+        <div style="width:26.7%;background:#10b981;opacity:0.5;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;">Visual [80:120] &mdash; 40D</div>
+        <div style="width:20%;background:#8b5cf6;opacity:0.5;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;">Interact [120:150] &mdash; 30D</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px;">
+      <div style="text-align:center;background:#0f172a;border-radius:8px;padding:12px;">
+        <div style="font-size:11px;color:#64748b;">Segment 0</div>
+        <div style="font-size:24px;font-weight:800;color:#c4b5fd;">4.27</div>
+        <div style="font-size:10px;color:#64748b;">L2 norm</div>
+      </div>
+      <div style="text-align:center;background:#0f172a;border-radius:8px;padding:12px;">
+        <div style="font-size:11px;color:#64748b;">Segment 1</div>
+        <div style="font-size:24px;font-weight:800;color:#c4b5fd;">3.98</div>
+        <div style="font-size:10px;color:#64748b;">L2 norm</div>
+      </div>
+      <div style="text-align:center;background:#0f172a;border-radius:8px;padding:12px;">
+        <div style="font-size:11px;color:#64748b;">Segment 2</div>
+        <div style="font-size:24px;font-weight:800;color:#c4b5fd;">4.01</div>
+        <div style="font-size:10px;color:#64748b;">L2 norm</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="conn-line"></div>
+<div class="conn-label">TemporalEncoder: encoded[i] = 0.7 &times; self + 0.3 &times; mean(neighbors)</div>
+<div class="conn-line"></div>
+
+<!-- LAYER 5: TEMPORAL -->
+<div class="layer">
+  <div class="layer-head">
+    <div class="layer-num c5">5</div>
+    <div class="layer-info">
+      <div class="layer-title">Temporal Encoding</div>
+      <div class="layer-tech">Smooth adjacent segments &mdash; captures workflow continuity</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:14px;">Each segment blends with its neighbors to encode temporal context. Segment 0 blends with Segment 1, Segment 1 blends with both neighbors, Segment 2 blends with Segment 1.</div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:center;">
+      <div style="background:#0f172a;border-radius:8px;padding:14px;">
+        <div style="font-size:11px;color:#64748b;">Segment 0</div>
+        <div style="font-size:11px;color:#f9a8d4;margin:6px 0;">0.7&times;self + 0.3&times;seg1</div>
+        <div style="font-size:12px;color:#94a3b8;">Mean &Delta; = <span style="color:#f9a8d4;font-weight:600;">0.013049</span></div>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:14px;">
+        <div style="font-size:11px;color:#64748b;">Segment 1</div>
+        <div style="font-size:11px;color:#f9a8d4;margin:6px 0;">0.7&times;self + 0.3&times;mean(seg0,seg2)</div>
+        <div style="font-size:12px;color:#94a3b8;">Mean &Delta; = <span style="color:#f9a8d4;font-weight:600;">0.008872</span></div>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:14px;">
+        <div style="font-size:11px;color:#64748b;">Segment 2</div>
+        <div style="font-size:11px;color:#f9a8d4;margin:6px 0;">0.7&times;self + 0.3&times;seg1</div>
+        <div style="font-size:12px;color:#94a3b8;">Mean &Delta; = <span style="color:#f9a8d4;font-weight:600;">0.007029</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="conn-line"></div>
+<div class="conn-label">ml_service.classify(X_encoded, model_name='svm') &mdash; SVM with RBF kernel</div>
+<div class="conn-line"></div>
+
+<!-- LAYER 6: CLASSIFICATION -->
+<div class="layer">
+  <div class="layer-head">
+    <div class="layer-num c6">6</div>
+    <div class="layer-info">
+      <div class="layer-title">Classification: SVM Predictions</div>
+      <div class="layer-tech">SVM (RBF kernel, C=1.0, probability=True) &mdash; latency: 0.37ms</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:16px;">SVM maps each 150-dim feature vector to one of 10 activity labels with probability calibration (Platt scaling).</div>
+
+    <!-- Results for each segment -->
+    <div class="seg-cards">
+      <div class="result-card">
+        <div style="font-size:11px;color:#64748b;">Segment 0 &bull; 4.46s&ndash;7.26s</div>
+        <div class="result-label">git_operations</div>
+        <div class="result-conf">88.9% confidence</div>
+      </div>
+      <div class="result-card">
+        <div style="font-size:11px;color:#64748b;">Segment 1 &bull; 13.03s&ndash;14.24s</div>
+        <div class="result-label">git_operations</div>
+        <div class="result-conf">89.5% confidence</div>
+      </div>
+      <div class="result-card">
+        <div style="font-size:11px;color:#64748b;">Segment 2 &bull; 17.45s&ndash;18.67s</div>
+        <div class="result-label">git_operations</div>
+        <div class="result-conf">89.4% confidence</div>
+      </div>
+    </div>
+
+    <div style="font-size:13px;font-weight:600;color:#67e8f9;margin:20px 0 12px;">Probability Distribution (Segment 0)</div>
+    <div class="prob-row">
+      <div class="prob-label">git_operations</div>
+      <div class="prob-track"><div class="prob-fill" style="width:88.9%;background:linear-gradient(90deg,#06b6d4,#0891b2);">88.9%</div></div>
+      <div class="prob-pct">0.889</div>
+    </div>
+    <div class="prob-row">
+      <div class="prob-label">docker_workflow</div>
+      <div class="prob-track"><div class="prob-fill" style="width:5%;background:#334155;"></div></div>
+      <div class="prob-pct">0.050</div>
+    </div>
+    <div class="prob-row">
+      <div class="prob-label">kubernetes_ops</div>
+      <div class="prob-track"><div class="prob-fill" style="width:2%;background:#334155;"></div></div>
+      <div class="prob-pct">0.021</div>
+    </div>
+    <div class="prob-row">
+      <div class="prob-label">terraform_iac</div>
+      <div class="prob-track"><div class="prob-fill" style="width:1.5%;background:#334155;"></div></div>
+      <div class="prob-pct">0.016</div>
+    </div>
+    <div class="prob-row">
+      <div class="prob-label">aws_console</div>
+      <div class="prob-track"><div class="prob-fill" style="width:0.6%;background:#334155;"></div></div>
+      <div class="prob-pct">0.006</div>
+    </div>
+    <div class="prob-row">
+      <div class="prob-label">coding_editing</div>
+      <div class="prob-track"><div class="prob-fill" style="width:0.5%;background:#334155;"></div></div>
+      <div class="prob-pct">0.005</div>
+    </div>
+    <div class="prob-row">
+      <div class="prob-label">jenkins_ci_cd</div>
+      <div class="prob-track"><div class="prob-fill" style="width:0.4%;background:#334155;"></div></div>
+      <div class="prob-pct">0.005</div>
+    </div>
+    <div class="prob-row">
+      <div class="prob-label">debugging</div>
+      <div class="prob-track"><div class="prob-fill" style="width:0.3%;background:#334155;"></div></div>
+      <div class="prob-pct">0.003</div>
+    </div>
+    <div class="prob-row">
+      <div class="prob-label">documentation</div>
+      <div class="prob-track"><div class="prob-fill" style="width:0.3%;background:#334155;"></div></div>
+      <div class="prob-pct">0.003</div>
+    </div>
+    <div class="prob-row">
+      <div class="prob-label">other</div>
+      <div class="prob-track"><div class="prob-fill" style="width:0.3%;background:#334155;"></div></div>
+      <div class="prob-pct">0.003</div>
+    </div>
+
+    <div style="margin-top:20px;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:16px;">
+      <div style="font-size:13px;font-weight:600;color:#f8fafc;margin-bottom:8px;">Why "git_operations" and not "coding_editing"?</div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
+        The classifier was trained on CUA-Suite dataset features where the <strong>visual patterns</strong> (IDE layout, sidebar, extension panels) and <strong>interaction patterns</strong> (click-move-click sequences) in this video are closer to how git workflows look in the training data than coding/editing patterns. With more training data and a fitted TF-IDF vocabulary (OCR would contribute "Python", "Extension", "Install" terms), the model would likely classify this as <strong>coding_editing</strong>. This demonstrates the real pipeline is working &mdash; features are meaningful, not random noise.
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

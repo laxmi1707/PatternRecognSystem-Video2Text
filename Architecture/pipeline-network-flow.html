@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video2Knowledge — Network &amp; Component Flow</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0a0e17; color: #e2e8f0; min-height: 100vh; padding: 40px 20px; }
+  h1 { text-align: center; font-size: 28px; font-weight: 600; margin-bottom: 8px; color: #f8fafc; }
+  .subtitle { text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 48px; }
+
+  .canvas { max-width: 1100px; margin: 0 auto; position: relative; }
+
+  /* Layer boxes */
+  .layer { border: 1px solid #334155; border-radius: 16px; padding: 24px; margin-bottom: 24px; position: relative; background: #0f172a; }
+  .layer-label { position: absolute; top: -12px; left: 24px; background: #0f172a; padding: 0 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
+
+  /* Component cards */
+  .components { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .comp { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 14px 18px; min-width: 140px; text-align: center; transition: all 0.2s; cursor: default; }
+  .comp:hover { border-color: #60a5fa; transform: translateY(-2px); box-shadow: 0 4px 20px rgba(96,165,250,0.15); }
+  .comp-icon { font-size: 28px; margin-bottom: 6px; }
+  .comp-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .comp-tech { font-size: 10px; color: #64748b; }
+  .comp-port { display: inline-block; background: #334155; border-radius: 4px; padding: 1px 8px; font-size: 10px; font-weight: 600; margin-top: 4px; color: #94a3b8; }
+
+  /* Arrows between layers */
+  .flow-arrow { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 12px 0; color: #475569; }
+  .flow-line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent 0%, #475569 20%, #475569 80%, transparent 100%); max-width: 400px; }
+  .flow-icon { font-size: 20px; }
+  .flow-labels { display: flex; justify-content: center; gap: 24px; margin: -4px 0 8px; }
+  .flow-tag { font-size: 10px; color: #64748b; background: #1e293b; border: 1px solid #334155; border-radius: 4px; padding: 2px 8px; }
+
+  /* Sequence diagram */
+  .sequence { margin-top: 48px; }
+  .seq-title { font-size: 18px; font-weight: 600; margin-bottom: 24px; text-align: center; }
+  .seq-table { width: 100%; border-collapse: collapse; }
+  .seq-table th { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 8px 12px; border-bottom: 2px solid #334155; text-align: center; }
+  .seq-table td { padding: 6px 12px; font-size: 12px; border-bottom: 1px solid #1e293b; vertical-align: top; }
+  .seq-step { font-weight: 700; color: #f8fafc; white-space: nowrap; }
+  .seq-from { color: #3b82f6; }
+  .seq-to { color: #10b981; }
+  .seq-arrow-cell { text-align: center; color: #f97316; font-size: 16px; white-space: nowrap; }
+  .seq-method { font-family: 'SF Mono', monospace; font-size: 11px; color: #f59e0b; }
+  .seq-data { color: #94a3b8; font-size: 11px; }
+  .seq-row:hover { background: #1e293b; }
+
+  /* Protocol legend */
+  .legend { display: flex; gap: 24px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* Colors */
+  .c-blue { color: #3b82f6; }
+  .c-green { color: #10b981; }
+  .c-orange { color: #f97316; }
+  .c-purple { color: #8b5cf6; }
+  .c-pink { color: #ec4899; }
+  .c-cyan { color: #06b6d4; }
+  .bg-blue { background: #3b82f6; }
+  .bg-green { background: #10b981; }
+  .bg-orange { background: #f97316; }
+  .bg-purple { background: #8b5cf6; }
+  .bg-cyan { background: #06b6d4; }
+  .bg-yellow { background: #eab308; }
+
+  @media (max-width: 768px) {
+    .components { flex-direction: column; align-items: center; }
+    .seq-table { font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Video2Knowledge Network &amp; Component Flow</h1>
+<p class="subtitle">Request lifecycle from browser to ML pipeline and back &mdash; all components and their communication protocols</p>
+
+<div class="canvas">
+
+  <!-- Layer 1: Client -->
+  <div class="layer" style="border-color:#3b82f6;">
+    <div class="layer-label c-blue">Client Layer</div>
+    <div class="components">
+      <div class="comp">
+        <div class="comp-icon">&#127760;</div>
+        <div class="comp-name">React Frontend</div>
+        <div class="comp-tech">Vite + TypeScript + React 18</div>
+        <div class="comp-port">:5173</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#128268;</div>
+        <div class="comp-name">API Client</div>
+        <div class="comp-tech">fetch() wrapper<br>apiGet / apiPost / apiPostFile</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#128202;</div>
+        <div class="comp-name">UI Components</div>
+        <div class="comp-tech">VideoDropzone &rarr; AnalyzingProgress<br>&rarr; VideoResults &rarr; WorkflowSteps</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <div class="flow-line"></div>
+    <div class="flow-icon">&#8595;</div>
+    <div class="flow-line"></div>
+  </div>
+  <div class="flow-labels">
+    <div class="flow-tag">HTTP multipart/form-data (upload)</div>
+    <div class="flow-tag">JSON REST (jobs, results)</div>
+    <div class="flow-tag">CORS: localhost:5173 &rarr; :8000</div>
+  </div>
+
+  <!-- Layer 2: API -->
+  <div class="layer" style="border-color:#10b981;">
+    <div class="layer-label c-green">API Layer &mdash; FastAPI</div>
+    <div class="components">
+      <div class="comp">
+        <div class="comp-icon">&#128194;</div>
+        <div class="comp-name">videos router</div>
+        <div class="comp-tech">POST /upload<br>GET /{id}, GET /</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#9881;</div>
+        <div class="comp-name">jobs router</div>
+        <div class="comp-tech">POST /{id}/run<br>GET /{id}/results</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#128200;</div>
+        <div class="comp-name">evaluation router</div>
+        <div class="comp-tech">GET /models<br>POST /run, /cross-validation</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#127919;</div>
+        <div class="comp-name">classification router</div>
+        <div class="comp-tech">POST /predict<br>POST /predict/batch</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#128218;</div>
+        <div class="comp-name">knowledge router</div>
+        <div class="comp-tech">POST /sop/{jobId}<br>POST /runbook/{jobId}</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:12px;">
+      <div class="comp-port" style="font-size:12px;">Uvicorn :8000 &nbsp;|&nbsp; ASGI &nbsp;|&nbsp; async/await</div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <div class="flow-line"></div>
+    <div class="flow-icon">&#8595;</div>
+    <div class="flow-line"></div>
+  </div>
+  <div class="flow-labels">
+    <div class="flow-tag">Async SQLAlchemy ORM</div>
+    <div class="flow-tag">Function calls (in-process)</div>
+  </div>
+
+  <!-- Layer 3: Services -->
+  <div class="layer" style="border-color:#f97316;">
+    <div class="layer-label c-orange">Service Layer</div>
+    <div class="components">
+      <div class="comp">
+        <div class="comp-icon">&#128249;</div>
+        <div class="comp-name">video_service</div>
+        <div class="comp-tech">CRUD: create_video,<br>get_video, list_videos</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#128203;</div>
+        <div class="comp-name">job_service</div>
+        <div class="comp-tech">CRUD: get_job,<br>update_job_status</div>
+      </div>
+      <div class="comp" style="border-color:#f97316;">
+        <div class="comp-icon">&#9889;</div>
+        <div class="comp-name" style="color:#f97316;">classification_service</div>
+        <div class="comp-tech">Orchestrator:<br>extract &rarr; encode &rarr; classify</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#129302;</div>
+        <div class="comp-name">ml_service</div>
+        <div class="comp-tech">Singleton: registry,<br>lazy-train, classify</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <div class="flow-line"></div>
+    <div class="flow-icon">&#8595;</div>
+    <div class="flow-line"></div>
+  </div>
+  <div class="flow-labels">
+    <div class="flow-tag">numpy arrays (N, 150)</div>
+    <div class="flow-tag">SegmentData objects</div>
+    <div class="flow-tag">PredictionResult dataclass</div>
+  </div>
+
+  <!-- Layer 4: ML Pipeline -->
+  <div class="layer" style="border-color:#8b5cf6;">
+    <div class="layer-label c-purple">ML Pipeline Layer</div>
+    <div class="components">
+      <div class="comp">
+        <div class="comp-icon">&#127909;</div>
+        <div class="comp-name">VideoProcessor</div>
+        <div class="comp-tech">OpenCV: frames,<br>segments, metadata</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#128221;</div>
+        <div class="comp-name">OCRExtractor</div>
+        <div class="comp-tech">EasyOCR &rarr; TF-IDF<br>50 dims</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#128187;</div>
+        <div class="comp-name">UIDetector</div>
+        <div class="comp-tech">YOLOv8n &rarr; UI map<br>30 dims</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#127912;</div>
+        <div class="comp-name">VisualFeatures</div>
+        <div class="comp-tech">Color+Edge+Texture<br>40 dims</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#128433;</div>
+        <div class="comp-name">InteractionFeatures</div>
+        <div class="comp-tech">Action log stats<br>30 dims</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#128295;</div>
+        <div class="comp-name">FeatureAssembler</div>
+        <div class="comp-tech">Concat 4 modalities<br>&rarr; 150 dims</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#8986;</div>
+        <div class="comp-name">TemporalEncoder</div>
+        <div class="comp-tech">Neighbor smoothing<br>0.7 self + 0.3 nbr</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <div class="flow-line"></div>
+    <div class="flow-icon">&#8595;</div>
+    <div class="flow-line"></div>
+  </div>
+  <div class="flow-labels">
+    <div class="flow-tag">X: np.ndarray (N, 150) &rarr; clf.predict(X)</div>
+  </div>
+
+  <!-- Layer 5: Classifiers -->
+  <div class="layer" style="border-color:#ec4899;">
+    <div class="layer-label c-pink">Classifier Layer &mdash; 14 Models, 3 Tiers</div>
+    <div class="components">
+      <div class="comp" style="min-width:280px;">
+        <div class="comp-name c-blue">Tier 1: Classical ML (7)</div>
+        <div class="comp-tech">SVM &bull; NB &bull; DT &bull; RF &bull; KNN &bull; XGB &bull; LGBM<br><span style="color:#64748b;">sklearn / xgboost / lightgbm</span></div>
+      </div>
+      <div class="comp" style="min-width:220px;">
+        <div class="comp-name c-purple">Tier 2: Deep Learning (4)</div>
+        <div class="comp-tech">MLP &bull; CNN1D &bull; LSTM &bull; Transformer<br><span style="color:#64748b;">PyTorch &bull; TorchBaseClassifier</span></div>
+      </div>
+      <div class="comp" style="min-width:220px;">
+        <div class="comp-name c-pink">Tier 3: Ensemble (3)</div>
+        <div class="comp-tech">Voting &bull; Stacking &bull; Late Fusion<br><span style="color:#64748b;">Meta-learners &bull; MODALITY_MAP</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <div class="flow-line"></div>
+    <div class="flow-icon">&#8595;</div>
+    <div class="flow-line"></div>
+  </div>
+  <div class="flow-labels">
+    <div class="flow-tag">labels[ ], probabilities[ ][ ], latency_ms</div>
+  </div>
+
+  <!-- Layer 6: Data -->
+  <div class="layer" style="border-color:#06b6d4;">
+    <div class="layer-label c-cyan">Data Layer</div>
+    <div class="components">
+      <div class="comp">
+        <div class="comp-icon">&#128451;</div>
+        <div class="comp-name">SQLite (dev)</div>
+        <div class="comp-tech">video2text.db<br>aiosqlite async driver</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#128194;</div>
+        <div class="comp-name">uploads/</div>
+        <div class="comp-tech">Video files + action logs<br>UUID-prefixed filenames</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#128202;</div>
+        <div class="comp-name">CUA-Suite Dataset</div>
+        <div class="comp-tech">dataset/ &mdash; 28 tasks<br>videos + action logs + labels</div>
+      </div>
+      <div class="comp">
+        <div class="comp-icon">&#129516;</div>
+        <div class="comp-name">yolov8n.pt</div>
+        <div class="comp-tech">Pre-downloaded<br>YOLO nano weights</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:16px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <div class="comp-port">videos table</div>
+      <div class="comp-port">analysis_jobs table</div>
+      <div class="comp-port">classification_results table</div>
+      <div class="comp-port">evaluation_runs table</div>
+    </div>
+  </div>
+
+  <!-- Sequence Diagram -->
+  <div class="sequence">
+    <div class="seq-title">Request Sequence: Upload &rarr; Classify &rarr; Results</div>
+    <table class="seq-table">
+      <thead>
+        <tr>
+          <th>Step</th>
+          <th>From</th>
+          <th></th>
+          <th>To</th>
+          <th>Method / Action</th>
+          <th>Data</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="seq-row">
+          <td class="seq-step">1</td>
+          <td class="seq-from">Browser</td>
+          <td class="seq-arrow-cell">&rarr;</td>
+          <td class="seq-to">videos router</td>
+          <td><span class="seq-method">POST /api/v1/videos/upload</span></td>
+          <td class="seq-data">multipart: file + action_log + model_name</td>
+        </tr>
+        <tr class="seq-row">
+          <td class="seq-step">2</td>
+          <td class="seq-from">videos router</td>
+          <td class="seq-arrow-cell">&rarr;</td>
+          <td class="seq-to">Disk</td>
+          <td><span class="seq-method">aiofiles.write()</span></td>
+          <td class="seq-data">Save .mp4 + .action_log.json to uploads/</td>
+        </tr>
+        <tr class="seq-row">
+          <td class="seq-step">3</td>
+          <td class="seq-from">videos router</td>
+          <td class="seq-arrow-cell">&rarr;</td>
+          <td class="seq-to">VideoProcessor</td>
+          <td><span class="seq-method">get_metadata(path)</span></td>
+          <td class="seq-data">OpenCV reads fps, duration, resolution</td>
+        </tr>
+        <tr class="seq-row">
+          <td class="seq-step">4</td>
+          <td class="seq-from">video_service</td>
+          <td class="seq-arrow-cell">&rarr;</td>
+          <td class="seq-to">SQLite</td>
+          <td><span class="seq-method">INSERT videos, analysis_jobs</span></td>
+          <td class="seq-data">Video record + queued AnalysisJob</td>
+        </tr>
+        <tr class="seq-row">
+          <td class="seq-step">5</td>
+          <td class="seq-from">Browser</td>
+          <td class="seq-arrow-cell">&larr;</td>
+          <td class="seq-to">videos router</td>
+          <td><span class="seq-method">201 Created</span></td>
+          <td class="seq-data">{id, filename, status, job_id}</td>
+        </tr>
+        <tr class="seq-row" style="border-top:2px solid #334155;">
+          <td class="seq-step">6</td>
+          <td class="seq-from">Browser</td>
+          <td class="seq-arrow-cell">&rarr;</td>
+          <td class="seq-to">jobs router</td>
+          <td><span class="seq-method">POST /api/v1/jobs/{id}/run</span></td>
+          <td class="seq-data">Trigger classification pipeline</td>
+        </tr>
+        <tr class="seq-row">
+          <td class="seq-step">7</td>
+          <td class="seq-from">classification_service</td>
+          <td class="seq-arrow-cell">&rarr;</td>
+          <td class="seq-to">VideoProcessor</td>
+          <td><span class="seq-method">extract_segments(video, actions)</span></td>
+          <td class="seq-data">Keyframes at action timestamps + clustering</td>
+        </tr>
+        <tr class="seq-row">
+          <td class="seq-step">8</td>
+          <td class="seq-from">FeatureAssembler</td>
+          <td class="seq-arrow-cell">&rarr;</td>
+          <td class="seq-to">4 Extractors</td>
+          <td><span class="seq-method">extract_segment_features(seg)</span></td>
+          <td class="seq-data">OCR[50] + UI[30] + Visual[40] + Interaction[30]</td>
+        </tr>
+        <tr class="seq-row">
+          <td class="seq-step">9</td>
+          <td class="seq-from">TemporalEncoder</td>
+          <td class="seq-arrow-cell">&rarr;</td>
+          <td class="seq-to">Feature Matrix</td>
+          <td><span class="seq-method">encode_sequence(X)</span></td>
+          <td class="seq-data">Smooth: 0.7*self + 0.3*neighbor_mean</td>
+        </tr>
+        <tr class="seq-row">
+          <td class="seq-step">10</td>
+          <td class="seq-from">ml_service</td>
+          <td class="seq-arrow-cell">&rarr;</td>
+          <td class="seq-to">Classifier</td>
+          <td><span class="seq-method">clf.fit(X_train, y) + clf.predict(X)</span></td>
+          <td class="seq-data">Lazy-train on CUA-Suite, then predict segments</td>
+        </tr>
+        <tr class="seq-row">
+          <td class="seq-step">11</td>
+          <td class="seq-from">classification_service</td>
+          <td class="seq-arrow-cell">&rarr;</td>
+          <td class="seq-to">SQLite</td>
+          <td><span class="seq-method">INSERT classification_results</span></td>
+          <td class="seq-data">Per-segment: label, confidence, probabilities</td>
+        </tr>
+        <tr class="seq-row">
+          <td class="seq-step">12</td>
+          <td class="seq-from">Browser</td>
+          <td class="seq-arrow-cell">&larr;</td>
+          <td class="seq-to">jobs router</td>
+          <td><span class="seq-method">200 OK</span></td>
+          <td class="seq-data">{job_id, status, results: ClassificationResult[]}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot bg-blue"></div> Client (React)</div>
+    <div class="legend-item"><div class="legend-dot bg-green"></div> API (FastAPI)</div>
+    <div class="legend-item"><div class="legend-dot bg-orange"></div> Services</div>
+    <div class="legend-item"><div class="legend-dot bg-purple"></div> ML Pipeline</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ec4899;"></div> Classifiers</div>
+    <div class="legend-item"><div class="legend-dot bg-cyan"></div> Data</div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -7,16 +7,19 @@ from app.schemas.classification import (
     ClassificationResult,
     ClassifyBatchResponse,
 )
-from app.services.ml_service import ml_service
-
 router = APIRouter(prefix="/api/v1/classification", tags=["classification"])
+
+
+def _get_ml_service():
+    from app.services.ml_service import ml_service
+    return ml_service
 
 
 @router.post("/predict", response_model=ClassificationResult)
 async def classify_single(req: ClassifyRequest):
     try:
         features = np.array([req.features])
-        result = ml_service.classify(features, model_name=req.model_name)
+        result = _get_ml_service().classify(features, model_name=req.model_name)
         return result["results"][0]
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -28,7 +31,7 @@ async def classify_batch(req: ClassifyBatchRequest):
         raise HTTPException(status_code=400, detail="Features list cannot be empty")
     try:
         features = np.array(req.features)
-        result = ml_service.classify(features, model_name=req.model_name)
+        result = _get_ml_service().classify(features, model_name=req.model_name)
         return result
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))

@@ -1,3 +1,9 @@
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -6,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine
 from app.models.base import Base
-from app.routers import classification, evaluation
+from app.routers import classification, evaluation, knowledge
 from app.routers import videos, jobs
 
 
@@ -36,6 +42,7 @@ app.include_router(classification.router)
 app.include_router(evaluation.router)
 app.include_router(videos.router)
 app.include_router(jobs.router)
+app.include_router(knowledge.router)
 
 
 @app.get("/health")

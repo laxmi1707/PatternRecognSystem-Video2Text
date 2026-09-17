@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video2Knowledge — Pipeline Data Flow</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0a0e17; color: #e2e8f0; min-height: 100vh; padding: 40px 20px; }
+  h1 { text-align: center; font-size: 28px; font-weight: 600; margin-bottom: 8px; color: #f8fafc; }
+  .subtitle { text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 48px; }
+  .diagram { max-width: 1200px; margin: 0 auto; position: relative; }
+
+  /* Phase headers */
+  .phase { margin-bottom: 48px; }
+  .phase-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .phase-num { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+  .phase-title { font-size: 18px; font-weight: 600; }
+  .phase-desc { color: #94a3b8; font-size: 13px; margin-left: 48px; margin-bottom: 16px; }
+
+  /* Nodes */
+  .row { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-left: 48px; }
+  .node { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px 20px; min-width: 160px; max-width: 220px; flex: 1; position: relative; transition: border-color 0.2s, transform 0.2s; }
+  .node:hover { border-color: #60a5fa; transform: translateY(-2px); }
+  .node-label { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .node-detail { font-size: 11px; color: #94a3b8; line-height: 1.5; }
+  .node-dim { display: inline-block; background: #334155; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; margin-top: 6px; }
+
+  /* Arrows */
+  .arrow-down { text-align: center; margin: 16px 0; color: #475569; font-size: 28px; letter-spacing: -2px; }
+  .arrow-down::after { content: '↓'; display: block; }
+  .arrow-label { font-size: 11px; color: #64748b; text-align: center; margin: -8px 0 8px; }
+
+  /* Color themes per phase */
+  .p1 .phase-num { background: #1e40af; color: #93c5fd; }
+  .p1 .node { border-left: 3px solid #3b82f6; }
+  .p2 .phase-num { background: #065f46; color: #6ee7b7; }
+  .p2 .node { border-left: 3px solid #10b981; }
+  .p3 .phase-num { background: #7c2d12; color: #fdba74; }
+  .p3 .node { border-left: 3px solid #f97316; }
+  .p4 .phase-num { background: #581c87; color: #c4b5fd; }
+  .p4 .node { border-left: 3px solid #8b5cf6; }
+  .p5 .phase-num { background: #831843; color: #f9a8d4; }
+  .p5 .node { border-left: 3px solid #ec4899; }
+  .p6 .phase-num { background: #164e63; color: #67e8f9; }
+  .p6 .node { border-left: 3px solid #06b6d4; }
+
+  /* Modality grid */
+  .modality-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-left: 48px; }
+  .modality-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px; position: relative; }
+  .modality-card:hover { border-color: #10b981; }
+  .modality-icon { font-size: 24px; margin-bottom: 8px; }
+  .modality-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .modality-tech { font-size: 11px; color: #10b981; margin-bottom: 6px; }
+  .modality-features { font-size: 11px; color: #94a3b8; line-height: 1.5; }
+
+  /* Merge node */
+  .merge-node { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 2px solid #f97316; border-radius: 12px; padding: 20px; text-align: center; max-width: 500px; margin: 0 auto; }
+  .merge-label { font-size: 16px; font-weight: 700; color: #f97316; }
+  .merge-detail { font-size: 12px; color: #94a3b8; margin-top: 6px; }
+
+  /* Classifier tiers */
+  .tier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-left: 48px; }
+  .tier-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; }
+  .tier-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .tier1 .tier-label { color: #3b82f6; }
+  .tier2 .tier-label { color: #8b5cf6; }
+  .tier3 .tier-label { color: #ec4899; }
+  .clf-list { list-style: none; }
+  .clf-list li { font-size: 12px; color: #cbd5e1; padding: 3px 0; border-bottom: 1px solid #1e293b; }
+  .clf-list li:last-child { border: none; }
+  .clf-paradigm { color: #64748b; font-size: 10px; }
+
+  /* Output */
+  .output-card { background: linear-gradient(135deg, #1e293b, #0f172a); border: 2px solid #06b6d4; border-radius: 12px; padding: 20px; max-width: 600px; margin: 0 auto; }
+  .output-sample { background: #0f172a; border-radius: 8px; padding: 12px; margin-top: 12px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: #67e8f9; line-height: 1.6; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .modality-grid { grid-template-columns: repeat(2, 1fr); }
+    .tier-grid { grid-template-columns: 1fr; }
+    .row { flex-direction: column; align-items: center; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Video2Knowledge Pipeline Data Flow</h1>
+<p class="subtitle">From screen recording upload to classified activity timeline &mdash; 150-dimensional multimodal feature extraction</p>
+
+<div class="diagram">
+
+  <!-- Phase 1: Input -->
+  <div class="phase p1">
+    <div class="phase-header">
+      <div class="phase-num">1</div>
+      <div class="phase-title">Input Ingestion</div>
+    </div>
+    <p class="phase-desc">User uploads a screen recording video (.mp4) and optional action log (.json) via the React frontend or REST API.</p>
+    <div class="row">
+      <div class="node">
+        <div class="node-label">Video File</div>
+        <div class="node-detail">Screen recording (.mp4)<br>e.g. 2940&times;1912, 60fps<br>CUA-Suite format</div>
+        <div class="node-dim">~2-50 MB</div>
+      </div>
+      <div class="node">
+        <div class="node-label">Action Log</div>
+        <div class="node-detail">JSON with timestamped actions:<br>CLICK, MOVE_TO, TYPING,<br>DRAG_TO, HOTKEY, PRESS</div>
+        <div class="node-dim">~1-10 KB</div>
+      </div>
+      <div class="node">
+        <div class="node-label">Model Selection</div>
+        <div class="node-detail">User picks classifier:<br>14 models across 3 tiers<br>Default: SVM</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"></div>
+  <div class="arrow-label">Save to disk &rarr; Create Video + AnalysisJob in DB &rarr; Trigger job run</div>
+
+  <!-- Phase 2: Segmentation -->
+  <div class="phase p2">
+    <div class="phase-header">
+      <div class="phase-num">2</div>
+      <div class="phase-title">Video Segmentation</div>
+    </div>
+    <p class="phase-desc">VideoProcessor (OpenCV) extracts keyframes at 1 FPS, resizes to 640&times;480, then clusters actions by 2-second temporal gaps into segments.</p>
+    <div class="row">
+      <div class="node">
+        <div class="node-label">Frame Extraction</div>
+        <div class="node-detail">cv2.VideoCapture &rarr; sample 1 frame/sec &rarr; cv2.resize(640,480)</div>
+        <div class="node-dim">~1 frame/sec</div>
+      </div>
+      <div class="node">
+        <div class="node-label">Action Clustering</div>
+        <div class="node-detail">Sort by timestamp &rarr; group by 2.0s gap threshold &rarr; N clusters</div>
+        <div class="node-dim">gap = 2.0s</div>
+      </div>
+      <div class="node">
+        <div class="node-label">SegmentData</div>
+        <div class="node-detail">segment_index, start_time, end_time, keyframes[ ], actions[ ]</div>
+        <div class="node-dim">N segments</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"></div>
+  <div class="arrow-label">Each segment processed independently through 4 modality extractors</div>
+
+  <!-- Phase 3: Multimodal Feature Extraction -->
+  <div class="phase p3">
+    <div class="phase-header">
+      <div class="phase-num">3</div>
+      <div class="phase-title">Multimodal Feature Extraction</div>
+    </div>
+    <p class="phase-desc">Four parallel extractors process each segment's keyframes and actions into a 150-dimensional feature vector.</p>
+    <div class="modality-grid">
+      <div class="modality-card">
+        <div class="modality-icon">&#128221;</div>
+        <div class="modality-name">OCR Text</div>
+        <div class="modality-tech">EasyOCR + Tesseract fallback</div>
+        <div class="modality-features">
+          Read text from keyframes &rarr; concatenate &rarr; TF-IDF vectorize (top 50 terms from corpus)
+        </div>
+        <div class="node-dim" style="background:#f97316;color:#fff;">50 dims [0:50]</div>
+      </div>
+      <div class="modality-card">
+        <div class="modality-icon">&#128187;</div>
+        <div class="modality-name">UI Elements</div>
+        <div class="modality-tech">YOLOv8n (COCO &rarr; UI mapping)</div>
+        <div class="modality-features">
+          Detect objects &rarr; map to 12 UI types &rarr; counts[12] + spatial[8] + confidence[4] + complexity[6]
+        </div>
+        <div class="node-dim" style="background:#f97316;color:#fff;">30 dims [50:80]</div>
+      </div>
+      <div class="modality-card">
+        <div class="modality-icon">&#127912;</div>
+        <div class="modality-name">Visual</div>
+        <div class="modality-tech">OpenCV (pure image processing)</div>
+        <div class="modality-features">
+          Color histogram[18] + Canny edges[3] + Gabor texture[6] + scene stats[5] + layout grid[8]
+        </div>
+        <div class="node-dim" style="background:#f97316;color:#fff;">40 dims [80:120]</div>
+      </div>
+      <div class="modality-card">
+        <div class="modality-icon">&#128433;</div>
+        <div class="modality-name">Interaction</div>
+        <div class="modality-tech">Action log parsing</div>
+        <div class="modality-features">
+          Action freq[8] + click pos[4] + temporal[6] + mouse move[6] + typing[4] + keyboard[2]
+        </div>
+        <div class="node-dim" style="background:#f97316;color:#fff;">30 dims [120:150]</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"></div>
+  <div class="arrow-label">Concatenate 4 modality vectors into single feature vector per segment</div>
+
+  <!-- Phase 4: Fusion + Temporal -->
+  <div class="phase p4">
+    <div class="phase-header">
+      <div class="phase-num">4</div>
+      <div class="phase-title">Feature Assembly + Temporal Encoding</div>
+    </div>
+    <p class="phase-desc">FeatureAssembler concatenates modalities. TemporalEncoder smooths adjacent segments (70% self + 30% neighbor mean).</p>
+    <div style="margin-left:48px;">
+      <div class="merge-node">
+        <div class="merge-label">Feature Vector: 150 dimensions per segment</div>
+        <div class="merge-detail">
+          <span style="color:#3b82f6;">[0:50] OCR</span> &nbsp;|&nbsp;
+          <span style="color:#10b981;">[50:80] UI</span> &nbsp;|&nbsp;
+          <span style="color:#f59e0b;">[80:120] Visual</span> &nbsp;|&nbsp;
+          <span style="color:#ef4444;">[120:150] Interaction</span>
+        </div>
+        <div class="merge-detail" style="margin-top:10px;">
+          TemporalEncoder: encoded[i] = 0.7 &times; segment[i] + 0.3 &times; mean(neighbors)
+        </div>
+        <div class="node-dim" style="margin-top:8px;">X shape: (N_segments, 150)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"></div>
+  <div class="arrow-label">Feature matrix X fed to selected classifier (lazy-trained on CUA-Suite dataset)</div>
+
+  <!-- Phase 5: Classification -->
+  <div class="phase p5">
+    <div class="phase-header">
+      <div class="phase-num">5</div>
+      <div class="phase-title">Multi-Tier Classification</div>
+    </div>
+    <p class="phase-desc">Selected classifier predicts activity label per segment. Models lazy-train on first use from real CUA-Suite dataset (28 tasks, augmented if &lt;100 samples).</p>
+    <div class="tier-grid">
+      <div class="tier-card tier1">
+        <div class="tier-label">Tier 1 &mdash; Classical ML</div>
+        <ul class="clf-list">
+          <li>SVM <span class="clf-paradigm">&mdash; maximum margin, RBF kernel</span></li>
+          <li>Naive Bayes <span class="clf-paradigm">&mdash; probabilistic, Gaussian</span></li>
+          <li>Decision Tree <span class="clf-paradigm">&mdash; rule-based, interpretable</span></li>
+          <li>Random Forest <span class="clf-paradigm">&mdash; bagging, 100 trees</span></li>
+          <li>KNN <span class="clf-paradigm">&mdash; instance-based, k=5</span></li>
+          <li>XGBoost <span class="clf-paradigm">&mdash; gradient boosting</span></li>
+          <li>LightGBM <span class="clf-paradigm">&mdash; histogram boosting</span></li>
+        </ul>
+      </div>
+      <div class="tier-card tier2">
+        <div class="tier-label">Tier 2 &mdash; Deep Learning</div>
+        <ul class="clf-list">
+          <li>MLP <span class="clf-paradigm">&mdash; 2-layer feed-forward NN</span></li>
+          <li>CNN1D <span class="clf-paradigm">&mdash; 1D conv for local patterns</span></li>
+          <li>LSTM <span class="clf-paradigm">&mdash; recurrent, seq_len=15</span></li>
+          <li>Transformer <span class="clf-paradigm">&mdash; self-attention, 2 heads</span></li>
+        </ul>
+        <div style="margin-top:8px;font-size:11px;color:#8b5cf6;">All share TorchBaseClassifier<br>Adam, CrossEntropy, 20 epochs</div>
+      </div>
+      <div class="tier-card tier3">
+        <div class="tier-label">Tier 3 &mdash; Ensemble</div>
+        <ul class="clf-list">
+          <li>Voting <span class="clf-paradigm">&mdash; soft vote over SVM+RF+MLP</span></li>
+          <li>Stacking <span class="clf-paradigm">&mdash; LogReg meta-learner</span></li>
+          <li>Late Fusion <span class="clf-paradigm">&mdash; per-modality branches<br>using MODALITY_MAP slicing</span></li>
+        </ul>
+        <div style="margin-top:8px;font-size:11px;color:#ec4899;">Late Fusion: each branch sees<br>only its modality's feature columns</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"></div>
+  <div class="arrow-label">Per-segment predictions: label + confidence + probability distribution over 10 classes</div>
+
+  <!-- Phase 6: Output -->
+  <div class="phase p6">
+    <div class="phase-header">
+      <div class="phase-num">6</div>
+      <div class="phase-title">Results &amp; Knowledge Output</div>
+    </div>
+    <p class="phase-desc">Classification results persisted to DB, returned to frontend as a workflow timeline with per-segment activity labels.</p>
+    <div style="margin-left:48px;">
+      <div class="output-card">
+        <div class="node-label" style="color:#06b6d4;font-size:16px;">Classification Result per Segment</div>
+        <div class="output-sample">
+{<br>
+&nbsp;&nbsp;"segment_index": 0,<br>
+&nbsp;&nbsp;"start_time": 4.46,<br>
+&nbsp;&nbsp;"end_time": 7.26,<br>
+&nbsp;&nbsp;"predicted_label": "git_operations",<br>
+&nbsp;&nbsp;"confidence": 0.894,<br>
+&nbsp;&nbsp;"probabilities": {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"git_operations": 0.894,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"docker_workflow": 0.047,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"coding_editing": 0.005, ...<br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;"model_name": "svm"<br>
+}
+        </div>
+        <div class="row" style="margin:16px 0 0 0;gap:8px;">
+          <div class="node" style="min-width:120px;border-left:3px solid #06b6d4;">
+            <div class="node-label" style="font-size:12px;">10 Activity Labels</div>
+            <div class="node-detail" style="font-size:10px;">git_operations, docker_workflow, kubernetes_ops, terraform_iac, aws_console, jenkins_ci_cd, coding_editing, debugging, documentation, other</div>
+          </div>
+          <div class="node" style="min-width:120px;border-left:3px solid #06b6d4;">
+            <div class="node-label" style="font-size:12px;">Workflow Timeline</div>
+            <div class="node-detail" style="font-size:10px;">Frontend renders numbered steps with time ranges, activity titles, confidence bars</div>
+          </div>
+          <div class="node" style="min-width:120px;border-left:3px solid #06b6d4;">
+            <div class="node-label" style="font-size:12px;">Knowledge Gen</div>
+            <div class="node-detail" style="font-size:10px;">SOP &amp; Runbook generation from classified workflow (rule-based or LLM)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

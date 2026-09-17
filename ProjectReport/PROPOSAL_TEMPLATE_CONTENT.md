@@ -33,7 +33,7 @@ Academic Project — NUS M.Tech in Artificial Intelligence Systems, Pattern Reco
 
 ### Background
 
-Organizations record software engineering activities such as cloud deployments, CI/CD execution, and troubleshooting sessions. These recordings contain valuable operational knowledge but remain difficult to search and reuse. Existing transcription tools convert speech to text but cannot understand engineering workflows, terminal commands, or deployment intent. Manual SOP creation is expensive, onboarding is slow, and knowledge remains locked inside hours of video.
+Organizations record software engineering activities such as cloud deployments, CI/CD execution, and troubleshooting sessions. These recordings contain valuable operational knowledge but remain difficult to search and reuse. Existing tools cannot understand engineering workflows, terminal commands, or deployment intent. Manual SOP creation is expensive, onboarding is slow, and knowledge remains locked inside hours of video.
 
 ### Aim
 
@@ -41,7 +41,7 @@ Develop an AI-powered workflow understanding system that recognizes software eng
 
 ### Objectives
 
-1. Process screen recordings to extract multimodal features — speech transcription, OCR text, terminal commands, UI context, and cursor/click events.
+1. Process screen recordings to extract multimodal features — OCR text, terminal commands, UI context, and cursor/click events.
 2. Build a multi-tier classifier (14 models across Classical ML, Deep Learning, and Ensemble tiers) to recognize 10 DevOps activity categories.
 3. Compare and evaluate all classifiers using 5-fold cross-validation, confusion matrices, ROC/AUC curves, feature importance, ablation studies, and error analysis.
 4. Generate SOPs, timelines, and knowledge articles from classified workflow segments using an LLM (Claude via AWS Bedrock).
@@ -51,7 +51,7 @@ Develop an AI-powered workflow understanding system that recognizes software eng
 
 ### 1. Problem Statement
 
-Recorded engineering sessions are difficult to search and reuse. Manual SOP creation is expensive, onboarding is slow, and operational knowledge remains locked inside videos. Existing tools transcribe speech but do not understand what the engineer is doing — they cannot distinguish a Docker deployment from a Kubernetes troubleshooting session.
+Recorded engineering sessions are difficult to search and reuse. Manual SOP creation is expensive, onboarding is slow, and operational knowledge remains locked inside videos. Existing tools do not understand what the engineer is doing — they cannot distinguish a Docker deployment from a Kubernetes troubleshooting session.
 
 ### 2. Proposed Solution
 
@@ -109,7 +109,7 @@ An AI-powered pipeline that processes screen recordings through 6 architectural 
 |--------|------|-------|
 | Joshua | Frontend + UI/UX | React dashboard, video upload, workflow visualization |
 | Muneeswaran | Backend + Pattern Recognition | FastAPI API, multi-tier classifier, evaluation, RAG, agentic AI |
-| Stalin | Preprocessing + Feature Extraction | Video ingestion, speech-to-text, OCR, YOLO, audio features |
+| Stalin | Preprocessing + Feature Extraction | Video ingestion, OCR, YOLO, cursor detection |
 | Lakshmi | Infrastructure + Data + CI/CD | AWS infra, database, Docker, CI/CD, monitoring |
 
 ### 8. Pattern Recognition Techniques Coverage
@@ -120,7 +120,7 @@ An AI-powered pipeline that processes screen recordings through 6 architectural 
 | Machine Learning | 7 classical ML algorithms (Tier 1) |
 | Deep Learning | 4 neural networks — MLP, CNN, LSTM, Transformer (Tier 2) |
 | Hybrid / Ensemble | 3 ensemble methods — Voting, Stacking, Late Fusion (Tier 3) |
-| Intelligent sensing | Multimodal late fusion (OCR + UI + cursor + scene modalities) |
+| Intelligent sensing | Multimodal late fusion (OCR + UI + cursor + scene) |
 | Comparative evaluation | 14 models compared across 6 metrics with 5-fold CV |
 
 ### 9. Timeline
