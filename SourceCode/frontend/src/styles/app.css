@@ -141,6 +141,15 @@
   background: linear-gradient(135deg, #0a0e1a 0%, #0d1b2a 50%, #1b2838 100%);
 }
 
+.dropzone-error {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: #fdecea;
+  color: #b3261e;
+  font-size: 13px;
+}
+
 .analyzing-preview { width: 220px; border-radius: var(--radius-md); margin: 0 auto var(--space-6); background: #000; display: block; }
 .spinner {
   width: 36px; height: 36px; border-radius: 50%;
@@ -169,3 +178,65 @@
 .workflow-step-body { flex: 1; padding-bottom: var(--space-3); border-bottom: 1px solid var(--color-divider); }
 .workflow-step-head { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 .workflow-step-head h4 { margin: 0; }
+
+/* --- navigation: real buttons so the links are keyboard-operable --- */
+.nav { flex-wrap: wrap; }
+.nav-links { display: flex; align-items: center; gap: var(--space-4); }
+.nav-link {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font: inherit; font-size: 13px; color: var(--color-text);
+  text-decoration: none;
+}
+.nav-link:hover { color: var(--color-accent-800); }
+.nav-link[aria-current='page'] { color: var(--color-accent-800); font-weight: 600; }
+/* The dark upload page themes the nav; carry that over to the button links. */
+.app-shell:has(.upload-page) .nav-link { color: rgba(203,213,225,0.7); }
+.app-shell:has(.upload-page) .nav-link:hover,
+.app-shell:has(.upload-page) .nav-link[aria-current='page'] { color: #818cf8; }
+
+/* --- classification output --- */
+.classification { margin-bottom: var(--space-6); }
+.classification-headline { display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }
+.classification-label { font-size: 16px; padding: 6px 14px; }
+.classification-confidence { color: color-mix(in srgb, var(--color-text) 65%, transparent); font-size: 14px; }
+
+/* --- dashboard --- */
+.stat-row { display: flex; gap: var(--space-4); margin-top: var(--space-6); flex-wrap: wrap; }
+.stat-card {
+  flex: 1; min-width: 160px; padding: var(--space-4);
+  background: var(--color-surface); border-radius: var(--radius-lg);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.stat-value { font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 28px; }
+.stat-label { font-size: 12px; color: color-mix(in srgb, var(--color-text) 65%, transparent); }
+
+.bar-chart { display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-4); }
+.bar-row { display: grid; grid-template-columns: 160px 1fr 40px; align-items: center; gap: var(--space-3); }
+.bar-label { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { height: 10px; border-radius: 5px; background: var(--color-divider); overflow: hidden; }
+.bar-fill { height: 100%; background: var(--color-accent); border-radius: 5px; }
+.bar-count { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
+
+/* --- search --- */
+.search-results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.search-result { padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-surface); }
+.search-result-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+
+/* --- shared helpers --- */
+.table-wrap { overflow-x: auto; }
+.plain-list { margin: var(--space-2) 0 0; padding-left: var(--space-4); color: color-mix(in srgb, var(--color-text) 70%, transparent); font-size: 14px; }
+.plain-list li { margin-bottom: 4px; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2.4s; }
+}
+
+@media (max-width: 640px) {
+  .page { padding: var(--space-6) var(--space-3); }
+  .results-grid { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: 96px 1fr 36px; }
+}

@@ -1,5 +1,10 @@
 import type { AnalysisResult, WorkflowStep } from '../../types/analysis';
-import type { VideoUploadResponse, VideoResponse, JobResultsResponse } from '../../types/api';
+import type {
+  VideoUploadResponse,
+  VideoResponse,
+  JobResultsResponse,
+  ClassificationResultDTO,
+} from '../../types/api';
 import { apiPost, apiPostFile, apiGet } from './client';
 import { mapResultsToSteps } from './labelMap';
 import { formatSeconds } from '../../utils/formatTime';
@@ -66,6 +71,38 @@ function buildSummary(labels: string[]): string {
   return `The recording shows activities including ${readable.join(', ')} and ${last}.`;
 }
 
+/** The backend classifies one segment at a time. Averaging the per-segment
+ *  probability vectors gives a single dominant activity for the recording,
+ *  which is what the results and dashboard views show. */
+export function aggregateClassification(results: ClassificationResultDTO[]): {
+  label?: string;
+  confidence?: number;
+  probabilities?: Record<string, number>;
+} {
+  if (results.length === 0) return {};
+
+  const totals: Record<string, number> = {};
+  for (const result of results) {
+    for (const [label, probability] of Object.entries(result.probabilities ?? {})) {
+      totals[label] = (totals[label] ?? 0) + probability;
+    }
+  }
+
+  if (Object.keys(totals).length === 0) {
+    const counts = new Map<string, number>();
+    for (const result of results) counts.set(result.label, (counts.get(result.label) ?? 0) + 1);
+    const [label, hits] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+    return { label, confidence: hits / results.length };
+  }
+
+  const probabilities: Record<string, number> = {};
+  for (const [label, sum] of Object.entries(totals)) {
+    probabilities[label] = sum / results.length;
+  }
+  const [label, confidence] = Object.entries(probabilities).sort((a, b) => b[1] - a[1])[0];
+  return { label, confidence, probabilities };
+}
+
 export function analyzeVideo(
   file: File,
   durationSeconds: number,
@@ -110,6 +147,7 @@ export function analyzeVideo(
 
       onComplete({
         id: String(upload.id),
+        jobId: upload.job_id,
         name: file.name,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         duration: lastStep ? lastStep.time.split('-')[1] : '0:00',
@@ -118,6 +156,7 @@ export function analyzeVideo(
         videoUrl,
         summary,
         steps,
+        ...aggregateClassification(jobResults.results),
       });
     } catch (err) {
       clearInterval(timer);

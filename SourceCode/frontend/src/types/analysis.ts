@@ -7,6 +7,8 @@ export interface WorkflowStep {
 
 export interface AnalysisResult {
   id: string;
+  /** Backend job behind this analysis. Needed to generate an SOP report. */
+  jobId?: number;
   name: string;
   date: string;
   duration: string;
@@ -15,6 +17,17 @@ export interface AnalysisResult {
   videoUrl: string | null;
   summary: string;
   steps: WorkflowStep[];
+  /** Dominant activity across the classified segments, when the backend returned one. */
+  label?: string;
+  confidence?: number;
+  probabilities?: Record<string, number>;
 }
 
-export type Screen = 'upload' | 'analyzing' | 'results' | 'history';
+export type Screen =
+  | 'upload'
+  | 'analyzing'
+  | 'results'
+  | 'history'
+  | 'dashboard'
+  | 'search'
+  | 'report';
