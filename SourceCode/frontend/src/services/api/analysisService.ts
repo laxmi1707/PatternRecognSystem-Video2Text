@@ -62,6 +62,10 @@ export interface AnalyzeHandle {
   cancel: () => void;
 }
 
+/** Upload and classification are separate waits, and they fail differently,
+ *  so the progress screen tells the user which one it is on. */
+export type AnalysisPhase = 'uploading' | 'processing';
+
 function buildSummary(labels: string[]): string {
   const uniqueLabels = [...new Set(labels)];
   const readable = uniqueLabels.map((l) => l.replace(/_/g, ' ')).slice(0, 4);
@@ -109,9 +113,11 @@ export function analyzeVideo(
   onProgress: (pct: number) => void,
   onComplete: (result: AnalysisResult) => void,
   modelName?: string,
+  onPhaseChange?: (phase: AnalysisPhase) => void,
 ): AnalyzeHandle {
   const controller = new AbortController();
   const videoUrl = URL.createObjectURL(file);
+  onPhaseChange?.('uploading');
 
   let progress = 0;
   const tickMs = 180;
@@ -133,6 +139,7 @@ export function analyzeVideo(
         modelName ? { model_name: modelName } : undefined,
       );
       if (controller.signal.aborted) return;
+      onPhaseChange?.('processing');
 
       const jobResults = await apiPost<JobResultsResponse>(`/jobs/${upload.job_id}/run`);
       if (controller.signal.aborted) return;

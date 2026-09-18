@@ -16,11 +16,19 @@ const { mockSteps, mockHistoryEntries } = vi.hoisted(() => {
 vi.mock('./services/api/analysisService', () => ({
   getMockHistory: vi.fn(() => [...mockHistoryEntries]),
   fetchHistory: vi.fn(() => Promise.resolve([])),
-  analyzeVideo: vi.fn((_file: File, _dur: number, onProgress: (pct: number) => void, onComplete: (r: unknown) => void) => {
+  analyzeVideo: vi.fn((
+    _file: File,
+    _dur: number,
+    onProgress: (pct: number) => void,
+    onComplete: (r: unknown) => void,
+    _model?: string,
+    onPhaseChange?: (phase: 'uploading' | 'processing') => void,
+  ) => {
     setTimeout(() => {
+      onPhaseChange?.('processing');
       onProgress(100);
       onComplete({
-        id: '999', name: _file.name, date: 'Today', duration: '0:05',
+        id: '999', jobId: 999, name: _file.name, date: 'Today', duration: '0:05',
         stepCount: 1, status: 'Complete', videoUrl: 'blob:mock',
         summary: 'Test analysis complete.', steps: mockSteps,
       });
@@ -30,26 +38,45 @@ vi.mock('./services/api/analysisService', () => ({
   SCREEN_RECORDING_STEPS: mockSteps,
 }));
 
+// The dashboard asks the backend which models exist. Leaving that request
+// pending keeps this suite focused on navigation and free of act() warnings.
+vi.mock('./services/api/evaluationService', () => ({
+  fetchAvailableModels: vi.fn(() => new Promise(() => {})),
+  runEvaluation: vi.fn(() => new Promise(() => {})),
+  fetchSopReport: vi.fn(() => new Promise(() => {})),
+}));
+
 import App from './App';
 
 describe('App', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it('walks through upload -> analyzing -> results', async () => {
-    render(<App />);
-    expect(screen.getByText('Upload a screen recording')).toBeInTheDocument();
-
+  function selectFile() {
     const file = new File(['x'], 'session.mp4', { type: 'video/mp4' });
     const input = screen.getByTestId('file-input') as HTMLInputElement;
     act(() => {
       fireEvent.change(input, { target: { files: [file] } });
     });
-    expect(screen.getByText('Analyzing your recording')).toBeInTheDocument();
+  }
+
+  it('walks through upload -> analyzing -> results', async () => {
+    render(<App />);
+    expect(screen.getByText('Upload a screen recording')).toBeInTheDocument();
+
+    selectFile();
+    expect(screen.getByText('Uploading your recording')).toBeInTheDocument();
 
     await act(async () => { vi.advanceTimersByTime(200); });
     expect(screen.getByText('session.mp4')).toBeInTheDocument();
     expect(screen.getByText('Analyze another video')).toBeInTheDocument();
+  });
+
+  it('can cancel an analysis and return to upload', () => {
+    render(<App />);
+    selectFile();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByText('Upload a screen recording')).toBeInTheDocument();
   });
 
   it('shows history with the mock entries and can open one', () => {
@@ -68,5 +95,14 @@ describe('App', () => {
     fireEvent.click(screen.getAllByText('View')[0]);
     fireEvent.click(screen.getByText('Analyze another video'));
     expect(screen.getByText('Upload a screen recording')).toBeInTheDocument();
+  });
+
+  it('reaches the dashboard and search screens from the nav', () => {
+    render(<App />);
+    fireEvent.click(screen.getByText('Dashboard'));
+    expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Search'));
+    expect(screen.getByRole('heading', { name: 'Search' })).toBeInTheDocument();
   });
 });

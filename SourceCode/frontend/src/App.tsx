@@ -10,7 +10,7 @@ import { useVideoAnalysis } from './hooks/useVideoAnalysis';
 
 export default function App() {
   const {
-    screen, fileName, videoUrl, progress, current, history, reportTarget,
+    screen, fileName, videoUrl, progress, phase, current, history, reportTarget,
     startAnalysis, goUpload, goHistory, goDashboard, goSearch,
     viewHistory, viewReport, backToResults,
   } = useVideoAnalysis(3);
@@ -25,7 +25,15 @@ export default function App() {
         onSearch={goSearch}
       />
       {screen === 'upload' && <UploadPage onFileSelected={(file, model) => startAnalysis(file, model)} />}
-      {screen === 'analyzing' && <AnalyzingPage fileName={fileName} videoUrl={videoUrl} progress={progress} />}
+      {screen === 'analyzing' && (
+        <AnalyzingPage
+          fileName={fileName}
+          videoUrl={videoUrl}
+          progress={progress}
+          phase={phase}
+          onCancel={goUpload}
+        />
+      )}
       {screen === 'results' && current && (
         <ResultsPage
           result={current}

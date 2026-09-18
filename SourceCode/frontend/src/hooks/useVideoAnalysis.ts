@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AnalysisResult, Screen } from '../types/analysis';
-import { analyzeVideo, getMockHistory, fetchHistory, AnalyzeHandle } from '../services/api/analysisService';
+import {
+  analyzeVideo,
+  getMockHistory,
+  fetchHistory,
+  AnalyzeHandle,
+  AnalysisPhase,
+} from '../services/api/analysisService';
 
 export function useVideoAnalysis(analysisSeconds = 3) {
   const [screen, setScreen] = useState<Screen>('upload');
   const [fileName, setFileName] = useState('');
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [phase, setPhase] = useState<AnalysisPhase>('processing');
   const [current, setCurrent] = useState<AnalysisResult | null>(null);
   const [reportTarget, setReportTarget] = useState<AnalysisResult | null>(null);
   const [history, setHistory] = useState<AnalysisResult[]>(() => getMockHistory());
@@ -32,6 +39,7 @@ export function useVideoAnalysis(analysisSeconds = 3) {
     handleRef.current?.cancel();
     setFileName(file.name);
     setProgress(0);
+    setPhase('uploading');
     setScreen('analyzing');
     const url = URL.createObjectURL(file);
     setVideoUrl(url);
@@ -39,9 +47,10 @@ export function useVideoAnalysis(analysisSeconds = 3) {
       setCurrent(result);
       setHistory((h: AnalysisResult[]) => [result, ...h]);
       setScreen('results');
-    }, modelName);
+    }, modelName, setPhase);
   }, [analysisSeconds]);
 
+  /** Also the cancel path: aborts the in-flight analysis before navigating. */
   const goUpload = useCallback(() => {
     handleRef.current?.cancel();
     setScreen('upload');
@@ -65,7 +74,7 @@ export function useVideoAnalysis(analysisSeconds = 3) {
   const backToResults = useCallback(() => setScreen('results'), []);
 
   return {
-    screen, fileName, videoUrl, progress, current, history, reportTarget,
+    screen, fileName, videoUrl, progress, phase, current, history, reportTarget,
     startAnalysis, goUpload, goHistory, goDashboard, goSearch,
     viewHistory, viewReport, backToResults,
   };
