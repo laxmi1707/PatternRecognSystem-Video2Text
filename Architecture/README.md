@@ -1,5 +1,9 @@
 # Architecture — Video2Knowledge
 
+This document is the **target AWS deployment design** (proposal-stage). For what is actually
+implemented in the codebase today — data pipeline stages, classifier tiers, training/serving
+wiring, and known gaps — see [PIPELINE.md](./PIPELINE.md).
+
 ## Interactive Diagrams
 
 Open in a browser to view:

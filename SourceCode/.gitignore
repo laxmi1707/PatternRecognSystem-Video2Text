@@ -8,3 +8,7 @@ dist/
 build/
 *.egg-info/
 .pytest_cache/
+*.tsbuildinfo
+localDataset/
+review_queue.jsonl
+review_decisions.jsonl
