@@ -26,6 +26,7 @@ RUN useradd --create-home --uid 1000 appuser
 WORKDIR /app
 COPY --from=builder /install /usr/local
 COPY app ./app
+COPY models ./models
 
 RUN mkdir -p /app/uploads /app/models && chown -R appuser:appuser /app
 USER appuser

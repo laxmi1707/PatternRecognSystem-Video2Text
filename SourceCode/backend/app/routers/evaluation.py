@@ -6,6 +6,7 @@ from app.schemas.evaluation import (
     CVReportResponse,
     CVResultRow,
     AvailableModelsResponse,
+    RecommendedModel,
 )
 router = APIRouter(prefix="/api/v1/evaluation", tags=["evaluation"])
 
@@ -18,6 +19,7 @@ def _get_ml_service():
 @router.get("/models", response_model=AvailableModelsResponse)
 async def list_models():
     svc = _get_ml_service()
+    rec = svc.get_recommended_model()
     return {
         "models": svc.list_models(),
         "tiers": {
@@ -25,6 +27,7 @@ async def list_models():
             "tier2": svc.list_by_tier("tier2"),
             "tier3": svc.list_by_tier("tier3"),
         },
+        "recommended": RecommendedModel(**rec) if rec else None,
     }
 
 

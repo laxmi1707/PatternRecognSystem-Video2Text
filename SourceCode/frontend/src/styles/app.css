@@ -96,6 +96,29 @@
 .upload-model-picker select:focus {
   border-color: #818cf8;
 }
+.upload-model-picker select:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.upload-recommendation {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(99,102,241,0.1);
+  border: 1px solid rgba(99,102,241,0.2);
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(203,213,225,0.85);
+}
+.upload-rec-star {
+  color: #fbbf24;
+  font-size: 15px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
 .upload-page .dropzone {
   background: rgba(15,23,42,0.5);
   border-color: rgba(99,102,241,0.25);
@@ -169,3 +192,79 @@
 .workflow-step-body { flex: 1; padding-bottom: var(--space-3); border-bottom: 1px solid var(--color-divider); }
 .workflow-step-head { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 .workflow-step-head h4 { margin: 0; }
+
+/* — model comparison — */
+.model-comparison {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+.model-comparison-title {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+.model-comparison-desc {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  margin-bottom: var(--space-3);
+}
+.model-comparison-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+}
+.model-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.model-comparison-table th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-divider);
+  background: var(--color-surface);
+}
+.model-comparison-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-divider) 50%, transparent);
+}
+.model-row {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.model-row:hover {
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+.model-row-selected {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+.model-row-best td {
+  font-weight: 600;
+}
+.model-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.model-best-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #16a34a;
+  color: #fff;
+}
+.model-tier-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #fff;
+}

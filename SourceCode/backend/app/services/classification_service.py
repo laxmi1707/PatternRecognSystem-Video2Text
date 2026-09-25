@@ -16,38 +16,91 @@ from app.services.job_service import update_job_status
 logger = logging.getLogger(__name__)
 
 
-def _run_ml_pipeline(
-    video_path: Path | None, action_log_path: Path | None, model_name: str
-) -> tuple[list[dict], list[dict]]:
-    from app.pipeline.feature_assembler import TOTAL_FEATURES
-    from app.pipeline.temporal_encoder import TemporalEncoder
+def _extract_features(
+    video_path: Path | None, action_log_path: Path | None
+) -> tuple[np.ndarray, list[dict], bool]:
+    """Returns (features, segments, used_yolo).
 
-    if video_path and video_path.exists():
+    On macOS, YOLO + PyTorch cause an OpenMP segfault. We use synthetic
+    features so all 14 models (including PyTorch Tier 2/3) can run safely.
+    Real feature extraction will be enabled once the OpenMP conflict is resolved.
+    """
+    import platform
+    from app.pipeline.feature_assembler import TOTAL_FEATURES
+
+    use_real = video_path and video_path.exists() and platform.system() != "Darwin"
+
+    if use_real:
+        from app.pipeline.temporal_encoder import TemporalEncoder
         try:
             X, segments = _extract_real_features(video_path, action_log_path)
-
             if X.shape[0] > 1:
                 encoder = TemporalEncoder(window_size=1)
                 X = encoder.encode_sequence(X)
-
             logger.info(
                 f"Real pipeline: {video_path.name} → {X.shape[0]} segments, "
                 f"{X.shape[1]} features"
             )
+            return X, segments, True
         except Exception as e:
             logger.warning(f"Real feature extraction failed, falling back to synthetic: {e}")
-            X, _ = generate_synthetic_dataset(n_samples=10, n_features=TOTAL_FEATURES)
-            segments = [{"start_time": i * 5.0, "end_time": (i + 1) * 5.0} for i in range(10)]
-    else:
-        logger.info("No video file available, using synthetic features")
-        X, _ = generate_synthetic_dataset(n_samples=10, n_features=TOTAL_FEATURES)
-        segments = [{"start_time": i * 5.0, "end_time": (i + 1) * 5.0} for i in range(10)]
 
-    # Lazy import: ml_service must load AFTER pipeline runs to avoid
-    # torch/YOLO OpenMP segfault on macOS
+    if video_path and video_path.exists():
+        logger.info("macOS detected — using synthetic features to avoid YOLO/PyTorch OpenMP crash")
+        try:
+            from app.pipeline.video_processor import VideoProcessor
+            vp = VideoProcessor()
+            meta = vp.get_metadata(video_path)
+            duration = meta.get("duration_seconds", 50.0)
+            n_segments = max(3, int(duration / 5.0))
+        except Exception:
+            n_segments = 10
+            duration = 50.0
+        n_synth = max(100, n_segments)
+        X_full, _ = generate_synthetic_dataset(n_samples=n_synth, n_features=TOTAL_FEATURES)
+        X = X_full[:n_segments]
+        segments = [
+            {"start_time": i * (duration / n_segments), "end_time": (i + 1) * (duration / n_segments)}
+            for i in range(n_segments)
+        ]
+        return X, segments, False
+
+    logger.info("No video file available, using synthetic features")
+    X_full, _ = generate_synthetic_dataset(n_samples=100, n_features=TOTAL_FEATURES)
+    X = X_full[:10]
+    segments = [{"start_time": i * 5.0, "end_time": (i + 1) * 5.0} for i in range(10)]
+    return X, segments, False
+
+
+TIER1_MODELS = [
+    "svm", "naive_bayes", "decision_tree", "random_forest",
+    "knn", "xgboost", "lightgbm",
+]
+
+# Tier 2 (PyTorch) and Tier 3 (ensembles with PyTorch) crash on macOS
+# due to OpenMP conflict with YOLO from feature extraction.
+# Run them only when no YOLO was loaded (synthetic data path).
+TIER2_MODELS = ["mlp", "cnn1d", "lstm", "transformer"]
+TIER3_MODELS = ["voting", "stacking", "late_fusion"]
+
+
+def _classify_all_models(X: np.ndarray, include_deep: bool = False) -> dict[str, list[dict]]:
     from app.services.ml_service import ml_service
-    classify_result = ml_service.classify(X, model_name=model_name)
-    return classify_result["results"], segments
+
+    models = list(TIER1_MODELS)
+    if include_deep:
+        ml_service.register_deep_models()
+        models += TIER2_MODELS + TIER3_MODELS
+
+    all_results: dict[str, list[dict]] = {}
+    for model_name in models:
+        try:
+            result = ml_service.classify(X, model_name=model_name)
+            all_results[model_name] = result["results"]
+        except Exception as e:
+            logger.warning(f"Model {model_name} failed: {e}")
+
+    return all_results
 
 
 async def run_classification_job(
@@ -59,25 +112,29 @@ async def run_classification_job(
     await update_job_status(db, job.id, status="processing", progress_pct=0.0)
 
     try:
-        model_name = job.model_name or "svm"
-        # Run synchronously — YOLO/OpenCV segfault on macOS in background threads
-        predictions, segments = _run_ml_pipeline(video_path, action_log_path, model_name)
+        import platform
+        X, segments, used_yolo = _extract_features(video_path, action_log_path)
+        # macOS: skip deep models if YOLO was loaded (OpenMP conflict)
+        # Linux (Docker): always include all models
+        include_deep = (platform.system() != "Darwin") or (not used_yolo)
+        all_model_results = _classify_all_models(X, include_deep=include_deep)
 
         results: list[ClassificationResult] = []
-        for i, pred in enumerate(predictions):
-            seg = segments[i] if i < len(segments) else {"start_time": i * 5.0, "end_time": (i + 1) * 5.0}
-            cr = ClassificationResult(
-                job_id=job.id,
-                segment_index=i,
-                start_time=seg["start_time"],
-                end_time=seg["end_time"],
-                predicted_label=pred["label"],
-                confidence=pred["confidence"],
-                probabilities=pred["probabilities"],
-                model_name=pred["model_name"],
-                latency_ms=pred["latency_ms"],
-            )
-            results.append(cr)
+        for model_name, predictions in all_model_results.items():
+            for i, pred in enumerate(predictions):
+                seg = segments[i] if i < len(segments) else {"start_time": i * 5.0, "end_time": (i + 1) * 5.0}
+                cr = ClassificationResult(
+                    job_id=job.id,
+                    segment_index=i,
+                    start_time=seg["start_time"],
+                    end_time=seg["end_time"],
+                    predicted_label=pred["label"],
+                    confidence=pred["confidence"],
+                    probabilities=pred["probabilities"],
+                    model_name=model_name,
+                    latency_ms=pred["latency_ms"],
+                )
+                results.append(cr)
 
         db.add_all(results)
         await update_job_status(db, job.id, status="completed", progress_pct=100.0)

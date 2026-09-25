@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 import numpy as np
 
@@ -22,8 +23,6 @@ from app.ml.classifiers.tier1.random_forest import RandomForestClassifier
 from app.ml.classifiers.tier1.knn import KNNClassifier
 from app.ml.classifiers.tier1.xgboost_clf import XGBoostClassifier
 from app.ml.classifiers.tier1.lightgbm_clf import LightGBMClassifier
-from app.ml.classifiers.tier2 import MLPClassifier, CNN1DClassifier, LSTMClassifier, TransformerClassifier
-from app.ml.classifiers.tier3 import VotingClassifier, StackingClassifier, LateFusionClassifier
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +35,9 @@ class MLService:
         self._trained_models: set[str] = set()
         self._synth_data: tuple[np.ndarray, np.ndarray] | None = None
         self._real_data: tuple[np.ndarray, np.ndarray] | None = None
+        self._deep_registered = False
         self._register_all()
+        self._try_load_models()
 
     def _register_all(self) -> None:
         tier1 = [
@@ -48,15 +49,16 @@ class MLService:
             XGBoostClassifier(),
             LightGBMClassifier(),
         ]
-        tier2 = [
-            MLPClassifier(),
-            CNN1DClassifier(),
-            LSTMClassifier(),
-            TransformerClassifier(),
-        ]
-        for clf in tier1 + tier2:
+        for clf in tier1:
             self._registry.register(clf)
 
+    def register_deep_models(self) -> None:
+        if self._deep_registered:
+            return
+        from app.ml.classifiers.tier2 import MLPClassifier, CNN1DClassifier, LSTMClassifier, TransformerClassifier
+        from app.ml.classifiers.tier3 import VotingClassifier, StackingClassifier, LateFusionClassifier
+        for clf in [MLPClassifier(), CNN1DClassifier(), LSTMClassifier(), TransformerClassifier()]:
+            self._registry.register(clf)
         self._registry.register(VotingClassifier(
             estimators=[SVMClassifier(), RandomForestClassifier(), MLPClassifier()],
             voting="soft",
@@ -67,6 +69,7 @@ class MLService:
         self._registry.register(LateFusionClassifier(
             branches=[SVMClassifier(), RandomForestClassifier()],
         ))
+        self._deep_registered = True
 
     def _get_synth_data(
         self, n_samples: int = 500, n_features: int | None = None
@@ -104,6 +107,36 @@ class MLService:
             clf.fit(X, y)
             self._trained_models.add(clf.name)
 
+    def save_models(self, model_dir: str | None = None) -> None:
+        d = Path(model_dir or self._config.model_dir)
+        d.mkdir(parents=True, exist_ok=True)
+        for clf in self._registry.all():
+            if clf.name in self._trained_models:
+                path = str(d / f"{clf.name}.pkl")
+                clf.save(path)
+                logger.info(f"Saved {clf.name} → {path}")
+
+    def load_models(self, model_dir: str | None = None) -> int:
+        d = Path(model_dir or self._config.model_dir)
+        if not d.exists():
+            return 0
+        loaded = 0
+        for clf in self._registry.all():
+            path = d / f"{clf.name}.pkl"
+            if path.exists():
+                try:
+                    clf.load(str(path))
+                    self._trained_models.add(clf.name)
+                    loaded += 1
+                except Exception as e:
+                    logger.warning(f"Failed to load {clf.name}: {e}")
+        return loaded
+
+    def _try_load_models(self) -> None:
+        n = self.load_models()
+        if n > 0:
+            logger.info(f"Loaded {n} pre-trained models from {self._config.model_dir}")
+
     def train_synthetic(self, n_samples: int = 500, n_features: int | None = None) -> None:
         X, y = self._get_synth_data(n_samples, n_features)
         self.train_all(X, y)
@@ -116,6 +149,9 @@ class MLService:
 
     def list_by_tier(self, tier: str) -> list[str]:
         return [m.name for m in self._registry.list_by_tier(tier)]
+
+    def get_model_tier(self, name: str) -> str:
+        return self._registry.get(name).tier
 
     def classify(self, features: np.ndarray, model_name: str | None = None) -> dict:
         name = model_name or "svm"
@@ -140,11 +176,30 @@ class MLService:
             })
         return {"results": predictions, "model_name": clf.name, "latency_ms": result.latency_ms}
 
+    def get_recommended_model(self) -> dict | None:
+        return getattr(self, '_cached_recommendation', None)
+
+    def _update_recommendation(self, report: EvaluationReport) -> None:
+        if not report.comparison_table:
+            return
+        best = report.comparison_table[0]
+        self._cached_recommendation = {
+            "model_name": best.model_name,
+            "f1_macro": round(best.f1_macro, 4),
+            "accuracy": round(best.accuracy, 4),
+            "latency_ms": round(best.latency_ms, 2),
+            "reason": (
+                f"Highest F1 score ({best.f1_macro:.2f}) "
+                f"with {best.accuracy:.0%} accuracy "
+                f"and {best.latency_ms:.0f}ms latency"
+            ),
+        }
+
     def run_evaluation(
         self, n_samples: int = 500, n_features: int | None = None, use_real: bool = True,
     ) -> EvaluationReport:
         if use_real:
-            X, y = self._get_training_data()
+            X, y = self._get_training_data(prefer_real=True)
         else:
             X, y = generate_synthetic_dataset(
                 n_samples=n_samples,
@@ -154,7 +209,9 @@ class MLService:
         X_train, X_test, y_train, y_test = train_test_split_data(X, y, config=self._config)
 
         generator = ReportGenerator(classifiers=self._registry.all(), config=self._config)
-        return generator.run(X_train, y_train, X_test, y_test)
+        report = generator.run(X_train, y_train, X_test, y_test)
+        self._update_recommendation(report)
+        return report
 
     def run_cross_validation(
         self,
@@ -164,7 +221,7 @@ class MLService:
         use_real: bool = True,
     ) -> list[CVResult]:
         if use_real:
-            X, y = self._get_training_data()
+            X, y = self._get_training_data(prefer_real=True)
         else:
             X, y = generate_synthetic_dataset(
                 n_samples=n_samples,

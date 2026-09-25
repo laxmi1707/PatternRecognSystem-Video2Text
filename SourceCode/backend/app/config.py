@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
     dataset_root: str = "./dataset"
 
-    allowed_origins: list[str] = ["http://localhost:5173"]
+    allowed_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
     allowed_methods: list[str] = ["GET", "POST", "PATCH", "DELETE", "OPTIONS"]
     allowed_headers: list[str] = ["Authorization", "Content-Type"]
     allow_credentials: bool = True

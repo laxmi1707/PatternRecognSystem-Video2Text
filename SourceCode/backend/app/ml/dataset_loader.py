@@ -127,47 +127,53 @@ def _build_task_from_jsonl(task_id: int, entries: list[dict]) -> TaskMetadata:
 
 def discover_tasks(dataset_root: Path) -> list[TaskMetadata]:
     tasks: list[TaskMetadata] = []
-
-    for task_dir in sorted(dataset_root.iterdir()):
-        if not task_dir.is_dir():
-            if task_dir.suffix == ".zip":
-                tasks.extend(_discover_from_zip(task_dir))
-            continue
-
-        action_log = task_dir / "action_log.json"
-        if not action_log.exists():
-            continue
-
-        actions, instruction, platform, task_id = _parse_action_log(action_log)
-        if task_id == 0:
-            task_id = int(task_dir.name) if task_dir.name.isdigit() else hash(task_dir.name)
-
-        label_file = task_dir / "label.txt"
-        if label_file.exists():
-            instruction = label_file.read_text().strip() or instruction
-
-        video_path = task_dir / "video" / "video.mp4"
-        video_meta = None
-        if video_path.exists():
-            meta_file = task_dir / "video" / "video_metadata.json"
-            if meta_file.exists():
-                with open(meta_file) as f:
-                    video_meta = json.load(f)
-
-        tasks.append(
-            TaskMetadata(
-                task_id=task_id,
-                instruction=instruction,
-                platform=platform,
-                video_path=video_path if video_path.exists() else None,
-                actions=actions,
-                video_meta=video_meta,
-                activity_label=derive_activity_label(instruction, platform),
-                workflow=instruction,
-            )
-        )
-
+    _scan_directory(dataset_root, tasks)
     return tasks
+
+
+def _scan_directory(directory: Path, tasks: list[TaskMetadata]) -> None:
+    for entry in sorted(directory.iterdir()):
+        if not entry.is_dir():
+            if entry.suffix == ".zip":
+                tasks.extend(_discover_from_zip(entry))
+            continue
+
+        action_log = entry / "action_log.json"
+        if action_log.exists():
+            _load_task(entry, action_log, tasks)
+        else:
+            _scan_directory(entry, tasks)
+
+
+def _load_task(task_dir: Path, action_log: Path, tasks: list[TaskMetadata]) -> None:
+    actions, instruction, platform, task_id = _parse_action_log(action_log)
+    if task_id == 0:
+        task_id = int(task_dir.name) if task_dir.name.isdigit() else hash(task_dir.name)
+
+    label_file = task_dir / "label.txt"
+    if label_file.exists():
+        instruction = label_file.read_text().strip() or instruction
+
+    video_path = task_dir / "video" / "video.mp4"
+    video_meta = None
+    if video_path.exists():
+        meta_file = task_dir / "video" / "video_metadata.json"
+        if meta_file.exists():
+            with open(meta_file) as f:
+                video_meta = json.load(f)
+
+    tasks.append(
+        TaskMetadata(
+            task_id=task_id,
+            instruction=instruction,
+            platform=platform,
+            video_path=video_path if video_path.exists() else None,
+            actions=actions,
+            video_meta=video_meta,
+            activity_label=derive_activity_label(instruction, platform),
+            workflow=instruction,
+        )
+    )
 
 
 def _discover_from_zip(zip_path: Path) -> list[TaskMetadata]:

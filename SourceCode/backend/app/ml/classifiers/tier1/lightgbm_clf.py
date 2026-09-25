@@ -18,6 +18,7 @@ class LightGBMClassifier(BaseClassifier):
             learning_rate=learning_rate,
             random_state=42,
             verbosity=-1,
+            num_threads=1,
         )
 
     @property

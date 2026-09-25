@@ -166,12 +166,22 @@ class FeatureAssembler:
                 self._ocr.fit_tfidf(corpus)
             self._ocr_fitted = True
 
+        import time as _time
+
         all_X: list[np.ndarray] = []
         all_y: list[int] = []
         task_ids: list[int] = []
+        total = len(tasks)
+        t_start = _time.time()
 
-        for task in tasks:
-            logger.info(f"Extracting features for task {task.task_id} ({task.platform})...")
+        for idx, task in enumerate(tasks, 1):
+            elapsed = _time.time() - t_start
+            eta = (elapsed / idx) * (total - idx) if idx > 1 else 0
+            pct = idx / total * 100
+            logger.info(
+                f"[{idx}/{total}] ({pct:.0f}%) Task {task.task_id} ({task.platform}) "
+                f"| elapsed={elapsed:.0f}s | ETA={eta:.0f}s"
+            )
             X_task, label_idx = self.extract_task_features(task)
             all_X.append(X_task)
             all_y.extend([label_idx] * X_task.shape[0])
