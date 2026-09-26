@@ -180,7 +180,9 @@ def _discover_from_zip(zip_path: Path) -> list[TaskMetadata]:
     tasks: list[TaskMetadata] = []
     try:
         with zipfile.ZipFile(zip_path) as zf:
-            jsonl_files = [n for n in zf.namelist() if n.endswith(".jsonl")]
+            names = zf.namelist()
+
+            jsonl_files = [n for n in names if n.endswith(".jsonl")]
             for jf in jsonl_files:
                 content = zf.read(jf).decode("utf-8")
                 by_task: dict[int, list[dict]] = {}
@@ -195,6 +197,41 @@ def _discover_from_zip(zip_path: Path) -> list[TaskMetadata]:
 
                 for tid, entries in by_task.items():
                     tasks.append(_build_task_from_jsonl(tid, entries))
+
+            if not jsonl_files:
+                action_logs = [n for n in names if n.endswith("action_log.json")]
+                for al in action_logs:
+                    content = zf.read(al).decode("utf-8")
+                    data = json.loads(content)
+                    actions: list[ActionRecord] = []
+                    for entry in data.get("action_log", []):
+                        actions.append(
+                            ActionRecord(
+                                action_type=entry.get("action_type", "UNKNOWN").upper(),
+                                timestamp=float(entry.get("timestamp", 0)),
+                                params=entry.get("action_params", {}),
+                                groundcua_id=entry.get("groundcua_id"),
+                            )
+                        )
+                    instruction = data.get("task_instruction", "")
+                    platform = data.get("platform", zip_path.stem)
+                    task_id = int(data.get("task_id", 0))
+                    if task_id == 0:
+                        task_dir = str(Path(al).parent)
+                        task_id = int(task_dir) if task_dir.isdigit() else hash(task_dir)
+
+                    tasks.append(
+                        TaskMetadata(
+                            task_id=task_id,
+                            instruction=instruction,
+                            platform=platform,
+                            video_path=None,
+                            actions=actions,
+                            video_meta=None,
+                            activity_label=derive_activity_label(instruction, platform),
+                            workflow=instruction,
+                        )
+                    )
     except (zipfile.BadZipFile, KeyError):
         pass
     return tasks
