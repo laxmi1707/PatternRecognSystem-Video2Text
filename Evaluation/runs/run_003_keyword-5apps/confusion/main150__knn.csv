@@ -1,0 +1,7 @@
+true \ predicted,aws_console,coding_editing,debugging,documentation,git_operations,other
+aws_console,0,10,0,0,0,1
+coding_editing,4,483,1,0,4,52
+debugging,1,4,0,0,0,3
+documentation,0,3,0,0,0,4
+git_operations,0,21,0,0,1,2
+other,0,73,0,0,0,164

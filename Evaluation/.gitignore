@@ -1,0 +1,22 @@
+# Everything here is regenerable from the code plus the public dataset, and is
+# far too large to version. The numbers that the report cites are the CSVs and
+# JSON under runs/, which ARE committed.
+
+# The dataset itself (26 GB on Hugging Face at ServiceNow/VideoCUA)
+data/
+# Per-recording feature vectors: ~480 MB, rebuilt by `python -m v2k frames`
+cache/
+# YOLOv8n and ResNet-18 weights, downloaded on first use
+weights/
+# Fitted model bundles: 150-270 MB per run
+runs/*/models/
+# Frozen fold matrices and stored predictions used by the tuning shards
+*.npz
+
+.venv/
+__pycache__/
+*.pyc
+logs/
+
+# Personal notes and unsent drafts stay out of the shared repo
+~$*

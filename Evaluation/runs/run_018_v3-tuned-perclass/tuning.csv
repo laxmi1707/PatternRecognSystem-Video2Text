@@ -1,0 +1,9 @@
+id,model,default,macro_f1,macro_f1_fold_sd,balanced_accuracy,segment_accuracy,task_accuracy,fit_seconds,p_n_estimators,p_max_depth,p_learning_rate,p_bases,p_meta_C,error
+53,xgboost,,0.3271,0.0182,0.3138,0.4112,0.4112,32.24,600,10,0.2,,,
+65,stacking,,0.317,0.0064,0.2995,0.4042,0.4042,25.865,,,,svm+random_forest+mlp,10.0,
+64,stacking,yes,0.3164,0.0062,0.2931,0.4095,0.4095,25.329,,,,svm+random_forest+mlp,1.0,
+6,lightgbm,,0.3052,0.0159,0.2832,0.406,0.406,5.627,100,10,0.03,,,
+31,xgboost,yes,0.304,0.0173,0.2832,0.4031,0.4031,8.947,100,6,0.1,,,
+4,lightgbm,yes,0.2912,0.0103,0.2702,0.3977,0.3977,3.524,100,6,0.1,,,
+56,random_forest,,0.291,0.0121,0.2621,0.3935,0.3935,1.169,100,40,,,,
+55,random_forest,yes,0.2816,0.0097,0.2555,0.3962,0.3962,1.203,100,20,,,,

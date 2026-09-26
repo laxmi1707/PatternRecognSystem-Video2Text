@@ -1,0 +1,2 @@
+id,model,default,macro_f1,macro_f1_fold_sd,balanced_accuracy,segment_accuracy,task_accuracy,fit_seconds,p_n_estimators,p_max_depth,p_learning_rate,p_bases,p_meta_C,error
+53,xgboost,,0.3271,0.0182,0.3138,0.4112,0.4112,32.24,600,10,0.2,,,

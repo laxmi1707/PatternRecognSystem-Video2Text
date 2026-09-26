@@ -1,0 +1,12 @@
+# On top of the system Python's torch 2.10 (CPU), numpy, scikit-learn, xgboost:
+#   python -m venv --system-site-packages .venv
+#   .venv\Scripts\python.exe -m pip install torchvision==0.25.0 --index-url https://download.pytorch.org/whl/cpu
+#   .venv\Scripts\python.exe -m pip install -r requirements.txt
+torchvision==0.25.0
+easyocr==1.7.2
+ultralytics==8.4.159
+lightgbm==4.7.0
+opencv-python-headless
+psutil
+joblib
+matplotlib

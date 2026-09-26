@@ -1,0 +1,26 @@
+{
+  "created": "2026-09-24 14:23",
+  "apps": "all cached",
+  "labels": "csv:labels/labels_v2.csv",
+  "features": [
+    "native150"
+  ],
+  "models": [
+    "xgboost",
+    "lightgbm",
+    "random_forest",
+    "mlp"
+  ],
+  "folds": 5,
+  "min_tasks": 10,
+  "augment": 0,
+  "sample_tasks": "all",
+  "tasks_available": 2968,
+  "level": "task",
+  "seed": 42,
+  "backend_snapshot": "main-d866716",
+  "backend_commit": "d86671666ba687ad6b798d17b6249b5c5b6a571b",
+  "frame_cache": "C:\\Users\\joshua.y.NUSSTF\\Desktop\\v2k-training\\cache\\frames_v1_main-d866716",
+  "n_tasks": 2968,
+  "n_segments": 2968
+}

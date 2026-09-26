@@ -1,0 +1,15 @@
+true \ predicted,communicate,configure_option,create_item,delete_remove,edit_content,file_manage,format_style,insert_element,media_control,navigate_view,organize_items,other,run_command,search_filter
+communicate,20,48,23,0,12,1,4,0,0,18,0,0,0,1
+configure_option,0,808,91,1,73,2,149,10,1,323,4,10,2,6
+create_item,1,146,323,2,75,3,97,21,0,86,0,15,0,1
+delete_remove,0,50,7,2,17,2,27,0,0,67,0,1,1,0
+edit_content,3,178,128,2,176,2,180,23,0,119,2,15,0,2
+file_manage,1,89,45,1,16,32,40,0,0,63,0,3,0,0
+format_style,0,260,53,1,90,0,349,19,0,127,0,8,0,1
+insert_element,0,65,51,0,46,1,91,73,1,23,0,1,0,0
+media_control,1,10,2,0,4,1,9,1,4,20,0,2,0,0
+navigate_view,3,269,34,2,36,6,80,9,3,801,2,16,1,4
+organize_items,0,37,3,1,9,0,15,0,0,72,8,5,0,0
+other,0,104,35,0,39,0,53,6,2,104,3,43,1,9
+run_command,0,5,1,1,0,0,1,0,0,20,0,4,2,0
+search_filter,0,38,33,0,14,0,2,0,0,27,1,4,2,36

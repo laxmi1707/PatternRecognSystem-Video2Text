@@ -1,0 +1,27 @@
+{
+  "created": "2026-09-23 13:36",
+  "apps": "all cached",
+  "labels": "keyword",
+  "features": [
+    "ocr",
+    "ocr_native",
+    "ui",
+    "visual",
+    "interaction",
+    "cnn"
+  ],
+  "models": [
+    "lightgbm",
+    "random_forest",
+    "svm"
+  ],
+  "folds": 5,
+  "min_tasks": 2,
+  "augment": 0,
+  "seed": 42,
+  "backend_snapshot": "main-d866716",
+  "backend_commit": "d86671666ba687ad6b798d17b6249b5c5b6a571b",
+  "frame_cache": "C:\\Users\\joshua.y.NUSSTF\\Desktop\\v2k-training\\cache\\frames_v1_main-d866716",
+  "n_tasks": 287,
+  "n_segments": 831
+}
