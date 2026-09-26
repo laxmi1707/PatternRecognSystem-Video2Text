@@ -3,8 +3,8 @@
 Cross-validated evaluation of the backend's 14 classifiers on the full VideoCUA
 set: 6,991 recordings, 14 activity classes, folds grouped by recording.
 
-**Results and how to read them: [evaluation_report_en_v1.md](evaluation_report_en_v1.md)**
-(same text as `evaluation_report_en_v2.docx`, if you prefer Word).
+**Results and how to read them: [report/evaluation_report.md](report/evaluation_report.md)**
+(same text as `report/evaluation_report.docx`, if you prefer Word).
 Headline: macro-F1 **0.3271** against a majority-class baseline of 0.0250.
 
 This directory imports the backend's own feature extractors and classifier
@@ -50,7 +50,7 @@ python -m v2k tune --shard 0/5 --run-dir runs/<run>    # x5, in parallel
 python -m v2k tune --collect --run-dir runs/<run>
 ```
 
-`run_tuning_A_v1.sh` and `run_leakage_check_v1.sh` drive those steps end to end.
+`scripts/run_tuning_A_v1.sh` and `scripts/run_leakage_check_v1.sh` drive those steps end to end.
 
 ## Checks
 
@@ -62,6 +62,18 @@ python -m v2k tune --collect --run-dir runs/<run>
 recording, one if a test task's own token reaches the TF-IDF vocabulary, one if
 the scaler sees a test row. The oversampling test asserts no synthetic point is
 invented, and the sampling test asserts whole recordings are kept.
+
+## Layout
+
+| Path | What is in it |
+|---|---|
+| `report/` | the evaluation report, Markdown and Word |
+| `v2k/` | the harness: one module per stage |
+| `tests/` | 12 tests, mostly leakage guards |
+| `labels/` | the three label sets and the taxonomy each was derived with |
+| `runs/` | one folder per run: settings, scores, predictions, confusion matrices |
+| `scripts/` | the shell drivers that chain the stages unattended |
+| `examples/` | three generated SOPs (one pair shows the effect of merging repeated step headings), and the encoding-bug reproduction script |
 
 ## Commands
 

@@ -1,5 +1,0 @@
-id,model,default,macro_f1,macro_f1_fold_sd,balanced_accuracy,segment_accuracy,task_accuracy,fit_seconds,p_n_estimators,p_max_depth,p_learning_rate,p_bases,p_meta_C,error
-0,lightgbm,,0.2583,0.0452,0.256,0.3613,0.3613,0.097,100,4,0.03,,,
-4,lightgbm,yes,0.2745,0.0573,0.2669,0.3613,0.3613,0.089,100,6,0.1,,,
-27,stacking,,0.1681,0.0557,0.1936,0.3484,0.3484,0.518,,,,svm+random_forest+mlp,0.1,
-30,stacking,,0.1965,0.0633,0.2077,0.3419,0.3419,0.287,,,,svm+random_forest+mlp+lightgbm,0.1,
