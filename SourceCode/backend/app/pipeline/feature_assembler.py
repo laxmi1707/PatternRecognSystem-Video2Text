@@ -138,22 +138,12 @@ class FeatureAssembler:
     def _collect_ocr_corpus(self, tasks: list[TaskMetadata]) -> list[str]:
         corpus: list[str] = []
         for task in tasks:
-            if task.video_path and task.video_path.exists():
-                action_dicts = [
-                    {
-                        "action_type": a.action_type,
-                        "timestamp": a.timestamp,
-                        "action_params": a.params,
-                    }
-                    for a in task.actions
-                ]
-                segments = self._vp.extract_segments(task.video_path, action_dicts)
-                for seg in segments:
-                    for kf in seg.keyframes:
-                        result = self._ocr.extract_with_fallback(kf.image)
-                        if result.full_text:
-                            corpus.append(result.full_text)
             corpus.append(task.instruction)
+            for a in task.actions:
+                if a.params:
+                    text = a.params.get("text", "") or a.params.get("value", "")
+                    if text:
+                        corpus.append(text)
         return corpus
 
     def build_dataset(
