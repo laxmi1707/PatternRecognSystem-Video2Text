@@ -27,7 +27,7 @@ class SegmentData:
 class VideoProcessor:
     def __init__(
         self,
-        sample_fps: float = 1.0,
+        sample_fps: float = 5.0,
         target_size: tuple[int, int] = (640, 480),
         cluster_gap: float = 2.0,
     ):

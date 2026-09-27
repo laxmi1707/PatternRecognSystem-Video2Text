@@ -31,7 +31,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--video-dir", default=str(BACKEND_ROOT / "localDataset"))
     parser.add_argument("--model", default="svm", help="registered model name, e.g. svm, random_forest, mlp")
-    parser.add_argument("--sample-rate-hz", type=float, default=1.0)
+    parser.add_argument("--sample-rate-hz", type=float, default=5.0)
     parser.add_argument("--n-segments", type=int, default=10)
     args = parser.parse_args()
 

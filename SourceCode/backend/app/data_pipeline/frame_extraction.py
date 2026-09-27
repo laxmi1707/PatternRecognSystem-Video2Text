@@ -7,7 +7,7 @@ import cv2
 from app.data_pipeline.types import Frame, VideoRecord
 
 
-def extract_frames(video: VideoRecord, output_dir: Path, sample_rate_hz: float = 1.0) -> list[Frame]:
+def extract_frames(video: VideoRecord, output_dir: Path, sample_rate_hz: float = 5.0) -> list[Frame]:
     if sample_rate_hz <= 0:
         raise ValueError("sample_rate_hz must be positive")
 

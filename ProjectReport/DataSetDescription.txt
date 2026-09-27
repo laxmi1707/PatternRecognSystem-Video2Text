@@ -1,0 +1,51 @@
+Dataset Description
+The dataset consists of screen-recorded videos capturing user interactions with software applications. Each video is approximately 8–30 seconds long and may contain different software interfaces displayed in full-screen mode.
+
+Dataset Characteristics
+Training set: 10 videos
+
+Video duration: Approximately 8–30 seconds per video
+
+Frame rate: 30 FPS
+
+Frame resolution: 1920 × 1008 pixels
+
+Data rate: 7,890 (as provided in the video metadata)
+
+Application: Videos contain different activities performed within the same software environment.
+
+Activity: Each video represents a different workflow or sequence of user interactions.
+
+Dataset Files
+The dataset contains three main types of annotation/metadata files:
+
+video_metadata.json
+Contains technical information about each video, including:
+
+Video duration/length
+
+File size
+
+Bitrate
+
+Frame rate
+
+Frame width and height
+
+action.json
+Provides the ground-truth timestamps for individual user actions occurring in the video. These may include:
+
+Mouse clicks
+
+Mouse movements
+
+Pressing Enter
+
+Text typing
+
+Other recorded interaction events
+
+label.json
+Contains the actual workflow-level label corresponding to the activity performed in the video. It represents the intended workflow/event that the sequence of user actions accomplishes.
+
+Overall, the dataset links video frames → low-level user actions → high-level workflow labels, making it suitable for studying or training models for screen activity recognition, user-action detection, and workflow understanding.
