@@ -190,10 +190,16 @@ class FeatureAssembler:
         return X, y, metadata
 
 
-def get_default_assembler(use_gpu: bool = False) -> FeatureAssembler:
+def get_default_assembler(use_gpu: bool | None = None) -> FeatureAssembler:
+    if use_gpu is None:
+        try:
+            import torch
+            use_gpu = torch.cuda.is_available()
+        except ImportError:
+            use_gpu = False
     return FeatureAssembler(
         ocr=OCRExtractor(use_gpu=use_gpu),
-        ui=UIDetector(),
+        ui=UIDetector(use_gpu=use_gpu),
         visual=VisualFeatureExtractor(),
         interaction=InteractionFeatureExtractor(),
         video_processor=VideoProcessor(),
