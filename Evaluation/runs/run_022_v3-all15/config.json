@@ -1,0 +1,38 @@
+{
+  "created": "2026-09-26 21:40",
+  "apps": "all cached",
+  "labels": "csv:labels/labels_v3.csv",
+  "features": [
+    "native150"
+  ],
+  "models": [
+    "svm",
+    "naive_bayes",
+    "decision_tree",
+    "random_forest",
+    "knn",
+    "xgboost",
+    "lightgbm",
+    "mlp",
+    "cnn1d",
+    "lstm",
+    "transformer",
+    "voting",
+    "stacking",
+    "late_fusion",
+    "adaboost"
+  ],
+  "folds": 5,
+  "min_tasks": 10,
+  "augment": 0,
+  "balance": "none",
+  "sample_tasks": "all",
+  "tasks_available": 6991,
+  "level": "task",
+  "seed": 42,
+  "backend_snapshot": "main-d866716",
+  "backend_commit": "d86671666ba687ad6b798d17b6249b5c5b6a571b",
+  "frame_cache": "C:\\Users\\joshua.y.NUSSTF\\Desktop\\v2k-training\\cache\\frames_v1_main-d866716",
+  "n_tasks": 6991,
+  "n_segments": 6991
+}

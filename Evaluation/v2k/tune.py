@@ -53,6 +53,13 @@ GRIDS: dict[str, dict[str, list]] = {
         "n_estimators": [100, 300, 600],
         "max_depth": [10, 20, 40],
     },
+    "adaboost": {
+        "n_estimators": [100, 300, 600],
+        "learning_rate": [0.5, 1.0],
+        # A stump is the classic weak learner, but the boosted trees wanted
+        # depth 10 on these features, so give AdaBoost the same chance.
+        "max_depth": [1, 3, 10],
+    },
     "stacking": {
         # The base list is an argument of the backend's StackingClassifier, so
         # varying it stays inside its API rather than redefining the model.
@@ -66,6 +73,7 @@ DEFAULTS: dict[str, dict] = {
     "lightgbm": {"n_estimators": 100, "max_depth": 6, "learning_rate": 0.1},
     "xgboost": {"n_estimators": 100, "max_depth": 6, "learning_rate": 0.1},
     "random_forest": {"n_estimators": 100, "max_depth": 20},
+    "adaboost": {"n_estimators": 100, "learning_rate": 1.0, "max_depth": 1},
     "stacking": {"bases": "svm+random_forest+mlp", "meta_C": 1.0},
 }
 
@@ -92,6 +100,10 @@ def build(model: str, n_classes: int, params: dict):
         return XGBoostClassifier(**params)
     if model == "random_forest":
         return RandomForestClassifier(**params)
+    if model == "adaboost":
+        from v2k.adaboost import AdaBoostClassifier
+
+        return AdaBoostClassifier(**params)
     if model == "stacking":
         return StackingClassifier(
             base_estimators=[base[b]() for b in params["bases"].split("+")],

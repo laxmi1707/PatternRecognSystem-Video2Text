@@ -1,0 +1,4 @@
+id,model,default,macro_f1,macro_f1_fold_sd,balanced_accuracy,segment_accuracy,task_accuracy,fit_seconds,p_n_estimators,p_max_depth,p_learning_rate,p_bases,p_meta_C,error
+3,adaboost,yes,0.1198,0.0096,0.1271,0.2582,0.2582,3.799,100,1,1.0,,,
+8,adaboost,,0.2523,0.0199,0.2274,0.3806,0.3806,111.737,300,10,0.5,,,
+13,adaboost,,0.2388,0.0076,0.2327,0.332,0.332,70.925,600,3,0.5,,,

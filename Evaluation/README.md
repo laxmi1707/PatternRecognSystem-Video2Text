@@ -1,7 +1,9 @@
 # Evaluation harness
 
 Cross-validated evaluation of the backend's 14 classifiers on the full VideoCUA
-set: 6,991 recordings, 14 activity classes, folds grouped by recording.
+set: 6,991 recordings, 14 activity classes, folds grouped by recording. A
+fifteenth, AdaBoost, is added here for the boosting comparison and is marked as
+ours wherever it appears — it is not part of `MLService`.
 
 **Results and how to read them: [report/evaluation_report.md](report/evaluation_report.md)**
 (same text as `report/evaluation_report.docx`, if you prefer Word).

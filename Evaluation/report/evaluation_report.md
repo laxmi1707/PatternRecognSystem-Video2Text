@@ -89,6 +89,91 @@ And one negative result: **tuning and balancing do not add up.** Separately they
 
 ---
 
+## Every model compared
+
+All 15 on identical folds: `labels_v3`, `native150`, recording level, 5-fold
+cross-validation grouped by recording, library default hyperparameters.
+
+Fourteen of these are the backend's registry. **AdaBoost is an addition on our
+side** (`Evaluation/v2k/adaboost.py`); it follows the same `BaseClassifier`
+contract so it can be scored on the same folds, but it is not part of
+`MLService` and should not be described as one of the pipeline's classifiers.
+
+| # | Model | Tier | macro-F1 | Balanced acc | Accuracy | Fit (s/fold) |
+|---|---|---|---|---|---|---|
+| 1 | stacking | 3 | 0.3164 | 0.2929 | 0.4092 | 17.2 |
+| 2 | xgboost | 1 | 0.3040 | 0.2832 | 0.4031 | 3.3 |
+| 3 | lightgbm | 1 | 0.2912 | 0.2702 | 0.3977 | 1.6 |
+| 4 | mlp | 2 | 0.2888 | 0.2807 | 0.3778 | 4.8 |
+| 5 | voting | 3 | 0.2885 | 0.2758 | 0.4024 | 13.1 |
+| 6 | random_forest | 1 | 0.2816 | 0.2555 | 0.3962 | 0.3 |
+| 7 | late_fusion | 3 | 0.2594 | 0.2395 | 0.3802 | 10.1 |
+| 8 | transformer | 2 | 0.2464 | 0.2481 | 0.3437 | 27.2 |
+| 9 | svm | 1 | 0.2428 | 0.2285 | 0.3806 | 8.1 |
+| 10 | knn | 1 | 0.2313 | 0.2227 | 0.3376 | 0.0 |
+| 11 | lstm | 2 | 0.2235 | 0.2263 | 0.3523 | 13.3 |
+| 12 | decision_tree | 1 | 0.2233 | 0.2178 | 0.2915 | 0.4 |
+| 13 | *adaboost* | 1 | 0.1198 | 0.1271 | 0.2582 | 3.6 |
+| 14 | cnn1d | 2 | 0.1130 | 0.1225 | 0.2719 | 13.7 |
+| 15 | naive_bayes | 1 | 0.0726 | 0.2096 | 0.0614 | 0.0 |
+| — | majority baseline | — | 0.0250 | 0.0714 | 0.2117 | 0.0 |
+
+**Read the bottom of this table as a statement about defaults, not about the
+models.** AdaBoost sits at 0.1198 here because its library default uses a
+depth-1 stump as the weak learner, which cannot separate anything useful in 150
+dimensions; tuned, the same model reaches 0.2596. The same effect, smaller, is
+what the hyperparameter search found in XGBoost, where the default
+`max_depth=6` also underfits. `naive_bayes` is the one genuine outlier: its
+accuracy of 0.0614 is below the majority baseline, because assuming 150
+independent features is simply wrong for this data.
+
+This run also reproduces `run_013` exactly on all 14 shared models, which is a
+second independent check on the numbers in the previous section.
+
+### Why AdaBoost was added, and what it showed
+
+AdaBoost is the boosting scheme that XGBoost and LightGBM are regularised
+successors to. Including it turns "we chose gradient boosting" from an
+assertion into a measurement:
+
+| Model | Default | Tuned | Gain | Fit at best (s/fold) |
+|---|---|---|---|---|
+| xgboost | 0.3040 | **0.3271** | +0.0231 | 44 |
+| lightgbm | 0.2912 | 0.3052 | +0.0140 | 6 |
+| random_forest | 0.2816 | 0.2910 | +0.0094 | 3 |
+| *adaboost* | 0.1198 | 0.2596 | **+0.1398** | 216 |
+| stacking | 0.3164 | 0.3170 | +0.0006 | 34 |
+
+Tuned, AdaBoost reaches 0.2596 against XGBoost's 0.3271 at roughly five times
+the fit cost, so the modern implementations are the right choice on this data.
+Its +0.1398 is the largest tuning gain of any model, entirely because its
+default weak learner is badly matched to a 150-dimension feature space: the best
+configuration is `n_estimators=600, max_depth=10, learning_rate=0.5`.
+
+### A note on the tier 3 ensembles
+
+The tiers are a naming convention for model families — tier 1 classical, tier 2
+PyTorch, tier 3 ensembles — not a structural difference. Every classifier
+implements the same `fit(X, y)` and `predict(X) -> PredictionResult`, and the
+tier 2 models convert to tensors inside `fit`, so an ensemble can mix tiers
+without knowing which is which. `voting` and `stacking` both combine
+SVM + RandomForest + MLP, the last of which is tier 2.
+
+`late_fusion` is a different construction and should not be grouped with the
+other two in the write-up: it splits the 150-dimension vector and gives each
+branch a slice, fusing across feature groups rather than across models.
+
+One result worth knowing before anyone tries to improve stacking: replacing its
+base estimators with stronger ones makes it worse. `svm+random_forest+mlp`
+scores 0.3170; `svm+lightgbm+xgboost` scores 0.2715. The cause is in
+`tier3/stacking.py:fit`, which builds the meta-features from base predictions on
+the same rows the bases were just fitted on, with no internal cross-validation.
+Stronger bases fit the training fold more closely, so their probabilities are
+more over-confident than anything that occurs at test time, and the meta-learner
+is calibrated on a distribution it will never see. Using out-of-fold predictions
+for the meta-features — what `sklearn`'s own `StackingClassifier` does through
+its `cv` argument — would fix it.
+
 ## Per-class F1
 
 Each model's best configuration, over the same out-of-fold predictions.
@@ -235,6 +320,28 @@ Covered above with the measured cost: `app/ml/dataset.py:80-88` and `data_pipeli
 
 `app/ml/classifiers/tier1/random_forest.py:18` and `knn.py:15` pass `n_jobs=-1`, which asks joblib for every core and so ignores `OMP_NUM_THREADS`. On a shared machine that means one model saturates all 32 threads. Setting `LOKY_MAX_CPU_COUNT` alongside the OMP variables caps them; joblib reads it.
 
+### 5. A saved stacking model cannot be loaded back
+
+`app/ml/classifiers/tier3/stacking.py:save` pickles only the meta-learner:
+
+```
+def save(self, path):
+    pickle.dump(self._meta_learner, f)
+def load(self, path):
+    self._meta_learner = pickle.load(f)
+```
+
+`_base_estimators` is not stored, so after `load` it is empty and
+`_build_meta_features` receives `np.hstack([])`. Any round trip through
+save/load raises. This is unconditional — unlike the encoding bug it does not
+depend on the platform — and it affects the model that scores best on default
+hyperparameters. The fix is to pickle the base estimators alongside the
+meta-learner.
+
+The same file's `fit` has the separate issue described in the ensembles note
+above: meta-features are built without cross-validation, which caps what
+stacking can achieve.
+
 ### Already correct on the new branch
 
 Two things adopted on `feat/model-training-comparison-ui` that were on our list and need no further action: `task_level_split` for the split, and remapping labels to contiguous `0..N-1`.
@@ -258,5 +365,7 @@ Layer 6 of the proposal — retrieval over the extracted content — has no impl
 | `run_018` | stage A winners with stored predictions, for per-class F1 |
 | `run_019` | stage A grid with balancing |
 | `run_020` / `run_021` | the grouped and shuffled split comparison |
+| `run_022` | all 15 models on identical folds |
+| `run_023` | the AdaBoost hyperparameter grid |
 
 Each run folder holds `config.json` (every setting and the backend commit), `results.csv` or `tuning.csv`, `predictions.csv`, and per-model confusion matrices.
