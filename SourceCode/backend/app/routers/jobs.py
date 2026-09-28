@@ -1,10 +1,12 @@
 from collections import defaultdict
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+import asyncio
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_db, async_session
 from app.schemas.job import JobResponse, JobResultsResponse, ModelSummary
 from app.schemas.classification import ClassificationResult
 from app.services import job_service, video_service
@@ -56,12 +58,21 @@ async def get_job(job_id: int, db: AsyncSession = Depends(get_db)):
         job_type=job.job_type,
         model_name=job.model_name,
         progress_pct=job.progress_pct,
+        progress_stage=job.progress_stage or "",
         error_message=job.error_message,
     )
 
 
+async def _run_pipeline_background(job_id: int, video_path: Path | None, action_log_path: Path | None):
+    async with async_session() as db:
+        job = await job_service.get_job(db, job_id)
+        if job is None:
+            return
+        await run_classification_job(db, job, video_path=video_path, action_log_path=action_log_path)
+
+
 @router.post("/{job_id}/run")
-async def run_job(job_id: int, db: AsyncSession = Depends(get_db)):
+async def run_job(job_id: int, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     job = await job_service.get_job(db, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -79,30 +90,11 @@ async def run_job(job_id: int, db: AsyncSession = Depends(get_db)):
         if candidate.exists():
             action_log_path = candidate
 
-    results = await run_classification_job(
-        db, job, video_path=video_path, action_log_path=action_log_path
-    )
+    await job_service.update_job_status(db, job.id, status="processing", progress_pct=0.0, progress_stage="starting analysis")
 
-    classification_results = [
-        ClassificationResult(
-            label=r.predicted_label,
-            confidence=r.confidence,
-            probabilities=r.probabilities,
-            model_name=r.model_name,
-            latency_ms=r.latency_ms,
-        )
-        for r in results
-    ]
+    background_tasks.add_task(_run_pipeline_background, job.id, video_path, action_log_path)
 
-    comparison, best = _build_model_comparison(results)
-
-    return JobResultsResponse(
-        job_id=job.id,
-        status="completed",
-        results=classification_results,
-        model_comparison=comparison,
-        best_model=best,
-    )
+    return {"job_id": job.id, "status": "processing"}
 
 
 @router.get("/{job_id}/results", response_model=JobResultsResponse)

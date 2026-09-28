@@ -84,7 +84,10 @@ TIER2_MODELS = ["mlp", "cnn1d", "lstm", "transformer"]
 TIER3_MODELS = ["voting", "stacking", "late_fusion"]
 
 
-def _classify_all_models(X: np.ndarray, include_deep: bool = False) -> dict[str, list[dict]]:
+async def _classify_all_models(
+    X: np.ndarray, include_deep: bool = False,
+    db=None, job_id: int | None = None,
+) -> dict[str, list[dict]]:
     from app.services.ml_service import ml_service
 
     models = list(TIER1_MODELS)
@@ -93,7 +96,11 @@ def _classify_all_models(X: np.ndarray, include_deep: bool = False) -> dict[str,
         models += TIER2_MODELS + TIER3_MODELS
 
     all_results: dict[str, list[dict]] = {}
-    for model_name in models:
+    total = len(models)
+    for idx, model_name in enumerate(models):
+        if db and job_id:
+            pct = 70 + int((idx / total) * 25)
+            await update_job_status(db, job_id, "processing", pct, f"classifying with {model_name} ({idx+1}/{total})")
         try:
             result = ml_service.classify(X, model_name=model_name)
             all_results[model_name] = result["results"]
@@ -109,15 +116,30 @@ async def run_classification_job(
     video_path: Path | None = None,
     action_log_path: Path | None = None,
 ) -> list[ClassificationResult]:
-    await update_job_status(db, job.id, status="processing", progress_pct=0.0)
+    await update_job_status(db, job.id, "processing", 5.0, "preparing video analysis")
 
     try:
         import platform
+        await update_job_status(db, job.id, "processing", 10.0, "extracting video segments and keyframes")
+
         X, segments, used_yolo = _extract_features(video_path, action_log_path)
-        # macOS: skip deep models if YOLO was loaded (OpenMP conflict)
-        # Linux (Docker): always include all models
+        n_segments = X.shape[0]
+        n_features = X.shape[1]
+
+        await update_job_status(
+            db, job.id, "processing", 60.0,
+            f"extracted {n_segments} segments with {n_features}-dim features"
+        )
+
         include_deep = (platform.system() != "Darwin") or (not used_yolo)
-        all_model_results = _classify_all_models(X, include_deep=include_deep)
+
+        await update_job_status(db, job.id, "processing", 65.0, "loading classification models")
+
+        all_model_results = await _classify_all_models(
+            X, include_deep=include_deep, db=db, job_id=job.id
+        )
+
+        await update_job_status(db, job.id, "processing", 96.0, "saving results to database")
 
         results: list[ClassificationResult] = []
         for model_name, predictions in all_model_results.items():
@@ -137,12 +159,12 @@ async def run_classification_job(
                 results.append(cr)
 
         db.add_all(results)
-        await update_job_status(db, job.id, status="completed", progress_pct=100.0)
+        await update_job_status(db, job.id, "completed", 100.0, "analysis complete")
 
         return results
 
     except Exception as e:
-        await update_job_status(db, job.id, status="failed", error_message=str(e))
+        await update_job_status(db, job.id, "failed", error_message=str(e))
         raise
 
 

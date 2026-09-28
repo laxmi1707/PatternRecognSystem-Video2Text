@@ -10,6 +10,7 @@ class JobResponse(BaseModel):
     job_type: str
     model_name: str | None
     progress_pct: float
+    progress_stage: str = ""
     error_message: str | None
 
 

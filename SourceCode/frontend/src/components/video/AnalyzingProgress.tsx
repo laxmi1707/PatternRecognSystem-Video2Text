@@ -2,11 +2,13 @@ interface AnalyzingProgressProps {
   fileName: string;
   videoUrl: string | null;
   progress: number;
+  stage?: string;
   showPreview?: boolean;
 }
 
-export function AnalyzingProgress({ fileName, videoUrl, progress, showPreview = true }: AnalyzingProgressProps) {
+export function AnalyzingProgress({ fileName, videoUrl, progress, stage, showPreview = true }: AnalyzingProgressProps) {
   const pct = Math.round(progress);
+  const stageText = stage || 'starting analysis';
   return (
     <div className="analyzing">
       {showPreview && videoUrl && (
@@ -18,7 +20,7 @@ export function AnalyzingProgress({ fileName, videoUrl, progress, showPreview = 
       <div className="progress-track">
         <div className="progress-fill" style={{ width: pct + '%' }} data-testid="progress-fill" />
       </div>
-      <p className="text-muted" style={{ fontSize: 12 }}>{pct}% - reading interface actions</p>
+      <p className="text-muted" style={{ fontSize: 12 }}>{pct}% — {stageText}</p>
     </div>
   );
 }

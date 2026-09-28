@@ -83,35 +83,60 @@ function groupResultsByModel(results: ClassificationResultDTO[]): Record<string,
   return grouped;
 }
 
+interface JobStatusResponse {
+  id: number;
+  status: string;
+  progress_pct: number;
+  progress_stage: string;
+}
+
 export function analyzeVideo(
   file: File,
-  durationSeconds: number,
-  onProgress: (pct: number) => void,
+  _durationSeconds: number,
+  onProgress: (pct: number, stage: string) => void,
   onComplete: (result: AnalysisResult) => void,
 ): AnalyzeHandle {
   const controller = new AbortController();
   const videoUrl = URL.createObjectURL(file);
-
-  let progress = 0;
-  const tickMs = 180;
-  const maxSyntheticPct = 90;
-  const stepPct = maxSyntheticPct / ((durationSeconds * 1000) / tickMs);
-  const timer = setInterval(() => {
-    if (controller.signal.aborted) {
-      clearInterval(timer);
-      return;
-    }
-    progress = Math.min(maxSyntheticPct, progress + stepPct);
-    onProgress(Math.round(progress));
-  }, tickMs);
+  let pollTimer: ReturnType<typeof setInterval> | null = null;
 
   (async () => {
     try {
+      onProgress(2, 'uploading video');
       const upload = await apiPostFile<VideoUploadResponse>('/videos/upload', file);
       if (controller.signal.aborted) return;
 
-      const jobResults = await apiPost<JobResultsResponse>(`/jobs/${upload.job_id}/run`);
+      onProgress(5, 'starting analysis');
+      await apiPost<{ job_id: number; status: string }>(`/jobs/${upload.job_id}/run`);
       if (controller.signal.aborted) return;
+
+      await new Promise<void>((resolve, reject) => {
+        pollTimer = setInterval(async () => {
+          if (controller.signal.aborted) {
+            if (pollTimer) clearInterval(pollTimer);
+            reject(new Error('Aborted'));
+            return;
+          }
+          try {
+            const status = await apiGet<JobStatusResponse>(`/jobs/${upload.job_id}`);
+            onProgress(Math.round(status.progress_pct), status.progress_stage || 'processing');
+
+            if (status.status === 'completed') {
+              if (pollTimer) clearInterval(pollTimer);
+              resolve();
+            } else if (status.status === 'failed') {
+              if (pollTimer) clearInterval(pollTimer);
+              reject(new Error('Job failed'));
+            }
+          } catch {
+            // ignore polling errors, keep trying
+          }
+        }, 1000);
+      });
+
+      if (controller.signal.aborted) return;
+
+      const jobResults = await apiGet<JobResultsResponse>(`/jobs/${upload.job_id}/results`);
 
       const bestModel = jobResults.best_model;
       const grouped = groupResultsByModel(jobResults.results);
@@ -131,8 +156,7 @@ export function analyzeVideo(
         latency_ms: m.latency_ms,
       }));
 
-      clearInterval(timer);
-      onProgress(100);
+      onProgress(100, 'analysis complete');
 
       const lastStep = steps[steps.length - 1];
       const summary = buildSummary(bestResults.map((r) => r.label));
@@ -152,10 +176,10 @@ export function analyzeVideo(
         allResults,
       });
     } catch (err) {
-      clearInterval(timer);
+      if (pollTimer) clearInterval(pollTimer);
       if (controller.signal.aborted) return;
       console.error('Analysis API failed, falling back to mock:', err);
-      onProgress(100);
+      onProgress(100, 'offline fallback');
       onComplete({
         id: String(Date.now()),
         name: file.name,
@@ -177,7 +201,7 @@ export function analyzeVideo(
   return {
     cancel: () => {
       controller.abort();
-      clearInterval(timer);
+      if (pollTimer) clearInterval(pollTimer);
     },
   };
 }
