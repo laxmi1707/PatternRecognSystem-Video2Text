@@ -91,9 +91,7 @@ async def _classify_all_models(
     from app.services.ml_service import ml_service
 
     if fast_mode:
-        models = list(TIER1_FAST) + list(TIER2_MODELS)
-        if include_deep:
-            ml_service.register_deep_models()
+        models = list(TIER1_FAST)
     else:
         models = list(TIER1_MODELS)
         if include_deep:
