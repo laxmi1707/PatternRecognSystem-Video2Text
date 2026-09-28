@@ -8,7 +8,6 @@ export function useVideoAnalysis(analysisSeconds = 3) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState('');
-
   const [current, setCurrent] = useState<AnalysisResult | null>(null);
   const [history, setHistory] = useState<AnalysisResult[]>(() => getMockHistory());
   const handleRef = useRef<AnalyzeHandle | null>(null);

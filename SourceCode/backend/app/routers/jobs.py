@@ -90,7 +90,7 @@ async def run_job(job_id: int, background_tasks: BackgroundTasks, db: AsyncSessi
         if candidate.exists():
             action_log_path = candidate
 
-    await job_service.update_job_status(db, job.id, status="processing", progress_pct=0.0, progress_stage="starting full analysis (14 models)")
+    await job_service.update_job_status(db, job.id, status="processing", progress_pct=0.0, progress_stage="starting analysis")
 
     background_tasks.add_task(_run_pipeline_background, job.id, video_path, action_log_path)
 
