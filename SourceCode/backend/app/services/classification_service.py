@@ -77,23 +77,28 @@ TIER1_MODELS = [
     "knn", "xgboost", "lightgbm",
 ]
 
-# Tier 2 (PyTorch) and Tier 3 (ensembles with PyTorch) crash on macOS
-# due to OpenMP conflict with YOLO from feature extraction.
-# Run them only when no YOLO was loaded (synthetic data path).
+TIER1_FAST = ["naive_bayes", "decision_tree", "random_forest", "xgboost", "lightgbm"]
+
 TIER2_MODELS = ["mlp", "cnn1d", "lstm", "transformer"]
 TIER3_MODELS = ["voting", "stacking", "late_fusion"]
 
 
 async def _classify_all_models(
     X: np.ndarray, include_deep: bool = False,
+    fast_mode: bool = False,
     db=None, job_id: int | None = None,
 ) -> dict[str, list[dict]]:
     from app.services.ml_service import ml_service
 
-    models = list(TIER1_MODELS)
-    if include_deep:
-        ml_service.register_deep_models()
-        models += TIER2_MODELS + TIER3_MODELS
+    if fast_mode:
+        models = list(TIER1_FAST) + list(TIER2_MODELS)
+        if include_deep:
+            ml_service.register_deep_models()
+    else:
+        models = list(TIER1_MODELS)
+        if include_deep:
+            ml_service.register_deep_models()
+            models += TIER2_MODELS + TIER3_MODELS
 
     all_results: dict[str, list[dict]] = {}
     total = len(models)
@@ -115,6 +120,7 @@ async def run_classification_job(
     job: AnalysisJob,
     video_path: Path | None = None,
     action_log_path: Path | None = None,
+    fast_mode: bool = False,
 ) -> list[ClassificationResult]:
     await update_job_status(db, job.id, "processing", 5.0, "preparing video analysis")
 
@@ -136,7 +142,7 @@ async def run_classification_job(
         await update_job_status(db, job.id, "processing", 65.0, "loading classification models")
 
         all_model_results = await _classify_all_models(
-            X, include_deep=include_deep, db=db, job_id=job.id
+            X, include_deep=include_deep, fast_mode=fast_mode, db=db, job_id=job.id
         )
 
         await update_job_status(db, job.id, "processing", 96.0, "saving results to database")
