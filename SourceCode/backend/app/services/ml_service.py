@@ -160,16 +160,20 @@ class MLService:
         clf = self._registry.get(name)
         result = clf.predict(features)
 
+        n_classes = result.probabilities.shape[1] if result.probabilities.ndim > 1 else len(ACTIVITY_LABELS)
+        labels_for_model = [l for l in ACTIVITY_LABELS if l != "terraform_iac"][:n_classes] if n_classes < len(ACTIVITY_LABELS) else ACTIVITY_LABELS
+
         predictions = []
         for i in range(len(result.labels)):
             label_idx = int(result.labels[i])
             probas = result.probabilities[i]
+            label_idx = min(label_idx, len(labels_for_model) - 1)
             predictions.append({
-                "label": ACTIVITY_LABELS[label_idx],
-                "confidence": float(probas[label_idx]),
+                "label": labels_for_model[label_idx],
+                "confidence": float(probas[min(label_idx, len(probas) - 1)]),
                 "probabilities": {
-                    ACTIVITY_LABELS[j]: float(probas[j])
-                    for j in range(len(ACTIVITY_LABELS))
+                    labels_for_model[j]: float(probas[j])
+                    for j in range(min(len(labels_for_model), len(probas)))
                 },
                 "model_name": clf.name,
                 "latency_ms": result.latency_ms,
