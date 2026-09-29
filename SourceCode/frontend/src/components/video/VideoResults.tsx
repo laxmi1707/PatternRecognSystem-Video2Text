@@ -62,7 +62,7 @@ export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
         <WorkflowSteps steps={displaySteps} />
       </div>
 
-      <KnowledgePanel jobId={result.id} />
+      <KnowledgePanel jobId={result.jobId || result.id} />
     </div>
   );
 }

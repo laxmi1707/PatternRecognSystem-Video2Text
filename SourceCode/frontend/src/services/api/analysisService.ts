@@ -164,6 +164,7 @@ export function analyzeVideo(
 
       onComplete({
         id: String(upload.id),
+        jobId: String(upload.job_id),
         name: file.name,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         duration: lastStep ? lastStep.time.split('-')[1] : '0:00',

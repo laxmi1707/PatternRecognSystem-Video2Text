@@ -12,6 +12,10 @@ from app.services import video_service
 
 router = APIRouter(prefix="/api/v1/videos", tags=["videos"])
 
+MAX_FILE_SIZE = 500 * 1024 * 1024  # 500 MB
+ALLOWED_CONTENT_TYPES = {"video/mp4", "video/quicktime", "video/webm", "video/x-msvideo", "application/octet-stream"}
+ALLOWED_EXTENSIONS = {".mp4", ".mov", ".webm", ".avi", ".mkv"}
+
 
 @router.post("/upload", response_model=VideoUploadResponse, status_code=201)
 async def upload_video(
@@ -20,6 +24,10 @@ async def upload_video(
     model_name: str | None = Query(None, description="Classifier model to use"),
     db: AsyncSession = Depends(get_db),
 ):
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"Unsupported file type '{ext}'. Allowed: {', '.join(ALLOWED_EXTENSIONS)}")
+
     upload_dir = Path(settings.upload_dir)
     upload_dir.mkdir(parents=True, exist_ok=True)
 
@@ -27,6 +35,9 @@ async def upload_video(
     file_path = upload_dir / safe_name
 
     content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)} MB")
+
     async with aiofiles.open(file_path, "wb") as f:
         await f.write(content)
 

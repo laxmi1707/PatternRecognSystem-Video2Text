@@ -14,6 +14,7 @@ export interface ModelSummary {
 
 export interface AnalysisResult {
   id: string;
+  jobId?: string;
   name: string;
   date: string;
   duration: string;
