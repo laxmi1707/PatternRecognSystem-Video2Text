@@ -305,50 +305,52 @@ slide = add_content_slide(prs, "Phase 3a — SVM: Finding the Optimal Boundary",
                           "Support Vector Machine with RBF kernel")
 
 # 2D visualization area
-add_rounded_rect(slide, Inches(1.3), Inches(1.3), Inches(5.0), Inches(4.5),
-                 CARD_BG)
-add_textbox(slide, Inches(1.5), Inches(1.4), Inches(4.6), Inches(0.35),
+add_rounded_rect(slide, Inches(1.3), Inches(1.3), Inches(5.0), Inches(4.8),
+                 DARK_CARD)
+add_textbox(slide, Inches(1.5), Inches(1.35), Inches(4.6), Inches(0.35),
             "2D Visualization (simplified from 150D)", font_size=13,
             color=LIGHT_GRAY, alignment=PP_ALIGN.CENTER)
 
-# Class A (blue dots)
+# Class A — blue dots (left cluster)
 class_a_positions = [
-    (1.8, 2.2), (2.3, 2.7), (2.1, 3.2), (2.6, 2.5), (1.6, 2.9),
-    (2.4, 3.5), (1.9, 3.3), (2.8, 3.0), (2.2, 3.7), (2.7, 3.4),
+    (1.7, 2.2), (2.0, 2.8), (1.8, 3.4), (2.2, 2.5), (1.6, 3.0),
+    (2.1, 3.7), (1.9, 3.9), (2.4, 3.1), (2.3, 4.1), (1.7, 4.3),
 ]
 for cx, cy in class_a_positions:
-    add_rounded_rect(slide, Inches(cx), Inches(cy), Inches(0.18),
-                     Inches(0.18), ACCENT_BLUE)
+    add_rounded_rect(slide, Inches(cx), Inches(cy), Inches(0.2),
+                     Inches(0.2), ACCENT_BLUE)
 
-# Class B (orange dots)
+# Class B — orange dots (right cluster)
 class_b_positions = [
-    (3.8, 3.2), (4.3, 3.7), (4.1, 4.0), (4.5, 3.5), (3.6, 3.9),
-    (4.4, 4.2), (3.9, 4.3), (4.8, 3.9), (4.2, 4.5), (4.6, 4.2),
+    (4.0, 2.1), (4.3, 2.7), (4.1, 3.3), (4.5, 2.4), (3.9, 3.0),
+    (4.4, 3.6), (4.2, 3.9), (4.7, 3.2), (4.6, 4.1), (4.3, 4.4),
 ]
 for cx, cy in class_b_positions:
-    add_rounded_rect(slide, Inches(cx), Inches(cy), Inches(0.18),
-                     Inches(0.18), NUS_ORANGE)
+    add_rounded_rect(slide, Inches(cx), Inches(cy), Inches(0.2),
+                     Inches(0.2), NUS_ORANGE)
 
-# Decision boundary
-add_rect(slide, Inches(2.5), Inches(1.9), Inches(3.0), Inches(0.04),
+# Vertical decision boundary (between the two clusters)
+add_rect(slide, Inches(3.25), Inches(1.8), Inches(0.04), Inches(4.0),
          ACCENT_RED)
 
-# Margin lines
-add_rect(slide, Inches(2.2), Inches(2.4), Inches(3.0), Inches(0.02),
+# Vertical margin lines (dashed effect — parallel to boundary)
+add_rect(slide, Inches(2.75), Inches(1.8), Inches(0.02), Inches(4.0),
          LIGHT_GRAY)
-add_rect(slide, Inches(2.8), Inches(1.4), Inches(3.0), Inches(0.02),
+add_rect(slide, Inches(3.75), Inches(1.8), Inches(0.02), Inches(4.0),
          LIGHT_GRAY)
 
+# Margin annotation
+add_textbox(slide, Inches(2.6), Inches(5.0), Inches(1.4), Inches(0.3),
+            "← margin →", font_size=10, color=LIGHT_GRAY,
+            alignment=PP_ALIGN.CENTER)
+
 # Labels
-add_textbox(slide, Inches(1.5), Inches(4.3), Inches(1.5), Inches(0.3),
+add_textbox(slide, Inches(1.5), Inches(5.35), Inches(1.3), Inches(0.3),
             "■ git_ops", font_size=11, color=ACCENT_BLUE, bold=True)
-add_textbox(slide, Inches(3.0), Inches(4.3), Inches(1.5), Inches(0.3),
+add_textbox(slide, Inches(2.9), Inches(5.35), Inches(1.3), Inches(0.3),
             "■ coding", font_size=11, color=NUS_ORANGE, bold=True)
-add_textbox(slide, Inches(4.2), Inches(4.3), Inches(2), Inches(0.3),
-            "— Decision boundary", font_size=11, color=ACCENT_RED)
-add_textbox(slide, Inches(1.5), Inches(4.7), Inches(4.5), Inches(0.4),
-            "Margin = distance between boundary and nearest points",
-            font_size=11, color=LIGHT_GRAY)
+add_textbox(slide, Inches(4.3), Inches(5.35), Inches(1.8), Inches(0.3),
+            "— Boundary", font_size=11, color=ACCENT_RED)
 
 # Key concepts (right side)
 add_textbox(slide, Inches(6.8), Inches(1.3), Inches(6), Inches(0.4),
