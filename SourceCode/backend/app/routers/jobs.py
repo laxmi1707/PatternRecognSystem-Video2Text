@@ -63,16 +63,16 @@ async def get_job(job_id: int, db: AsyncSession = Depends(get_db)):
     )
 
 
-async def _run_pipeline_background(job_id: int, video_path: Path | None, action_log_path: Path | None, fast_mode: bool = False):
+async def _run_pipeline_background(job_id: int, video_path: Path | None, action_log_path: Path | None):
     async with async_session() as db:
         job = await job_service.get_job(db, job_id)
         if job is None:
             return
-        await run_classification_job(db, job, video_path=video_path, action_log_path=action_log_path, fast_mode=fast_mode)
+        await run_classification_job(db, job, video_path=video_path, action_log_path=action_log_path)
 
 
 @router.post("/{job_id}/run")
-async def run_job(job_id: int, background_tasks: BackgroundTasks, fast_mode: int = 0, db: AsyncSession = Depends(get_db)):
+async def run_job(job_id: int, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     job = await job_service.get_job(db, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -90,11 +90,9 @@ async def run_job(job_id: int, background_tasks: BackgroundTasks, fast_mode: int
         if candidate.exists():
             action_log_path = candidate
 
-    is_fast = bool(fast_mode)
-    mode_label = "fast analysis (9 models)" if is_fast else "full analysis (14 models)"
-    await job_service.update_job_status(db, job.id, status="processing", progress_pct=0.0, progress_stage=f"starting {mode_label}")
+    await job_service.update_job_status(db, job.id, status="processing", progress_pct=0.0, progress_stage="starting full analysis (14 models)")
 
-    background_tasks.add_task(_run_pipeline_background, job.id, video_path, action_log_path, is_fast)
+    background_tasks.add_task(_run_pipeline_background, job.id, video_path, action_log_path)
 
     return {"job_id": job.id, "status": "processing"}
 

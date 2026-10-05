@@ -19,18 +19,10 @@ logger = logging.getLogger(__name__)
 def _extract_features(
     video_path: Path | None, action_log_path: Path | None
 ) -> tuple[np.ndarray, list[dict], bool]:
-    """Returns (features, segments, used_yolo).
-
-    On macOS, YOLO + PyTorch cause an OpenMP segfault. We use synthetic
-    features so all 14 models (including PyTorch Tier 2/3) can run safely.
-    Real feature extraction will be enabled once the OpenMP conflict is resolved.
-    """
-    import platform
+    """Returns (features, segments, used_yolo)."""
     from app.pipeline.feature_assembler import TOTAL_FEATURES
 
-    use_real = video_path and video_path.exists() and platform.system() != "Darwin"
-
-    if use_real:
+    if video_path and video_path.exists():
         from app.pipeline.temporal_encoder import TemporalEncoder
         try:
             X, segments = _extract_real_features(video_path, action_log_path)
@@ -44,61 +36,41 @@ def _extract_features(
             return X, segments, True
         except Exception as e:
             logger.warning(f"Real feature extraction failed, falling back to synthetic: {e}")
-
-    if video_path and video_path.exists():
-        logger.info("macOS detected — using synthetic features to avoid YOLO/PyTorch OpenMP crash")
-        try:
-            from app.pipeline.video_processor import VideoProcessor
-            vp = VideoProcessor()
-            meta = vp.get_metadata(video_path)
-            duration = meta.get("duration_seconds", 50.0)
-            n_segments = max(3, int(duration / 5.0))
-        except Exception:
-            n_segments = 10
+            X_full, _ = generate_synthetic_dataset(n_samples=100, n_features=TOTAL_FEATURES)
             duration = 50.0
-        n_synth = max(100, n_segments)
-        X_full, _ = generate_synthetic_dataset(n_samples=n_synth, n_features=TOTAL_FEATURES)
-        X = X_full[:n_segments]
-        segments = [
-            {"start_time": i * (duration / n_segments), "end_time": (i + 1) * (duration / n_segments)}
-            for i in range(n_segments)
-        ]
-        return X, segments, False
+            n_segments = 10
+            segments = [
+                {"start_time": i * (duration / n_segments), "end_time": (i + 1) * (duration / n_segments)}
+                for i in range(n_segments)
+            ]
+            return X_full[:n_segments], segments, False
 
-    logger.info("No video file available, using synthetic features")
+    logger.info("No video file provided, using synthetic features")
     X_full, _ = generate_synthetic_dataset(n_samples=100, n_features=TOTAL_FEATURES)
-    X = X_full[:10]
     segments = [{"start_time": i * 5.0, "end_time": (i + 1) * 5.0} for i in range(10)]
-    return X, segments, False
+    return X_full[:10], segments, False
 
 
-TIER1_MODELS = [
-    "svm", "naive_bayes", "decision_tree", "random_forest",
-    "knn", "xgboost", "lightgbm",
+ALL_MODELS = [
+    # Tier 1
+    "svm", "naive_bayes", "decision_tree", "random_forest", "knn", "xgboost", "lightgbm",
+    # Tier 2
+    "mlp", "cnn1d", "lstm", "transformer",
+    # Tier 3
+    "voting", "stacking", "late_fusion",
 ]
 
-TIER1_FAST = ["naive_bayes", "decision_tree", "random_forest", "xgboost", "lightgbm"]
-
-TIER2_MODELS = ["mlp", "cnn1d", "lstm", "transformer"]
-TIER3_MODELS = ["voting", "stacking", "late_fusion"]
+WORKFLOW_MODELS = ["workflow_lstm", "workflow_transformer"]
 
 
 async def _classify_all_models(
-    X: np.ndarray, include_deep: bool = False,
-    fast_mode: bool = False,
+    X: np.ndarray,
     db=None, job_id: int | None = None,
 ) -> dict[str, list[dict]]:
     from app.services.ml_service import ml_service
 
-    if fast_mode:
-        models = list(TIER1_FAST)
-    else:
-        models = list(TIER1_MODELS)
-        if include_deep:
-            ml_service.register_deep_models()
-            models += TIER2_MODELS + TIER3_MODELS
-
     all_results: dict[str, list[dict]] = {}
+    models = list(ALL_MODELS)
     total = len(models)
     for idx, model_name in enumerate(models):
         if db and job_id:
@@ -118,12 +90,10 @@ async def run_classification_job(
     job: AnalysisJob,
     video_path: Path | None = None,
     action_log_path: Path | None = None,
-    fast_mode: bool = False,
 ) -> list[ClassificationResult]:
     await update_job_status(db, job.id, "processing", 5.0, "preparing video analysis")
 
     try:
-        import platform
         await update_job_status(db, job.id, "processing", 10.0, "extracting video segments and keyframes")
 
         X, segments, used_yolo = _extract_features(video_path, action_log_path)
@@ -135,12 +105,10 @@ async def run_classification_job(
             f"extracted {n_segments} segments with {n_features}-dim features"
         )
 
-        include_deep = (platform.system() != "Darwin") or (not used_yolo)
-
         await update_job_status(db, job.id, "processing", 65.0, "loading classification models")
 
         all_model_results = await _classify_all_models(
-            X, include_deep=include_deep, fast_mode=fast_mode, db=db, job_id=job.id
+            X, db=db, job_id=job.id
         )
 
         await update_job_status(db, job.id, "processing", 96.0, "saving results to database")

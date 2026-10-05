@@ -35,41 +35,44 @@ class MLService:
         self._trained_models: set[str] = set()
         self._synth_data: tuple[np.ndarray, np.ndarray] | None = None
         self._real_data: tuple[np.ndarray, np.ndarray] | None = None
-        self._deep_registered = False
         self._register_all()
         self._try_load_models()
 
     def _register_all(self) -> None:
-        tier1 = [
-            SVMClassifier(),
-            NaiveBayesClassifier(),
-            DecisionTreeClassifier(),
-            RandomForestClassifier(),
-            KNNClassifier(),
-            XGBoostClassifier(),
-            LightGBMClassifier(),
-        ]
-        for clf in tier1:
-            self._registry.register(clf)
-
-    def register_deep_models(self) -> None:
-        if self._deep_registered:
-            return
         from app.ml.classifiers.tier2 import MLPClassifier, CNN1DClassifier, LSTMClassifier, TransformerClassifier
+        from app.ml.classifiers.tier2.workflow_lstm import WorkflowLSTMClassifier
+        from app.ml.classifiers.tier2.workflow_transformer import WorkflowTransformerClassifier
         from app.ml.classifiers.tier3 import VotingClassifier, StackingClassifier, LateFusionClassifier
-        for clf in [MLPClassifier(), CNN1DClassifier(), LSTMClassifier(), TransformerClassifier()]:
+
+        mlp = MLPClassifier()
+        rf = RandomForestClassifier()
+        svm = SVMClassifier()
+
+        for clf in [
+            # ── Level 2: Activity Recognition ─────────────────────────────────────
+            # Classifies WHAT task is happening (coding, git, docker, aws, etc.)
+            # from multimodal features: video frames + OCR + YOLO UI detection +
+            # Level 1 interaction evidence (click/keyboard/drag from action log).
+            #
+            # Tier 1 — Classical ML baselines (RQ1: classical vs deep learning)
+            svm, NaiveBayesClassifier(), DecisionTreeClassifier(), rf,
+            KNNClassifier(), XGBoostClassifier(), LightGBMClassifier(),
+            # Tier 2 — Deep learning (RQ1: classical vs deep learning)
+            mlp, CNN1DClassifier(), LSTMClassifier(), TransformerClassifier(),
+            # Tier 3 — Ensemble / multimodal fusion (RQ2: fusion vs individual modalities)
+            VotingClassifier(estimators=[SVMClassifier(), RandomForestClassifier(), MLPClassifier()], voting="soft"),
+            StackingClassifier(base_estimators=[SVMClassifier(), RandomForestClassifier(), MLPClassifier()]),
+            LateFusionClassifier(branches=[SVMClassifier(), RandomForestClassifier()]),
+            #
+            # ── Level 3: Workflow Recognition ─────────────────────────────────────
+            # Recognises SEQUENCES of Level 2 activity predictions to identify
+            # higher-order workflows (e.g. "clone → edit → commit → push" = git workflow).
+            # Input: temporal sequence of Level 2 predictions, not raw video features.
+            # (RQ3: temporal sequence models for workflow pattern recognition)
+            WorkflowLSTMClassifier(),
+            WorkflowTransformerClassifier(),
+        ]:
             self._registry.register(clf)
-        self._registry.register(VotingClassifier(
-            estimators=[SVMClassifier(), RandomForestClassifier(), MLPClassifier()],
-            voting="soft",
-        ))
-        self._registry.register(StackingClassifier(
-            base_estimators=[SVMClassifier(), RandomForestClassifier(), MLPClassifier()],
-        ))
-        self._registry.register(LateFusionClassifier(
-            branches=[SVMClassifier(), RandomForestClassifier()],
-        ))
-        self._deep_registered = True
 
     def _get_synth_data(
         self, n_samples: int = 500, n_features: int | None = None
