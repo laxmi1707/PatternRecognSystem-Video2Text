@@ -23,6 +23,13 @@ export interface ClassificationResultDTO {
   latency_ms: number;
 }
 
+export interface ModelSummaryDTO {
+  model_name: string;
+  tier: string;
+  avg_confidence: number;
+  latency_ms: number;
+}
+
 export interface JobResponse {
   id: number;
   video_id: number;
@@ -37,4 +44,6 @@ export interface JobResultsResponse {
   job_id: number;
   status: string;
   results: ClassificationResultDTO[];
+  model_comparison: ModelSummaryDTO[];
+  best_model: string | null;
 }

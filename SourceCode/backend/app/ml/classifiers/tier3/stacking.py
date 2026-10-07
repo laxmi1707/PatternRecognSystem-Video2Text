@@ -26,8 +26,16 @@ class StackingClassifier(BaseClassifier):
         return "tier3"
 
     def _build_meta_features(self, X: np.ndarray) -> np.ndarray:
-        probas = [est.predict(X).probabilities for est in self._base_estimators]
-        return np.hstack(probas)
+        predictions = [est.predict(X) for est in self._base_estimators]
+        max_classes = max(p.probabilities.shape[1] for p in predictions)
+        padded = []
+        for p in predictions:
+            proba = p.probabilities
+            if proba.shape[1] < max_classes:
+                pad = np.zeros((proba.shape[0], max_classes - proba.shape[1]))
+                proba = np.concatenate([proba, pad], axis=1)
+            padded.append(proba)
+        return np.hstack(padded)
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         for est in self._base_estimators:

@@ -16,38 +16,73 @@ from app.services.job_service import update_job_status
 logger = logging.getLogger(__name__)
 
 
-def _run_ml_pipeline(
-    video_path: Path | None, action_log_path: Path | None, model_name: str
-) -> tuple[list[dict], list[dict]]:
+def _extract_features(
+    video_path: Path | None, action_log_path: Path | None
+) -> tuple[np.ndarray, list[dict], bool]:
+    """Returns (features, segments, used_yolo)."""
     from app.pipeline.feature_assembler import TOTAL_FEATURES
-    from app.pipeline.temporal_encoder import TemporalEncoder
 
     if video_path and video_path.exists():
+        from app.pipeline.temporal_encoder import TemporalEncoder
         try:
             X, segments = _extract_real_features(video_path, action_log_path)
-
             if X.shape[0] > 1:
                 encoder = TemporalEncoder(window_size=1)
                 X = encoder.encode_sequence(X)
-
             logger.info(
                 f"Real pipeline: {video_path.name} → {X.shape[0]} segments, "
                 f"{X.shape[1]} features"
             )
+            return X, segments, True
         except Exception as e:
             logger.warning(f"Real feature extraction failed, falling back to synthetic: {e}")
-            X, _ = generate_synthetic_dataset(n_samples=10, n_features=TOTAL_FEATURES)
-            segments = [{"start_time": i * 5.0, "end_time": (i + 1) * 5.0} for i in range(10)]
-    else:
-        logger.info("No video file available, using synthetic features")
-        X, _ = generate_synthetic_dataset(n_samples=10, n_features=TOTAL_FEATURES)
-        segments = [{"start_time": i * 5.0, "end_time": (i + 1) * 5.0} for i in range(10)]
+            X_full, _ = generate_synthetic_dataset(n_samples=100, n_features=TOTAL_FEATURES)
+            duration = 50.0
+            n_segments = 10
+            segments = [
+                {"start_time": i * (duration / n_segments), "end_time": (i + 1) * (duration / n_segments)}
+                for i in range(n_segments)
+            ]
+            return X_full[:n_segments], segments, False
 
-    # Lazy import: ml_service must load AFTER pipeline runs to avoid
-    # torch/YOLO OpenMP segfault on macOS
+    logger.info("No video file provided, using synthetic features")
+    X_full, _ = generate_synthetic_dataset(n_samples=100, n_features=TOTAL_FEATURES)
+    segments = [{"start_time": i * 5.0, "end_time": (i + 1) * 5.0} for i in range(10)]
+    return X_full[:10], segments, False
+
+
+ALL_MODELS = [
+    # Tier 1
+    "svm", "naive_bayes", "decision_tree", "random_forest", "knn", "xgboost", "lightgbm",
+    # Tier 2
+    "mlp", "cnn1d", "lstm", "transformer",
+    # Tier 3
+    "voting", "stacking", "late_fusion",
+]
+
+WORKFLOW_MODELS = ["workflow_lstm", "workflow_transformer"]
+
+
+async def _classify_all_models(
+    X: np.ndarray,
+    db=None, job_id: int | None = None,
+) -> dict[str, list[dict]]:
     from app.services.ml_service import ml_service
-    classify_result = ml_service.classify(X, model_name=model_name)
-    return classify_result["results"], segments
+
+    all_results: dict[str, list[dict]] = {}
+    models = list(ALL_MODELS)
+    total = len(models)
+    for idx, model_name in enumerate(models):
+        if db and job_id:
+            pct = 70 + int((idx / total) * 25)
+            await update_job_status(db, job_id, "processing", pct, f"classifying with {model_name} ({idx+1}/{total})")
+        try:
+            result = ml_service.classify(X, model_name=model_name)
+            all_results[model_name] = result["results"]
+        except Exception as e:
+            logger.warning(f"Model {model_name} failed: {e}")
+
+    return all_results
 
 
 async def run_classification_job(
@@ -56,36 +91,52 @@ async def run_classification_job(
     video_path: Path | None = None,
     action_log_path: Path | None = None,
 ) -> list[ClassificationResult]:
-    await update_job_status(db, job.id, status="processing", progress_pct=0.0)
+    await update_job_status(db, job.id, "processing", 5.0, "preparing video analysis")
 
     try:
-        model_name = job.model_name or "svm"
-        # Run synchronously — YOLO/OpenCV segfault on macOS in background threads
-        predictions, segments = _run_ml_pipeline(video_path, action_log_path, model_name)
+        await update_job_status(db, job.id, "processing", 10.0, "extracting video segments and keyframes")
+
+        X, segments, used_yolo = _extract_features(video_path, action_log_path)
+        n_segments = X.shape[0]
+        n_features = X.shape[1]
+
+        await update_job_status(
+            db, job.id, "processing", 60.0,
+            f"extracted {n_segments} segments with {n_features}-dim features"
+        )
+
+        await update_job_status(db, job.id, "processing", 65.0, "loading classification models")
+
+        all_model_results = await _classify_all_models(
+            X, db=db, job_id=job.id
+        )
+
+        await update_job_status(db, job.id, "processing", 96.0, "saving results to database")
 
         results: list[ClassificationResult] = []
-        for i, pred in enumerate(predictions):
-            seg = segments[i] if i < len(segments) else {"start_time": i * 5.0, "end_time": (i + 1) * 5.0}
-            cr = ClassificationResult(
-                job_id=job.id,
-                segment_index=i,
-                start_time=seg["start_time"],
-                end_time=seg["end_time"],
-                predicted_label=pred["label"],
-                confidence=pred["confidence"],
-                probabilities=pred["probabilities"],
-                model_name=pred["model_name"],
-                latency_ms=pred["latency_ms"],
-            )
-            results.append(cr)
+        for model_name, predictions in all_model_results.items():
+            for i, pred in enumerate(predictions):
+                seg = segments[i] if i < len(segments) else {"start_time": i * 5.0, "end_time": (i + 1) * 5.0}
+                cr = ClassificationResult(
+                    job_id=job.id,
+                    segment_index=i,
+                    start_time=seg["start_time"],
+                    end_time=seg["end_time"],
+                    predicted_label=pred["label"],
+                    confidence=pred["confidence"],
+                    probabilities=pred["probabilities"],
+                    model_name=model_name,
+                    latency_ms=pred["latency_ms"],
+                )
+                results.append(cr)
 
         db.add_all(results)
-        await update_job_status(db, job.id, status="completed", progress_pct=100.0)
+        await update_job_status(db, job.id, "completed", 100.0, "analysis complete")
 
         return results
 
     except Exception as e:
-        await update_job_status(db, job.id, status="failed", error_message=str(e))
+        await update_job_status(db, job.id, "failed", error_message=str(e))
         raise
 
 

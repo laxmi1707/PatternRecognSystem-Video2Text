@@ -7,15 +7,15 @@ import { useVideoAnalysis } from './hooks/useVideoAnalysis';
 
 export default function App() {
   const {
-    screen, fileName, videoUrl, progress, current, history,
+    screen, fileName, videoUrl, progress, stage, current, history,
     startAnalysis, goUpload, goHistory, viewHistory,
   } = useVideoAnalysis(3);
 
   return (
     <div className="app-shell">
       <NavBar screen={screen} onUpload={goUpload} onHistory={goHistory} />
-      {screen === 'upload' && <UploadPage onFileSelected={(file, model) => startAnalysis(file, model)} />}
-      {screen === 'analyzing' && <AnalyzingPage fileName={fileName} videoUrl={videoUrl} progress={progress} />}
+      {screen === 'upload' && <UploadPage onFileSelected={(file) => startAnalysis(file)} />}
+      {screen === 'analyzing' && <AnalyzingPage fileName={fileName} videoUrl={videoUrl} progress={progress} stage={stage} />}
       {screen === 'results' && current && <ResultsPage result={current} onAnalyzeAnother={goUpload} />}
       {screen === 'history' && <HistoryPage history={history} onView={viewHistory} />}
     </div>

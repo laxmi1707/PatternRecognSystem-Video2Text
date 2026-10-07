@@ -5,8 +5,16 @@ export interface WorkflowStep {
   description: string;
 }
 
+export interface ModelSummary {
+  model_name: string;
+  tier: string;
+  avg_confidence: number;
+  latency_ms: number;
+}
+
 export interface AnalysisResult {
   id: string;
+  jobId?: string;
   name: string;
   date: string;
   duration: string;
@@ -15,6 +23,9 @@ export interface AnalysisResult {
   videoUrl: string | null;
   summary: string;
   steps: WorkflowStep[];
+  modelComparison: ModelSummary[];
+  bestModel: string | null;
+  allResults: Record<string, WorkflowStep[]>;
 }
 
 export type Screen = 'upload' | 'analyzing' | 'results' | 'history';

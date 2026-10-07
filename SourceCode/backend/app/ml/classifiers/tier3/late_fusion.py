@@ -49,11 +49,18 @@ class LateFusionClassifier(BaseClassifier):
         return splits
 
     def _branch_predict(self, X: np.ndarray) -> np.ndarray:
-        probas = []
+        predictions = []
         for branch, (start, end) in zip(self._branches, self._split_indices):
-            result = branch.predict(X[:, start:end])
-            probas.append(result.probabilities)
-        return np.hstack(probas)
+            predictions.append(branch.predict(X[:, start:end]))
+        max_classes = max(p.probabilities.shape[1] for p in predictions)
+        padded = []
+        for p in predictions:
+            proba = p.probabilities
+            if proba.shape[1] < max_classes:
+                pad = np.zeros((proba.shape[0], max_classes - proba.shape[1]))
+                proba = np.concatenate([proba, pad], axis=1)
+            padded.append(proba)
+        return np.hstack(padded)
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         self._split_indices = self._compute_splits(X.shape[1])

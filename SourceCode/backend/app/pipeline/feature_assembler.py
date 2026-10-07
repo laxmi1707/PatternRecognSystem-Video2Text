@@ -138,22 +138,12 @@ class FeatureAssembler:
     def _collect_ocr_corpus(self, tasks: list[TaskMetadata]) -> list[str]:
         corpus: list[str] = []
         for task in tasks:
-            if task.video_path and task.video_path.exists():
-                action_dicts = [
-                    {
-                        "action_type": a.action_type,
-                        "timestamp": a.timestamp,
-                        "action_params": a.params,
-                    }
-                    for a in task.actions
-                ]
-                segments = self._vp.extract_segments(task.video_path, action_dicts)
-                for seg in segments:
-                    for kf in seg.keyframes:
-                        result = self._ocr.extract_with_fallback(kf.image)
-                        if result.full_text:
-                            corpus.append(result.full_text)
             corpus.append(task.instruction)
+            for a in task.actions:
+                if a.params:
+                    text = a.params.get("text", "") or a.params.get("value", "")
+                    if text:
+                        corpus.append(text)
         return corpus
 
     def build_dataset(
@@ -166,12 +156,22 @@ class FeatureAssembler:
                 self._ocr.fit_tfidf(corpus)
             self._ocr_fitted = True
 
+        import time as _time
+
         all_X: list[np.ndarray] = []
         all_y: list[int] = []
         task_ids: list[int] = []
+        total = len(tasks)
+        t_start = _time.time()
 
-        for task in tasks:
-            logger.info(f"Extracting features for task {task.task_id} ({task.platform})...")
+        for idx, task in enumerate(tasks, 1):
+            elapsed = _time.time() - t_start
+            eta = (elapsed / idx) * (total - idx) if idx > 1 else 0
+            pct = idx / total * 100
+            logger.info(
+                f"[{idx}/{total}] ({pct:.0f}%) Task {task.task_id} ({task.platform}) "
+                f"| elapsed={elapsed:.0f}s | ETA={eta:.0f}s"
+            )
             X_task, label_idx = self.extract_task_features(task)
             all_X.append(X_task)
             all_y.extend([label_idx] * X_task.shape[0])
@@ -190,10 +190,16 @@ class FeatureAssembler:
         return X, y, metadata
 
 
-def get_default_assembler(use_gpu: bool = False) -> FeatureAssembler:
+def get_default_assembler(use_gpu: bool | None = None) -> FeatureAssembler:
+    if use_gpu is None:
+        try:
+            import torch
+            use_gpu = torch.cuda.is_available()
+        except ImportError:
+            use_gpu = False
     return FeatureAssembler(
         ocr=OCRExtractor(use_gpu=use_gpu),
-        ui=UIDetector(),
+        ui=UIDetector(use_gpu=use_gpu),
         visual=VisualFeatureExtractor(),
         interaction=InteractionFeatureExtractor(),
         video_processor=VideoProcessor(),

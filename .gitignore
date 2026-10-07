@@ -1,5 +1,17 @@
 .DS_Store
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
 # Database files
 *.db
 
@@ -11,3 +23,26 @@ SourceCode/backend/uploads/
 
 # Datasets
 dataset/
+
+# Terraform state and secrets
+*.tfstate
+*.tfstate.backup
+terraform.tfvars
+.terraform/
+
+# Environment files
+.env
+*.env.local
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+SourceCode/backend/models/models/*.pkl
