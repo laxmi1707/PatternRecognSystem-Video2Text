@@ -95,7 +95,6 @@ export function analyzeVideo(
   _durationSeconds: number,
   onProgress: (pct: number, stage: string) => void,
   onComplete: (result: AnalysisResult) => void,
-  fastMode: boolean = true,
 ): AnalyzeHandle {
   const controller = new AbortController();
   const videoUrl = URL.createObjectURL(file);
@@ -107,8 +106,8 @@ export function analyzeVideo(
       const upload = await apiPostFile<VideoUploadResponse>('/videos/upload', file);
       if (controller.signal.aborted) return;
 
-      onProgress(5, fastMode ? 'starting fast analysis (9 models)' : 'starting full analysis (14 models)');
-      await apiPost<{ job_id: number; status: string }>(`/jobs/${upload.job_id}/run`, { fast_mode: fastMode ? 1 : 0 });
+      onProgress(5, 'starting analysis');
+      await apiPost<{ job_id: number; status: string }>(`/jobs/${upload.job_id}/run`, {});
       if (controller.signal.aborted) return;
 
       await new Promise<void>((resolve, reject) => {
