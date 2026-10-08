@@ -45,4 +45,4 @@ mlartifacts/
 .idea/
 .vscode/
 *.swp
-SourceCode/backend/models/models/*.pkl
+SourceCode/backend/models/*.pkl
