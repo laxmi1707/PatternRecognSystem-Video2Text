@@ -60,11 +60,13 @@ class VotingClassifier(BaseClassifier):
 
     def save(self, path: str) -> None:
         with open(path, "wb") as f:
-            pickle.dump({"voting": self._voting, "estimator_names": [e.name for e in self._estimators]}, f)
+            pickle.dump({"voting": self._voting, "estimators": self._estimators}, f)
 
     def load(self, path: str) -> None:
         with open(path, "rb") as f:
-            pickle.load(f)
+            data = pickle.load(f)
+        self._voting = data["voting"]
+        self._estimators = data["estimators"]
 
     def get_params(self) -> dict:
         return {

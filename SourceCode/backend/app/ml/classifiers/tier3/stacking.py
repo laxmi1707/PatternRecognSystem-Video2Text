@@ -60,11 +60,13 @@ class StackingClassifier(BaseClassifier):
 
     def save(self, path: str) -> None:
         with open(path, "wb") as f:
-            pickle.dump(self._meta_learner, f)
+            pickle.dump({"meta_learner": self._meta_learner, "base_estimators": self._base_estimators}, f)
 
     def load(self, path: str) -> None:
         with open(path, "rb") as f:
-            self._meta_learner = pickle.load(f)
+            data = pickle.load(f)
+        self._meta_learner = data["meta_learner"]
+        self._base_estimators = data["base_estimators"]
 
     def get_params(self) -> dict:
         return {

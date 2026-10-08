@@ -90,6 +90,7 @@ class LateFusionClassifier(BaseClassifier):
             pickle.dump({
                 "meta_learner": self._meta_learner,
                 "split_indices": self._split_indices,
+                "branches": self._branches,
             }, f)
 
     def load(self, path: str) -> None:
@@ -97,6 +98,7 @@ class LateFusionClassifier(BaseClassifier):
             data = pickle.load(f)
         self._meta_learner = data["meta_learner"]
         self._split_indices = data["split_indices"]
+        self._branches = data["branches"]
 
     def get_params(self) -> dict:
         return {
