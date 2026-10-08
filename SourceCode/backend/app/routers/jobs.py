@@ -41,7 +41,10 @@ def _build_model_comparison(results) -> tuple[list[ModelSummary], str | None]:
             latency_ms=round(latency_by_model.get(name, 0), 2),
         ))
 
-    comparison.sort(key=lambda m: (-m.avg_confidence, m.latency_ms))
+    # Prefer higher tiers (ensembles > deep > classical) then by confidence within tier.
+    # Sorting by raw confidence alone causes miscalibrated models (e.g. Naive Bayes) to win.
+    _TIER_RANK = {"tier3": 0, "tier2": 1, "tier1": 2, "unknown": 3}
+    comparison.sort(key=lambda m: (_TIER_RANK.get(m.tier, 3), -m.avg_confidence, m.latency_ms))
     best = comparison[0].model_name if comparison else None
     return comparison, best
 

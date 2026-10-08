@@ -31,22 +31,25 @@ class TaskMetadata:
 
 
 _LABEL_KEYWORDS: list[tuple[list[str], str]] = [
-    (["git", "clone", "commit", "push", "pull", "branch", "merge", "checkout"], "git_operations"),
-    (["docker", "container", "image", "compose", "dockerfile"], "docker_workflow"),
-    (["kubernetes", "kubectl", "helm", "k8s", "pod", "deployment"], "kubernetes_ops"),
-    (["terraform", "tf plan", "tf apply", "infrastructure as code"], "terraform_iac"),
-    (["aws", "s3 ", "ec2", "lambda", "console", "cloudwatch"], "aws_console"),
-    (["jenkins", "pipeline", "ci/cd", "ci cd", "build pipeline"], "jenkins_ci_cd"),
+    (["debug", "breakpoint", "inspect", "step into", "step over", "watch"], "debugging"),
+    (["doc", "readme", "wiki", "comment", "annotation", "markdown", "note"], "documentation"),
+    # coding_editing before kubernetes_ops: "deployment" in k8s also appears in IDE/project contexts
     (
         [
-            "code", "edit", "write", "extension", "install", "project",
-            "new file", "open file", "save", "font", "theme", "shortcut",
+            "vscode", "vs code", "visual studio code", "code editor",
+            "code", "edit", "write", "extension", "install plugin",
+            "new file", "open file", "save file", "font", "theme", "shortcut",
             "ide", "plugin", "customize", "setting", "preference",
         ],
         "coding_editing",
     ),
-    (["debug", "breakpoint", "inspect", "step into", "step over", "watch"], "debugging"),
-    (["doc", "readme", "wiki", "comment", "annotation", "markdown", "note"], "documentation"),
+    (["git", "clone", "commit", "push", "pull", "branch", "merge", "checkout"], "git_operations"),
+    (["docker", "container", "image", "compose", "dockerfile"], "docker_workflow"),
+    # kubernetes keywords are specific enough not to collide with IDE tasks
+    (["kubectl", "helm", "k8s", "kubernetes", "pod", "daemonset"], "kubernetes_ops"),
+    (["terraform", "tf plan", "tf apply", "infrastructure as code"], "terraform_iac"),
+    (["aws", "s3 ", "ec2", "lambda", "cloudwatch"], "aws_console"),
+    (["jenkins", "pipeline", "ci/cd", "ci cd", "build pipeline"], "jenkins_ci_cd"),
 ]
 
 
