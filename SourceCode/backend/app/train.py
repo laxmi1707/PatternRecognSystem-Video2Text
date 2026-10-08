@@ -110,6 +110,10 @@ def main() -> None:
         logger.error("No training samples extracted")
         sys.exit(1)
 
+    # Cache features so retrain_tier3.py can skip extraction next time
+    np.save(str(Path(args.model_dir) / "X_train.npy"), X_train)
+    np.save(str(Path(args.model_dir) / "y_train_raw.npy"), y_train)
+
     # Remap labels to contiguous 0..N-1 (XGBoost/LightGBM require this)
     all_labels = np.unique(np.concatenate([y_train, y_test]))
     label_map = {old: new for new, old in enumerate(all_labels)}
