@@ -1,6 +1,7 @@
 import pickle
 
 import numpy as np
+from sklearn.utils.class_weight import compute_sample_weight
 from xgboost import XGBClassifier
 
 from app.ml.base import BaseClassifier, PredictionResult
@@ -30,7 +31,7 @@ class XGBoostClassifier(BaseClassifier):
         return "tier1"
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
-        self._model.fit(X, y)
+        self._model.fit(X, y, sample_weight=compute_sample_weight("balanced", y))
 
     def predict(self, X: np.ndarray) -> PredictionResult:
         def _predict(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

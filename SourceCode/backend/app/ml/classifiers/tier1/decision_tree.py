@@ -12,6 +12,7 @@ class DecisionTreeClassifier(BaseClassifier):
         self._max_depth = max_depth
         self._model = SklearnDT(
             max_depth=max_depth,
+            class_weight="balanced",
             random_state=42,
         )
 

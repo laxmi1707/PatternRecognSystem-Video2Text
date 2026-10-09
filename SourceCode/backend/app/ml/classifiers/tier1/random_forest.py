@@ -14,6 +14,7 @@ class RandomForestClassifier(BaseClassifier):
         self._model = SklearnRF(
             n_estimators=n_estimators,
             max_depth=max_depth,
+            class_weight="balanced",
             random_state=42,
             n_jobs=-1,
         )

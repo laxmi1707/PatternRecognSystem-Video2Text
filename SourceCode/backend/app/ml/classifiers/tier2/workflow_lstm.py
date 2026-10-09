@@ -101,8 +101,14 @@ class WorkflowLSTMClassifier(BaseClassifier):
             TensorDataset(X_t, y_t), batch_size=self._batch_size, shuffle=True,
         )
 
+        classes, counts = torch.unique(y_t, return_counts=True)
+        n_classes = int(y_t.max().item()) + 1
+        weights = torch.ones(n_classes, device=self._device)
+        for c, cnt in zip(classes.tolist(), counts.tolist()):
+            weights[c] = len(y_t) / (n_classes * cnt)
+
         optimizer = torch.optim.Adam(self._model.parameters(), lr=self._lr)
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.CrossEntropyLoss(weight=weights)
 
         self._model.train()
         for _ in range(self._epochs):

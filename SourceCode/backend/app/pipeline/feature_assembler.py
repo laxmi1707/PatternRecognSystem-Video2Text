@@ -15,7 +15,8 @@ from app.pipeline.visual_features import VISUAL_FEATURE_DIM, VisualFeatureExtrac
 
 logger = logging.getLogger(__name__)
 
-TOTAL_FEATURES = OCR_FEATURE_DIM + UI_FEATURE_DIM + VISUAL_FEATURE_DIM + INTERACTION_FEATURE_DIM
+_BASE_FEATURES = OCR_FEATURE_DIM + UI_FEATURE_DIM + VISUAL_FEATURE_DIM + INTERACTION_FEATURE_DIM
+TOTAL_FEATURES = _BASE_FEATURES + 1  # +1 for has_action_log flag
 
 MODALITY_MAP: dict[str, tuple[int, int]] = {
     "ocr_text": (0, OCR_FEATURE_DIM),
@@ -26,8 +27,11 @@ MODALITY_MAP: dict[str, tuple[int, int]] = {
     ),
     "interaction": (
         OCR_FEATURE_DIM + UI_FEATURE_DIM + VISUAL_FEATURE_DIM,
-        TOTAL_FEATURES,
+        _BASE_FEATURES,
     ),
+    # Index _BASE_FEATURES: 1.0 if action log present, 0.0 if absent.
+    # Lets models learn to discount zero interaction features at inference time.
+    "has_action_log": (_BASE_FEATURES, TOTAL_FEATURES),
 }
 
 _LABEL_TO_IDX = {label: i for i, label in enumerate(ACTIVITY_LABELS)}
@@ -86,6 +90,9 @@ class FeatureAssembler:
             action_records, segment.start_time, segment.end_time
         )
         features[start:end] = interaction_features
+
+        # has_action_log flag: 1.0 if action records exist, 0.0 if absent
+        features[MODALITY_MAP["has_action_log"][0]] = 1.0 if action_records else 0.0
 
         return features
 

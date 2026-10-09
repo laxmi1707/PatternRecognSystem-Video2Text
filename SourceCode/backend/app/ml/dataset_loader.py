@@ -30,35 +30,95 @@ class TaskMetadata:
     workflow: str
 
 
+# Platform → label mapping (checked first; most reliable signal)
+_PLATFORM_LABELS: dict[str, str] = {
+    "vscode": "coding_editing",
+    "vs code": "coding_editing",
+    "visual studio code": "coding_editing",
+    "eclipse": "coding_editing",
+    "intellij": "coding_editing",
+    "pycharm": "coding_editing",
+    "sublime": "coding_editing",
+    "neovim": "coding_editing",
+    "vim": "coding_editing",
+    "nano": "coding_editing",
+    "emacs": "coding_editing",
+    "xcode": "coding_editing",
+    "android studio": "coding_editing",
+    "chrome": "web_browsing",
+    "firefox": "web_browsing",
+    "safari": "web_browsing",
+    "browser": "web_browsing",
+    "terminal": "terminal_ops",
+    "bash": "terminal_ops",
+    "zsh": "terminal_ops",
+    "powershell": "terminal_ops",
+    "cmd": "terminal_ops",
+    "iterm": "terminal_ops",
+    "parallels": "terminal_ops",
+}
+
+# Instruction keyword rules — ordered most-specific first
 _LABEL_KEYWORDS: list[tuple[list[str], str]] = [
-    (["debug", "breakpoint", "inspect", "step into", "step over", "watch"], "debugging"),
-    (["doc", "readme", "wiki", "comment", "annotation", "markdown", "note"], "documentation"),
-    # coding_editing before kubernetes_ops: "deployment" in k8s also appears in IDE/project contexts
-    (
-        [
-            "vscode", "vs code", "visual studio code", "code editor",
-            "code", "edit", "write", "extension", "install plugin",
-            "new file", "open file", "save file", "font", "theme", "shortcut",
-            "ide", "plugin", "customize", "setting", "preference",
-        ],
-        "coding_editing",
-    ),
-    (["git", "clone", "commit", "push", "pull", "branch", "merge", "checkout"], "git_operations"),
-    (["docker", "container", "image", "compose", "dockerfile"], "docker_workflow"),
-    # kubernetes keywords are specific enough not to collide with IDE tasks
-    (["kubectl", "helm", "k8s", "kubernetes", "pod", "daemonset"], "kubernetes_ops"),
-    (["terraform", "tf plan", "tf apply", "infrastructure as code"], "terraform_iac"),
-    (["aws", "s3 ", "ec2", "lambda", "cloudwatch"], "aws_console"),
-    (["jenkins", "pipeline", "ci/cd", "ci cd", "build pipeline"], "jenkins_ci_cd"),
+    # DevOps / infra (highly specific terms, check before generic coding)
+    (["kubectl", "helm", "k8s", "kubernetes", "daemonset", "namespace", "ingress", "kube"], "kubernetes_ops"),
+    (["terraform", "tf plan", "tf apply", "tfstate", "infrastructure as code", "hcl"], "terraform_iac"),
+    (["docker", "container", "image build", "docker-compose", "dockerfile", "docker run"], "docker_workflow"),
+    (["jenkins", "ci/cd", "ci cd", "build pipeline", "github actions", "gitlab ci", "circleci"], "jenkins_ci_cd"),
+    (["aws", "s3 bucket", "ec2 instance", "lambda function", "cloudwatch", "iam role", "cloudformation"], "aws_console"),
+    # Git (specific verbs — avoid matching "git" in "digital")
+    ([" git ", "git clone", "git commit", "git push", "git pull", "git branch",
+      "git merge", "git checkout", "git stash", "git rebase", "git log"], "git_operations"),
+    # Debugging
+    (["debug", "breakpoint", "step into", "step over", "step out", "watch expression",
+      "call stack", "inspect variable", "attach debugger"], "debugging"),
+    # Documentation
+    (["readme", "wiki", "docstring", "jsdoc", "sphinx", "mkdocs", "swagger",
+      "api doc", "changelog", "annotate"], "documentation"),
+    # Terminal / shell operations
+    (["run command", "execute command", "terminal", "shell", "bash script", "chmod",
+      "chown", "sudo", "apt install", "apt-get", "yum install", "pip install",
+      "npm install", "brew install", "systemctl", "crontab", "ssh ", "scp ",
+      "curl ", "wget ", "grep ", "awk ", "sed ", "kill process", "ps aux",
+      "top command", "htop", "df -", "du -", "tar ", "zip ", "unzip ",
+      "find command", "locate ", "ln -", "mount ", "umount",
+      "environment variable", "export ", "alias ", "history"], "terminal_ops"),
+    # System / app configuration
+    (["setting", "preference", "configure", "theme", "dark mode", "light mode",
+      "font size", "keyboard shortcut", "workspace", "layout", "perspective",
+      "permission", "timezone", "hostname", "package manager", "update package",
+      "upgrade package", "install software", "uninstall", "enable feature",
+      "disable feature", "system info", "system uptime", "change password"], "system_config"),
+    # Web browsing
+    (["browse", "navigate to", "open website", "open url", "bookmark", "tab",
+      "browser extension", "download file", "search on", "google search"], "web_browsing"),
+    # Coding / IDE (broad — after all specifics above)
+    (["vscode", "vs code", "visual studio", "eclipse", "intellij", "pycharm",
+      "write code", "edit code", "create file", "new file", "open file",
+      "refactor", "autocomplete", "snippet", "linter", "formatter", "extension",
+      "install plugin", "install extension", "language extension",
+      "syntax highlight", "code review", "pull request", "open project",
+      "import module", "function", "class ", "method ", "variable",
+      "compile", "build project", "run test", "unit test"], "coding_editing"),
 ]
 
 
 def derive_activity_label(instruction: str, platform: str = "") -> str:
-    text = f"{instruction} {platform}".lower()
+    plat_lower = platform.lower().strip()
+    instr_lower = instruction.lower().strip()
+
+    # 1. Exact platform match — most reliable
+    for plat_key, label in _PLATFORM_LABELS.items():
+        if plat_key in plat_lower:
+            return label
+
+    # 2. Keyword match on instruction + platform combined
+    text = f"{instr_lower} {plat_lower}"
     for keywords, label in _LABEL_KEYWORDS:
         for kw in keywords:
             if kw in text:
                 return label
+
     return "other"
 
 
