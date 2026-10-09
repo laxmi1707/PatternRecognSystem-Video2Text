@@ -1,9 +1,19 @@
 """
-One-time model training on the CUA-Suite dataset.
+Train Video2Knowledge classifiers on the CUA-Suite dataset.
+
+Feature extraction and model training are separate pipeline stages:
+  - First run: extracts features from all videos (~15 hours), saves cache,
+    then trains all models (~10 minutes).
+  - Subsequent runs with --load-features: skips extraction, loads cache,
+    retrains models in ~10 minutes. Use after label fixes or hyperparameter
+    changes that don't touch feature extraction code.
 
 Usage:
-    python -m app.train
+    # Full run (first time):
     python -m app.train --dataset-root ./dataset --model-dir ./models
+
+    # Fast retrain (after label/model changes, features already cached):
+    python -m app.train --dataset-root ./dataset --model-dir ./models --load-features
 """
 from __future__ import annotations
 
@@ -40,88 +50,125 @@ def main() -> None:
     parser.add_argument("--dataset-root", default="./dataset", help="Path to dataset directory")
     parser.add_argument("--model-dir", default="./models", help="Where to save trained models")
     parser.add_argument("--skip-deep", action="store_true", help="Skip Tier 2/3 PyTorch models (for macOS)")
+    parser.add_argument(
+        "--load-features", action="store_true",
+        help="Skip feature extraction and load cached X_train/X_test/y_train/y_test from --model-dir. "
+             "Use after label or model changes when feature extraction code is unchanged."
+    )
     args = parser.parse_args()
 
-    dataset_root = Path(args.dataset_root)
-    if not dataset_root.exists():
-        logger.error(f"Dataset directory not found: {dataset_root}")
-        sys.exit(1)
+    model_dir = Path(args.model_dir)
+    model_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. Discover tasks
-    logger.info(f"Scanning dataset at {dataset_root.resolve()}")
-    tasks = discover_tasks(dataset_root)
-    if not tasks:
-        logger.error("No tasks found in dataset")
-        sys.exit(1)
+    feature_cache = {
+        "X_train": model_dir / "X_train.npy",
+        "X_test":  model_dir / "X_test.npy",
+        "y_train": model_dir / "y_train.npy",
+        "y_test":  model_dir / "y_test.npy",
+    }
 
-    labels = Counter(t.activity_label for t in tasks)
-    platforms = Counter(t.platform for t in tasks)
-    has_video = sum(1 for t in tasks if t.video_path)
+    if args.load_features:
+        # ── Fast path: skip 15-hour extraction, load cached arrays ──────────
+        missing = [k for k, p in feature_cache.items() if not p.exists()]
+        if missing:
+            logger.error(
+                f"--load-features requested but cache files missing: {missing}\n"
+                f"Run without --load-features first to build the cache."
+            )
+            sys.exit(1)
 
-    logger.info(f"Discovered {len(tasks)} tasks ({has_video} with video)")
-    logger.info(f"Platforms: {dict(platforms)}")
-    logger.info(f"Label distribution:")
-    for label in ACTIVITY_LABELS:
-        count = labels.get(label, 0)
-        logger.info(f"  {label}: {count}")
+        logger.info("Loading cached features (skipping extraction)...")
+        X_train = np.load(str(feature_cache["X_train"]))
+        X_test  = np.load(str(feature_cache["X_test"]))
+        y_train = np.load(str(feature_cache["y_train"]))
+        y_test  = np.load(str(feature_cache["y_test"]))
+        logger.info(f"  X_train={X_train.shape}, X_test={X_test.shape}")
 
-    tracker.log_training(
-        model_name="dataset",
-        tier="data",
-        metrics={f"label_{k}": float(v) for k, v in labels.items()},
-        params={
-            "total_tasks": len(tasks),
-            "tasks_with_video": has_video,
-            "dataset_root": str(dataset_root.resolve()),
-        },
-        tags={"run_type": "dataset_stats"},
-    )
+        # Labels in cache are already remapped integers — just log distribution
+        logger.info(f"Label distribution in cache: {Counter(y_train.tolist())}")
+        all_labels = np.unique(np.concatenate([y_train, y_test]))
+        mapped_labels = [str(i) for i in all_labels]
 
-    # 2. Split train/test at task level
-    train_tasks, test_tasks = task_level_split(tasks, test_ratio=0.2, seed=42)
-    logger.info(f"Split: {len(train_tasks)} train, {len(test_tasks)} test")
+    else:
+        # ── Full path: discover tasks, extract features, save cache ─────────
+        dataset_root = Path(args.dataset_root)
+        if not dataset_root.exists():
+            logger.error(f"Dataset directory not found: {dataset_root}")
+            sys.exit(1)
 
-    # 3. Extract features
-    logger.info("Extracting features (this may take a while for videos)...")
-    from app.pipeline.feature_assembler import get_default_assembler
+        # 1. Discover tasks
+        logger.info(f"Scanning dataset at {dataset_root.resolve()}")
+        tasks = discover_tasks(dataset_root)
+        if not tasks:
+            logger.error("No tasks found in dataset")
+            sys.exit(1)
 
-    assembler = get_default_assembler()
+        labels = Counter(t.activity_label for t in tasks)
+        platforms = Counter(t.platform for t in tasks)
+        has_video = sum(1 for t in tasks if t.video_path)
 
-    total_tasks = len(train_tasks) + len(test_tasks)
-    logger.info(f"Phase 1/3: Extracting TRAIN features ({len(train_tasks)}/{total_tasks} tasks)...")
-    t0 = time.time()
-    X_train, y_train, meta_train = assembler.build_dataset(train_tasks)
-    train_elapsed = time.time() - t0
-    logger.info(f"  Train features done: {X_train.shape} in {train_elapsed:.0f}s")
+        logger.info(f"Discovered {len(tasks)} tasks ({has_video} with video)")
+        logger.info(f"Platforms: {dict(platforms)}")
+        logger.info("Label distribution:")
+        for label in ACTIVITY_LABELS:
+            count = labels.get(label, 0)
+            logger.info(f"  {label}: {count}")
 
-    logger.info(f"Phase 2/3: Extracting TEST features ({len(test_tasks)}/{total_tasks} tasks)...")
-    t1 = time.time()
-    X_test, y_test, meta_test = assembler.build_dataset(test_tasks)
-    test_elapsed = time.time() - t1
-    logger.info(f"  Test features done: {X_test.shape} in {test_elapsed:.0f}s")
+        tracker.log_training(
+            model_name="dataset",
+            tier="data",
+            metrics={f"label_{k}": float(v) for k, v in labels.items()},
+            params={
+                "total_tasks": len(tasks),
+                "tasks_with_video": has_video,
+                "dataset_root": str(dataset_root.resolve()),
+            },
+            tags={"run_type": "dataset_stats"},
+        )
 
-    total_elapsed = time.time() - t0
-    logger.info(
-        f"Feature extraction complete: {total_elapsed:.0f}s total | "
-        f"train={X_train.shape}, test={X_test.shape}"
-    )
+        # 2. Split train/test at task level
+        train_tasks, test_tasks = task_level_split(tasks, test_ratio=0.2, seed=42)
+        logger.info(f"Split: {len(train_tasks)} train, {len(test_tasks)} test")
 
-    if X_train.shape[0] == 0:
-        logger.error("No training samples extracted")
-        sys.exit(1)
+        # 3. Extract features
+        from app.pipeline.feature_assembler import get_default_assembler
+        assembler = get_default_assembler()
 
-    # Cache features so retrain_tier3.py can skip extraction next time
-    np.save(str(Path(args.model_dir) / "X_train.npy"), X_train)
-    np.save(str(Path(args.model_dir) / "y_train_raw.npy"), y_train)
+        total_tasks = len(train_tasks) + len(test_tasks)
+        logger.info(f"Phase 1/3: Extracting TRAIN features ({len(train_tasks)}/{total_tasks} tasks)...")
+        t0 = time.time()
+        X_train, y_train, meta_train = assembler.build_dataset(train_tasks)
+        logger.info(f"  Train features done: {X_train.shape} in {time.time()-t0:.0f}s")
 
-    # Remap labels to contiguous 0..N-1 (XGBoost/LightGBM require this)
-    all_labels = np.unique(np.concatenate([y_train, y_test]))
-    label_map = {old: new for new, old in enumerate(all_labels)}
-    reverse_map = {new: old for old, new in label_map.items()}
-    y_train = np.array([label_map[y] for y in y_train])
-    y_test = np.array([label_map[y] for y in y_test])
-    mapped_labels = [ACTIVITY_LABELS[reverse_map[i]] for i in range(len(all_labels))]
-    logger.info(f"Remapped {len(all_labels)} classes to contiguous labels: {mapped_labels}")
+        logger.info(f"Phase 2/3: Extracting TEST features ({len(test_tasks)}/{total_tasks} tasks)...")
+        t1 = time.time()
+        X_test, y_test, meta_test = assembler.build_dataset(test_tasks)
+        logger.info(f"  Test features done: {X_test.shape} in {time.time()-t1:.0f}s")
+
+        logger.info(
+            f"Feature extraction complete: {time.time()-t0:.0f}s total | "
+            f"train={X_train.shape}, test={X_test.shape}"
+        )
+
+        if X_train.shape[0] == 0:
+            logger.error("No training samples extracted")
+            sys.exit(1)
+
+        # Remap labels to contiguous 0..N-1 (XGBoost/LightGBM require this)
+        all_labels = np.unique(np.concatenate([y_train, y_test]))
+        label_map = {old: new for new, old in enumerate(all_labels)}
+        reverse_map = {new: old for old, new in label_map.items()}
+        y_train = np.array([label_map[y] for y in y_train])
+        y_test  = np.array([label_map[y] for y in y_test])
+        mapped_labels = [ACTIVITY_LABELS[reverse_map[i]] for i in range(len(all_labels))]
+        logger.info(f"Remapped {len(all_labels)} classes: {mapped_labels}")
+
+        # Save feature cache for fast retrains
+        np.save(str(feature_cache["X_train"]), X_train)
+        np.save(str(feature_cache["X_test"]),  X_test)
+        np.save(str(feature_cache["y_train"]), y_train)
+        np.save(str(feature_cache["y_test"]),  y_test)
+        logger.info(f"Feature cache saved to {model_dir} — use --load-features to skip extraction next time")
 
     # Augment if too few samples
     if X_train.shape[0] < 100:
