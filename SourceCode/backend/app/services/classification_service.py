@@ -55,12 +55,10 @@ ALL_MODELS = [
     # Tier 1
     "svm", "naive_bayes", "decision_tree", "random_forest", "knn", "xgboost", "lightgbm",
     # Tier 2
-    "mlp", "cnn1d", "lstm", "transformer",
+    "mlp", "cnn1d", "lstm", "transformer", "workflow_lstm", "workflow_transformer",
     # Tier 3
     "voting", "stacking", "late_fusion",
 ]
-
-WORKFLOW_MODELS = ["workflow_lstm", "workflow_transformer"]
 
 
 async def _classify_all_models(
