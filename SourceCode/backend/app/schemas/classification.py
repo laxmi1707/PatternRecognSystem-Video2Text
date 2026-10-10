@@ -13,6 +13,9 @@ class ActivityLabel(str, Enum):
     CODING_EDITING = "coding_editing"
     DEBUGGING = "debugging"
     DOCUMENTATION = "documentation"
+    TERMINAL_OPS = "terminal_ops"
+    SYSTEM_CONFIG = "system_config"
+    WEB_BROWSING = "web_browsing"
     OTHER = "other"
 
 

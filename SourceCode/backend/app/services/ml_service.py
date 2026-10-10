@@ -44,7 +44,10 @@ class MLService:
         from app.ml.classifiers.tier2.workflow_transformer import WorkflowTransformerClassifier
         from app.ml.classifiers.tier3 import VotingClassifier, StackingClassifier, LateFusionClassifier
 
-        mlp = MLPClassifier()
+        nc = self._config.num_classes
+        nf = self._config.n_features
+
+        mlp = MLPClassifier(num_classes=nc)
         rf = RandomForestClassifier()
         svm = SVMClassifier()
 
@@ -58,10 +61,10 @@ class MLService:
             svm, NaiveBayesClassifier(), DecisionTreeClassifier(), rf,
             KNNClassifier(), XGBoostClassifier(), LightGBMClassifier(),
             # Tier 2 — Deep learning (RQ1: classical vs deep learning)
-            mlp, CNN1DClassifier(), LSTMClassifier(), TransformerClassifier(),
+            mlp, CNN1DClassifier(num_classes=nc), LSTMClassifier(num_classes=nc), TransformerClassifier(num_classes=nc),
             # Tier 3 — Ensemble / multimodal fusion (RQ2: fusion vs individual modalities)
-            VotingClassifier(estimators=[SVMClassifier(), RandomForestClassifier(), MLPClassifier()], voting="soft"),
-            StackingClassifier(base_estimators=[SVMClassifier(), RandomForestClassifier(), MLPClassifier()]),
+            VotingClassifier(estimators=[SVMClassifier(), RandomForestClassifier(), MLPClassifier(num_classes=nc)], voting="soft"),
+            StackingClassifier(base_estimators=[SVMClassifier(), RandomForestClassifier(), MLPClassifier(num_classes=nc)]),
             LateFusionClassifier(branches=[SVMClassifier(), RandomForestClassifier()]),
             #
             # ── Level 3: Workflow Recognition ─────────────────────────────────────
@@ -69,8 +72,8 @@ class MLService:
             # higher-order workflows (e.g. "clone → edit → commit → push" = git workflow).
             # Input: temporal sequence of Level 2 predictions, not raw video features.
             # (RQ3: temporal sequence models for workflow pattern recognition)
-            WorkflowLSTMClassifier(),
-            WorkflowTransformerClassifier(),
+            WorkflowLSTMClassifier(num_classes=nc, feature_dim=nf),
+            WorkflowTransformerClassifier(num_classes=nc, feature_dim=nf),
         ]:
             self._registry.register(clf)
 
