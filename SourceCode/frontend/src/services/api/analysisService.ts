@@ -179,7 +179,8 @@ export function analyzeVideo(
     } catch (err) {
       if (pollTimer) clearInterval(pollTimer);
       if (controller.signal.aborted) return;
-      console.error('Analysis API failed, falling back to mock:', err);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error('Analysis API failed:', errMsg, err);
       onProgress(100, 'offline fallback');
       onComplete({
         id: String(Date.now()),
@@ -189,8 +190,7 @@ export function analyzeVideo(
         stepCount: SCREEN_RECORDING_STEPS.length,
         status: 'Complete',
         videoUrl,
-        summary:
-          'The recording shows a developer pulling the latest changes, installing dependencies, and verifying the app in the browser. (Offline fallback — backend unavailable)',
+        summary: `Backend error — ${errMsg}. Check that the backend is running at ${import.meta.env.VITE_API_BASE_URL ?? '/api/v1'}.`,
         steps: SCREEN_RECORDING_STEPS,
         modelComparison: [],
         bestModel: null,
