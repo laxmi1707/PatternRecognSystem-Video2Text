@@ -115,6 +115,8 @@ async def get_job_results(job_id: int, db: AsyncSession = Depends(get_db)):
             probabilities=r.probabilities,
             model_name=r.model_name,
             latency_ms=r.latency_ms,
+            start_time=r.start_time,
+            end_time=r.end_time,
         )
         for r in results
     ]
