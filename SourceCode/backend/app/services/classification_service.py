@@ -115,6 +115,10 @@ async def run_classification_job(
         for model_name, predictions in all_model_results.items():
             for i, pred in enumerate(predictions):
                 seg = segments[i] if i < len(segments) else {"start_time": i * 5.0, "end_time": (i + 1) * 5.0}
+                probs = dict(pred["probabilities"])
+                ocr = seg.get("ocr_text", "")
+                if ocr:
+                    probs["_ocr"] = ocr
                 cr = ClassificationResult(
                     job_id=job.id,
                     segment_index=i,
@@ -122,7 +126,7 @@ async def run_classification_job(
                     end_time=seg["end_time"],
                     predicted_label=pred["label"],
                     confidence=pred["confidence"],
-                    probabilities=pred["probabilities"],
+                    probabilities=probs,
                     model_name=model_name,
                     latency_ms=pred["latency_ms"],
                 )
@@ -154,11 +158,16 @@ def _extract_real_features(
     processor = VideoProcessor()
     segments = processor.extract_segments(video_path, actions)
 
-    X = np.array([assembler.extract_segment_features(seg) for seg in segments])
+    features_list = []
+    segment_info = []
+    for seg in segments:
+        feat = assembler.extract_segment_features(seg)
+        features_list.append(feat)
+        segment_info.append({
+            "start_time": seg.start_time,
+            "end_time": seg.end_time,
+            "ocr_text": getattr(assembler, "_last_ocr_text", ""),
+        })
 
-    segment_info = [
-        {"start_time": seg.start_time, "end_time": seg.end_time}
-        for seg in segments
-    ]
-
+    X = np.array(features_list)
     return X, segment_info

@@ -71,9 +71,11 @@ class FeatureAssembler:
         ]
 
         start, end = MODALITY_MAP["ocr_text"]
+        self._last_ocr_text: str = ""
         if segment.keyframes:
-            ocr_features, _ = self._ocr.extract_segment(segment.keyframes)
+            ocr_features, ocr_text = self._ocr.extract_segment(segment.keyframes)
             features[start:end] = ocr_features
+            self._last_ocr_text = ocr_text
 
         start, end = MODALITY_MAP["ui_elements"]
         if segment.keyframes:

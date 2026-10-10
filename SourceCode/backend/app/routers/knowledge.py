@@ -46,15 +46,20 @@ def _best_segments(results) -> list[dict]:
             rp = _TIER_PRIORITY.get(_MODEL_TIER.get(r.model_name, ""), 99)
             if rp < ep or (rp == ep and r.confidence > existing.confidence):
                 by_segment[idx] = r
-    return [
-        {
+    segs = []
+    seen_ocr: set[int] = set()
+    for r in [by_segment[k] for k in sorted(by_segment)]:
+        probs = r.probabilities or {}
+        # OCR text is stored in probs['_ocr'] — use any result row for this segment
+        ocr = probs.get("_ocr", "")
+        segs.append({
             "start_time": r.start_time,
             "end_time": r.end_time,
             "predicted_label": r.predicted_label,
             "confidence": r.confidence,
-        }
-        for r in [by_segment[k] for k in sorted(by_segment)]
-    ]
+            "ocr_text": ocr,
+        })
+    return segs
 
 
 def _load_action_log(action_log_path: str | None) -> dict:
@@ -138,11 +143,14 @@ async def generate_sop(job_id: int, db: AsyncSession = Depends(get_db)):
     # One best-model row per segment
     segments = _best_segments(results)
 
-    # Enrich each segment with action log events for meaningful descriptions
+    # Use OCR text from video frames; fall back to action log events if available
     ocr_texts = []
     for seg in segments:
-        actions = _actions_in_range(action_log, seg["start_time"], seg["end_time"])
-        ocr_texts.append("; ".join(actions) if actions else "")
+        ocr = seg.get("ocr_text", "").strip()
+        if not ocr:
+            actions = _actions_in_range(action_log, seg["start_time"], seg["end_time"])
+            ocr = "; ".join(actions)
+        ocr_texts.append(ocr)
 
     sop = sop_gen.generate_from_segments(
         task_instruction=task_instruction,
