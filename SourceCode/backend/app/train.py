@@ -168,6 +168,9 @@ def main() -> None:
         np.save(str(feature_cache["X_test"]),  X_test)
         np.save(str(feature_cache["y_train"]), y_train)
         np.save(str(feature_cache["y_test"]),  y_test)
+        # Save segment→task mapping so relabel.py can regenerate y without re-extraction
+        np.save(str(model_dir / "task_ids_train.npy"), meta_train["task_ids"])
+        np.save(str(model_dir / "task_ids_test.npy"),  meta_test["task_ids"])
         logger.info(f"Feature cache saved to {model_dir} — use --load-features to skip extraction next time")
 
     # Augment if too few samples
