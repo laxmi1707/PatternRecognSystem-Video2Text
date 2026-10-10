@@ -113,6 +113,13 @@ class TorchBaseClassifier(BaseClassifier):
         self._model.to(self._device)
         self._model.eval()
 
+    def __setstate__(self, state: dict) -> None:
+        self.__dict__.update(state)
+        # Remap device to whatever is available on this machine (handles CUDA→CPU).
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if self._model is not None:
+            self._model.to(self._device)
+
     def get_params(self) -> dict:
         return {
             "epochs": self._epochs,

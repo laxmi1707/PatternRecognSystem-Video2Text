@@ -1,8 +1,18 @@
+import io
 import pickle
 
 import numpy as np
+import torch
 
 from app.ml.base import BaseClassifier, PredictionResult
+
+
+class _CpuUnpickler(pickle.Unpickler):
+    """Remaps CUDA tensor storage to CPU during pickle deserialization."""
+    def find_class(self, module: str, name: str):
+        if module == "torch.storage" and name == "_load_from_bytes":
+            return lambda b: torch.load(io.BytesIO(b), map_location="cpu", weights_only=False)
+        return super().find_class(module, name)
 
 
 class VotingClassifier(BaseClassifier):
@@ -64,7 +74,7 @@ class VotingClassifier(BaseClassifier):
 
     def load(self, path: str) -> None:
         with open(path, "rb") as f:
-            data = pickle.load(f)
+            data = _CpuUnpickler(f).load()
         self._voting = data["voting"]
         self._estimators = data["estimators"]
 

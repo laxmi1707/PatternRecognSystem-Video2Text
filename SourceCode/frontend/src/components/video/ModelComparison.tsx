@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { ModelSummary, WorkflowStep } from '../../types/analysis';
 
 const TIER_COLORS: Record<string, string> = {
@@ -26,7 +25,7 @@ export function ModelComparison({ comparison, bestModel, allResults, onSelectMod
 
   return (
     <div className="model-comparison">
-      <h3 className="model-comparison-title">Model Comparison — 14 Classifiers</h3>
+      <h3 className="model-comparison-title">Model Comparison — {comparison.length} Classifiers</h3>
       <p className="model-comparison-desc">
         All models classified the same video segments. Click a row to view its workflow steps.
       </p>
