@@ -84,10 +84,14 @@ def main() -> None:
         y_test  = np.load(str(feature_cache["y_test"]))
         logger.info(f"  X_train={X_train.shape}, X_test={X_test.shape}")
 
-        # Labels in cache are already remapped integers — just log distribution
-        logger.info(f"Label distribution in cache: {Counter(y_train.tolist())}")
+        # Remap to contiguous 0..N-1 — required by XGBoost/LightGBM and ensembles
         all_labels = np.unique(np.concatenate([y_train, y_test]))
-        mapped_labels = [str(i) for i in all_labels]
+        label_map = {old: new for new, old in enumerate(all_labels)}
+        y_train = np.array([label_map[y] for y in y_train], dtype=np.int64)
+        y_test  = np.array([label_map[y] for y in y_test],  dtype=np.int64)
+        mapped_labels = [ACTIVITY_LABELS[int(i)] if int(i) < len(ACTIVITY_LABELS) else str(i) for i in all_labels]
+        logger.info(f"Label distribution in cache: {Counter(y_train.tolist())}")
+        logger.info(f"Remapped {len(all_labels)} classes: {mapped_labels}")
 
     else:
         # ── Full path: discover tasks, extract features, save cache ─────────
