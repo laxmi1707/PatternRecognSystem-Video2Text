@@ -59,11 +59,11 @@ def main() -> None:
     logger.info("Loading base estimators from disk...")
     svm_v  = load_clf(SVMClassifier(), "svm")
     rf_v   = load_clf(RandomForestClassifier(), "random_forest")
-    mlp_v  = load_clf(MLPClassifier(), "mlp")
+    mlp_v  = load_clf(MLPClassifier(num_classes=config.num_classes), "mlp")
 
     svm_s  = load_clf(SVMClassifier(), "svm")
     rf_s   = load_clf(RandomForestClassifier(), "random_forest")
-    mlp_s  = load_clf(MLPClassifier(), "mlp")
+    mlp_s  = load_clf(MLPClassifier(num_classes=config.num_classes), "mlp")
 
     svm_lf = load_clf(SVMClassifier(), "svm")
     rf_lf  = load_clf(RandomForestClassifier(), "random_forest")

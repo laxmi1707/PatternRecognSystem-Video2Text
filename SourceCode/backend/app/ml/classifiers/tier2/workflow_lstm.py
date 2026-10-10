@@ -45,7 +45,7 @@ class WorkflowLSTMClassifier(BaseClassifier):
 
     def __init__(
         self,
-        feature_dim: int = 150,
+        feature_dim: int = 151,
         max_segments: int = 20,
         hidden_dim: int = 128,
         num_layers: int = 2,
@@ -102,7 +102,7 @@ class WorkflowLSTMClassifier(BaseClassifier):
         )
 
         classes, counts = torch.unique(y_t, return_counts=True)
-        n_classes = int(y_t.max().item()) + 1
+        n_classes = self._num_classes
         weights = torch.ones(n_classes, device=self._device)
         for c, cnt in zip(classes.tolist(), counts.tolist()):
             weights[c] = len(y_t) / (n_classes * cnt)

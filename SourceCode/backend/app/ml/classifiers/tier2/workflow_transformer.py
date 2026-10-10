@@ -67,9 +67,9 @@ class WorkflowTransformerClassifier(BaseClassifier):
 
     def __init__(
         self,
-        feature_dim: int = 150,
+        feature_dim: int = 151,
         max_segments: int = 20,
-        num_heads: int = 6,
+        num_heads: int = 1,
         num_layers: int = 2,
         num_classes: int = 10,
         dropout: float = 0.2,
@@ -124,7 +124,7 @@ class WorkflowTransformerClassifier(BaseClassifier):
         )
 
         classes, counts = torch.unique(y_t, return_counts=True)
-        n_classes = int(y_t.max().item()) + 1
+        n_classes = self._num_classes
         weights = torch.ones(n_classes, device=self._device)
         for c, cnt in zip(classes.tolist(), counts.tolist()):
             weights[c] = len(y_t) / (n_classes * cnt)
