@@ -112,7 +112,7 @@ async def get_job_results(job_id: int, db: AsyncSession = Depends(get_db)):
         ClassificationResult(
             label=r.predicted_label,
             confidence=r.confidence,
-            probabilities=r.probabilities,
+            probabilities={k: v for k, v in (r.probabilities or {}).items() if k != "_ocr"},
             model_name=r.model_name,
             latency_ms=r.latency_ms,
             start_time=r.start_time,
