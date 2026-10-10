@@ -91,9 +91,10 @@ class SOPGenerator:
             end = seg.get("end_time", 0)
             ocr = ocr_texts[i] if ocr_texts and i < len(ocr_texts) else ""
 
-            description = f"Perform {label.lower()} activity on {platform}."
             if ocr:
-                description += f' Detected text: "{ocr[:100]}"'
+                description = f"{ocr[:120]}"
+            else:
+                description = f"Perform {label.lower()} activity on {platform}."
 
             steps.append(
                 SOPStep(
