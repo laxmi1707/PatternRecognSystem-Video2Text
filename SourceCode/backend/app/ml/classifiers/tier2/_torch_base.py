@@ -63,9 +63,10 @@ class TorchBaseClassifier(BaseClassifier):
             shuffle=True,
         )
 
-        # Class-balanced loss weights to counter majority-class dominance
+        # Class-balanced loss weights — derive from data, not self._num_classes default,
+        # to avoid a CUDA index-OOB kill when label count exceeds the default of 10.
         classes, counts = torch.unique(y_t, return_counts=True)
-        n_classes = self._num_classes
+        n_classes = int(y_t.max().item()) + 1
         weights = torch.ones(n_classes, device=self._device)
         for c, cnt in zip(classes.tolist(), counts.tolist()):
             weights[c] = len(y_t) / (n_classes * cnt)

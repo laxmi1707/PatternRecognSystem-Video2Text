@@ -111,9 +111,12 @@ class WorkflowTransformerClassifier(BaseClassifier):
         torch.manual_seed(self._seed)
         np.random.seed(self._seed)
 
+        # Derive actual class count from data — same fix as workflow_lstm.
+        n_classes = int(np.max(y)) + 1
+
         self._model = _WorkflowTransformerNet(
             self._feature_dim, self._num_heads, self._num_layers,
-            self._num_classes, self._dropout,
+            n_classes, self._dropout,
         ).to(self._device)
 
         X_t = torch.tensor(X, dtype=torch.float32, device=self._device)
@@ -124,7 +127,6 @@ class WorkflowTransformerClassifier(BaseClassifier):
         )
 
         classes, counts = torch.unique(y_t, return_counts=True)
-        n_classes = self._num_classes
         weights = torch.ones(n_classes, device=self._device)
         for c, cnt in zip(classes.tolist(), counts.tolist()):
             weights[c] = len(y_t) / (n_classes * cnt)
