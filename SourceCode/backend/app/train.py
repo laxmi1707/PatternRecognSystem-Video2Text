@@ -203,6 +203,7 @@ def main() -> None:
             t0 = time.time()
             clf.fit(X_train, y_train)
             train_time = time.time() - t0
+            clf._is_fitted = True  # signal to ensemble classifiers that share this instance
             ml_service._trained_models.add(clf_name)
 
             clf.save(str(model_dir / f"{clf_name}.pkl"))

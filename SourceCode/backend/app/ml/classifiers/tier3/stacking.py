@@ -49,7 +49,8 @@ class StackingClassifier(BaseClassifier):
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         for est in self._base_estimators:
-            est.fit(X, y)
+            if not getattr(est, "_is_fitted", False):
+                est.fit(X, y)
 
         meta_X = self._build_meta_features(X)
         self._meta_learner = LogisticRegression(

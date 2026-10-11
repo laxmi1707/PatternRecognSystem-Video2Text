@@ -63,9 +63,9 @@ class MLService:
             # Tier 2 — Deep learning (RQ1: classical vs deep learning)
             mlp, CNN1DClassifier(num_classes=nc), LSTMClassifier(num_classes=nc), TransformerClassifier(num_classes=nc),
             # Tier 3 — Ensemble / multimodal fusion (RQ2: fusion vs individual modalities)
-            VotingClassifier(estimators=[SVMClassifier(), RandomForestClassifier(), MLPClassifier(num_classes=nc)], voting="soft"),
-            StackingClassifier(base_estimators=[SVMClassifier(), RandomForestClassifier(), MLPClassifier(num_classes=nc)]),
-            LateFusionClassifier(branches=[SVMClassifier(), RandomForestClassifier()]),
+            VotingClassifier(estimators=[svm, rf, mlp], voting="soft"),
+            StackingClassifier(base_estimators=[svm, rf, mlp]),
+            LateFusionClassifier(branches=[svm, rf]),
             #
             # ── Level 3: Workflow Recognition ─────────────────────────────────────
             # Recognises SEQUENCES of Level 2 activity predictions to identify

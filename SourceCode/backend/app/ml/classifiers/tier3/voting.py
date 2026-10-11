@@ -35,7 +35,8 @@ class VotingClassifier(BaseClassifier):
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         for est in self._estimators:
-            est.fit(X, y)
+            if not getattr(est, "_is_fitted", False):
+                est.fit(X, y)
 
     def predict(self, X: np.ndarray) -> PredictionResult:
         def _predict(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

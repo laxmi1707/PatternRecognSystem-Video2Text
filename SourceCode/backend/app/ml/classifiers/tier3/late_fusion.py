@@ -66,7 +66,8 @@ class LateFusionClassifier(BaseClassifier):
         self._split_indices = self._compute_splits(X.shape[1])
 
         for branch, (start, end) in zip(self._branches, self._split_indices):
-            branch.fit(X[:, start:end], y)
+            if not getattr(branch, "_is_fitted", False):
+                branch.fit(X[:, start:end], y)
 
         meta_X = self._branch_predict(X)
         self._meta_learner = LogisticRegression(
