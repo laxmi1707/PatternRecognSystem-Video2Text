@@ -89,14 +89,12 @@ class WorkflowLSTMClassifier(BaseClassifier):
         torch.manual_seed(self._seed)
         np.random.seed(self._seed)
 
-        # Derive actual class count from data so the model head matches training labels.
-        # Using self._num_classes (default 10) causes a CUDA index error when the
-        # dataset has more classes (e.g. 13), killing the process without a traceback.
-        n_classes = int(np.max(y)) + 1
+        # Sync num_classes from data — stale pkl may carry wrong self._num_classes.
+        self._num_classes = int(np.max(y)) + 1
 
         self._model = _WorkflowLSTMNet(
             self._feature_dim, self._hidden_dim, self._num_layers,
-            n_classes, self._dropout,
+            self._num_classes, self._dropout,
         ).to(self._device)
 
         X_t = torch.tensor(X, dtype=torch.float32, device=self._device)

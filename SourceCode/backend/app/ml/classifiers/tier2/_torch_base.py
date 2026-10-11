@@ -51,6 +51,9 @@ class TorchBaseClassifier(BaseClassifier):
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         self._seed_everything()
         self._input_dim = X.shape[1]
+        # Sync num_classes from data so both the model head and the weight tensor
+        # are consistent — stale pkls may carry a different self._num_classes.
+        self._num_classes = int(np.max(y)) + 1
         self._model = self._build_model(self._input_dim)
         self._model.to(self._device)
         self._model.train()
@@ -63,10 +66,8 @@ class TorchBaseClassifier(BaseClassifier):
             shuffle=True,
         )
 
-        # Class-balanced loss weights — derive from data, not self._num_classes default,
-        # to avoid a CUDA index-OOB kill when label count exceeds the default of 10.
         classes, counts = torch.unique(y_t, return_counts=True)
-        n_classes = int(y_t.max().item()) + 1
+        n_classes = self._num_classes
         weights = torch.ones(n_classes, device=self._device)
         for c, cnt in zip(classes.tolist(), counts.tolist()):
             weights[c] = len(y_t) / (n_classes * cnt)
