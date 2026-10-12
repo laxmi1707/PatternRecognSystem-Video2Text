@@ -60,20 +60,23 @@ class SOPStep:
 # Each tuple: (keyword_variants, action_description)
 # Variants include common Tesseract misreads of UI elements.
 _UI_KEYWORDS: list[tuple[list[str], str]] = [
-    # Eclipse perspective switching
-    # Tesseract misreads: Penpecon, Perpectne  |  EasyOCR misreads: Patpece, Paupece, Panpece
+    # Eclipse perspective switching — OCR rarely captures menu text directly,
+    # but segment 2 shows "Source" in menu bar = Debug perspective is active
     (["perspective", "penpecon", "perpectne", "perspect",
       "patpece", "paupece", "panpece", "penpece",
       "open perspective", "close perspective", "save perspective",
       "java perspective", "debug perspective"], "Switch IDE perspective"),
-    # Eclipse / IDE detection
-    # EasyOCR reads Eclipse as: Echpze, ccliosc, CCMosc, CCosc  |  Tesseract: Echpse
-    (["eclipse", "echpse", "echpze", "ccliosc", "ccmosc", "eclipse ide", "eclipse-workspace"], "Navigate Eclipse IDE"),
-    # Debugger
-    # EasyOCR reads Debug as: Dcbuq, Dcbug  |  Tesseract: mostly correct
+    # Eclipse workspace/IDE detection
+    # EasyOCR actual misreads observed: ccipre, idipre, worecpece, worerpace, woricpoce
+    (["eclipse", "echpse", "echpze", "ccliosc", "ccmosc", "ccipre", "idipre",
+      "worecpece", "worerpace", "woricpoce", "worespece",
+      "eclipse ide", "eclipse-workspace", "window help"], "Navigate Eclipse IDE"),
+    # Debug/Java perspective — "Source" in menu bar means Debug or Java perspective is active
+    # EasyOCR reads Debug as: Dcbuq  |  "Source" appears in menu bar in both perspectives
     (["breakpoint", "step over", "step into", "resume",
       "debug view", "debug perspective", "dcbuq", "dcbug",
-      "statements", "behaviour", "breviicn"], "Debug code"),
+      "statements", "behaviour", "breviicn",
+      "source refactor", "source keaton", "source lator"], "Debug or navigate code"),
     # Terminal / shell
     (["terminal", "bash", "shell", "command prompt", "powershell"], "Execute terminal command"),
     # Git
@@ -113,13 +116,16 @@ def _extract_keywords(ocr_text: str) -> str:
 
 # Known meaningful words that may appear in screen recordings
 _KNOWN_SCREEN_WORDS: set[str] = {
-    # IDE names — exact and EasyOCR/Tesseract variants
-    "eclipse", "echpse", "echpze", "ccliosc", "ccmosc", "vscode", "intellij", "pycharm",
-    # UI actions — exact and OCR variants
+    # IDE names — exact and EasyOCR variants observed in CUA dataset
+    "eclipse", "echpse", "echpze", "ccliosc", "ccmosc", "ccipre", "idipre",
+    "worecpece", "worerpace", "woricpoce", "worespece",
+    "vscode", "intellij", "pycharm",
+    # UI menus and actions — exact and OCR variants
     "perspective", "penpecon", "perpectne", "patpece", "paupece", "panpece",
     "debug", "dcbuq", "dcbug", "java", "python", "window",
-    "navigate", "navigetc", "navicttc", "search", "project", "projcct",
-    "refactor", "source", "workspace", "wcrkepacc", "terminal", "bash",
+    "navigate", "navigetc", "navicttc", "nenpte", "mongate",
+    "search", "sewch", "seach", "project", "projcct", "pryect", "progct",
+    "refactor", "source", "workspace", "terminal", "bash",
     "docker", "container", "commit", "branch", "merge", "push", "pull",
     "settings", "preferences", "appearance", "configure",
     "build", "compile", "maven", "gradle", "junit",
@@ -273,7 +279,10 @@ class SOPGenerator:
         # 5. Purpose — prefer OCR-detected platform over "Screen Recording"
         detected_platform = platform
         if platform == "Screen Recording":
-            if any(kw in all_raw_ocr for kw in ["eclipse", "echpse", "echpze", "ccliosc"]):
+            if any(kw in all_raw_ocr for kw in [
+                "eclipse", "echpse", "echpze", "ccliosc", "ccipre", "idipre",
+                "worecpece", "worerpace", "woricpoce", "worespece", "window help",
+            ]):
                 detected_platform = "Eclipse IDE"
             elif any(kw in all_raw_ocr for kw in ["vscode", "visual studio code"]):
                 detected_platform = "VS Code"
