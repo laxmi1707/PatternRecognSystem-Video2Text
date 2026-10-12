@@ -66,17 +66,18 @@ _UI_KEYWORDS: list[tuple[list[str], str]] = [
       "patpece", "paupece", "panpece", "penpece",
       "open perspective", "close perspective", "save perspective",
       "java perspective", "debug perspective"], "Switch IDE perspective"),
-    # Eclipse workspace/IDE detection
+    # Debug/Java perspective — check BEFORE generic eclipse detection
+    # "Source" in the menu bar (source lator/keaton = EasyOCR misread of Source menu items)
+    # means the Debug or Java perspective is active in Eclipse
+    (["breakpoint", "step over", "step into", "resume",
+      "debug view", "debug perspective", "dcbuq", "dcbug",
+      "statements", "behaviour", "breviicn",
+      "source refactor", "source keaton", "source lator", "source nenpte"], "Debug or navigate code"),
+    # Eclipse workspace/IDE detection (generic — matched after more specific checks above)
     # EasyOCR actual misreads observed: ccipre, idipre, worecpece, worerpace, woricpoce
     (["eclipse", "echpse", "echpze", "ccliosc", "ccmosc", "ccipre", "idipre",
       "worecpece", "worerpace", "woricpoce", "worespece",
       "eclipse ide", "eclipse-workspace", "window help"], "Navigate Eclipse IDE"),
-    # Debug/Java perspective — "Source" in menu bar means Debug or Java perspective is active
-    # EasyOCR reads Debug as: Dcbuq  |  "Source" appears in menu bar in both perspectives
-    (["breakpoint", "step over", "step into", "resume",
-      "debug view", "debug perspective", "dcbuq", "dcbug",
-      "statements", "behaviour", "breviicn",
-      "source refactor", "source keaton", "source lator"], "Debug or navigate code"),
     # Terminal / shell
     (["terminal", "bash", "shell", "command prompt", "powershell"], "Execute terminal command"),
     # Git
@@ -151,22 +152,17 @@ def _clean_ocr(text: str) -> str:
     return " · ".join(unique[:6])
 
 
-def _step_description(label: str, platform: str, ocr: str) -> str:
-    """Build a meaningful step description from label + platform + OCR keywords."""
-    plat_lower = platform.lower()
-
-    # Try platform-specific verb first
-    for plat_key, verbs in _PLATFORM_VERBS.items():
-        if plat_key in plat_lower and label in verbs:
-            base = verbs[label]
-            break
-    else:
-        base = _LABEL_DESCRIPTIONS.get(label, f"Perform {label.replace('_', ' ')} activity")
-
-    # Only enrich description when OCR contains a recognisable UI keyword
-    keyword_action = _extract_keywords(ocr)
+def _step_description(label: str, platform: str, ocr: str, keyword_action: str = "") -> str:
+    """Build a meaningful step description grounded in OCR-detected action."""
     if keyword_action:
-        return f"{base}: {keyword_action}."
+        # Description is driven entirely by what OCR detected on screen
+        plat_lower = platform.lower()
+        for plat_key, verbs in _PLATFORM_VERBS.items():
+            if plat_key in plat_lower and label in verbs:
+                return f"{verbs[label]}."
+        return f"{keyword_action} on {platform}."
+    # Fall back to model label description only when OCR gives no signal
+    base = _LABEL_DESCRIPTIONS.get(label, f"Perform {label.replace('_', ' ')} activity")
     return f"{base}."
 
 
@@ -244,15 +240,10 @@ class SOPGenerator:
             start = seg.get("start_time", 0)
             end = seg.get("end_time", 0)
 
-            # Use OCR keyword action as step title when available — more accurate than model label
+            # Use OCR keyword action as step title — more accurate than model label (F1=0.29)
             keyword_action = _extract_keywords(ocr)
-            if keyword_action:
-                step_title = keyword_action
-            else:
-                # Fall back to model label only when OCR gives no signal
-                step_title = label.replace("_", " ").title()
-
-            description = _step_description(label, platform, ocr)
+            step_title = keyword_action if keyword_action else label.replace("_", " ").title()
+            description = _step_description(label, platform, ocr, keyword_action)
 
             steps.append(SOPStep(
                 number=i + 1,
