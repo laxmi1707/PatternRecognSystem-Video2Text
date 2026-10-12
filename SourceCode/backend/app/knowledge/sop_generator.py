@@ -60,13 +60,19 @@ class SOPStep:
 # Each tuple: (keyword_variants, action_description)
 # Variants include common Tesseract misreads of UI elements.
 _UI_KEYWORDS: list[tuple[list[str], str]] = [
-    # Eclipse perspective switching (Tesseract reads "Perspective" as "Penpecon"/"Perpectne")
-    (["perspective", "penpecon", "perpectne", "perspect", "open perspective", "close perspective",
-      "save perspective", "java perspective", "debug perspective"], "Switch IDE perspective"),
+    # Eclipse perspective switching
+    # Tesseract misreads: Penpecon, Perpectne  |  EasyOCR misreads: Patpece, Paupece, Panpece
+    (["perspective", "penpecon", "perpectne", "perspect",
+      "patpece", "paupece", "panpece", "penpece",
+      "open perspective", "close perspective", "save perspective",
+      "java perspective", "debug perspective"], "Switch IDE perspective"),
     # Eclipse / IDE detection
-    (["eclipse", "echpse", "eclipse ide", "eclipse-workspace"], "Navigate Eclipse IDE"),
+    # EasyOCR reads Eclipse as: Echpze, ccliosc, CCMosc, CCosc  |  Tesseract: Echpse
+    (["eclipse", "echpse", "echpze", "ccliosc", "ccmosc", "eclipse ide", "eclipse-workspace"], "Navigate Eclipse IDE"),
     # Debugger
-    (["breakpoint", "step over", "step into", "resume", "debug view", "debug perspective",
+    # EasyOCR reads Debug as: Dcbuq, Dcbug  |  Tesseract: mostly correct
+    (["breakpoint", "step over", "step into", "resume",
+      "debug view", "debug perspective", "dcbuq", "dcbug",
       "statements", "behaviour", "breviicn"], "Debug code"),
     # Terminal / shell
     (["terminal", "bash", "shell", "command prompt", "powershell"], "Execute terminal command"),
@@ -107,9 +113,13 @@ def _extract_keywords(ocr_text: str) -> str:
 
 # Known meaningful words that may appear in screen recordings
 _KNOWN_SCREEN_WORDS: set[str] = {
-    "eclipse", "echpse", "vscode", "intellij", "pycharm", "terminal", "bash",
-    "perspective", "penpecon", "perpectne", "debug", "java", "python", "window",
-    "navigate", "search", "project", "refactor", "source", "workspace",
+    # IDE names — exact and EasyOCR/Tesseract variants
+    "eclipse", "echpse", "echpze", "ccliosc", "ccmosc", "vscode", "intellij", "pycharm",
+    # UI actions — exact and OCR variants
+    "perspective", "penpecon", "perpectne", "patpece", "paupece", "panpece",
+    "debug", "dcbuq", "dcbug", "java", "python", "window",
+    "navigate", "navigetc", "navicttc", "search", "project", "projcct",
+    "refactor", "source", "workspace", "wcrkepacc", "terminal", "bash",
     "docker", "container", "commit", "branch", "merge", "push", "pull",
     "settings", "preferences", "appearance", "configure",
     "build", "compile", "maven", "gradle", "junit",
