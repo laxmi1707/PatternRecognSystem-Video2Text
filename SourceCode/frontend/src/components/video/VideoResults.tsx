@@ -41,11 +41,19 @@ export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
       {result.modelComparison.length > 0 && (
         <div style={{ marginBottom: 'var(--space-4, 1.5rem)' }}>
           <button
-            className="btn btn-secondary"
             onClick={() => setShowComparison(v => !v)}
-            style={{ fontSize: 13 }}
+            style={{
+              fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              padding: '8px 18px', borderRadius: 8, border: 'none',
+              background: showComparison
+                ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
+                : 'linear-gradient(135deg, #3b82f6, #6366f1)',
+              color: '#fff',
+              boxShadow: '0 2px 8px rgba(99,102,241,0.35)',
+              transition: 'opacity 0.15s',
+            }}
           >
-            {showComparison ? 'Hide Model Comparison' : `Show Model Comparison (${result.modelComparison.length} classifiers)`}
+            {showComparison ? '▲ Hide Model Comparison' : `▼ Show Model Comparison (${result.modelComparison.length} classifiers)`}
           </button>
           {showComparison && (
             <ModelComparison

@@ -74,27 +74,61 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
 
   return (
     <div className="knowledge-panel" style={{ marginTop: 'var(--space-6, 2rem)' }}>
-      <h6 style={{ color: 'var(--color-accent-700)', marginBottom: 'var(--space-2, 0.5rem)' }}>
+      <h6 style={{
+        fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+        color: '#EF7C00', marginBottom: 6,
+      }}>
         Knowledge Generation
       </h6>
-      <p className="text-muted" style={{ marginBottom: 'var(--space-3, 1rem)', fontSize: 14 }}>
+      <p style={{ marginBottom: 'var(--space-3, 1rem)', fontSize: 14, color: '#4b5563' }}>
         Generate structured documentation from the classified activities.
       </p>
 
-      <div style={{ display: 'flex', gap: 'var(--space-3, 1rem)', marginBottom: 'var(--space-4, 1.5rem)' }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 'var(--space-4, 1.5rem)', flexWrap: 'wrap' }}>
         <button
-          className="btn btn-secondary"
           onClick={generateSOP}
           disabled={loading !== null}
+          style={{
+            padding: '10px 20px',
+            borderRadius: 8,
+            border: 'none',
+            cursor: loading !== null ? 'wait' : 'pointer',
+            fontWeight: 700,
+            fontSize: 14,
+            background: loading === 'sop'
+              ? 'rgba(239,124,0,0.5)'
+              : 'linear-gradient(135deg, #EF7C00, #d46a00)',
+            color: '#fff',
+            boxShadow: '0 2px 8px rgba(239,124,0,0.35)',
+            transition: 'opacity 0.15s',
+            opacity: loading !== null && loading !== 'sop' ? 0.5 : 1,
+            display: 'flex', alignItems: 'center', gap: 7,
+          }}
         >
+          <span style={{ fontSize: 16 }}>📄</span>
           {loading === 'sop' ? 'Generating...' : sop ? 'Regenerate SOP' : 'Generate SOP'}
         </button>
         <button
-          className="btn btn-secondary"
           onClick={generateRunbook}
           disabled={loading !== null}
+          style={{
+            padding: '10px 20px',
+            borderRadius: 8,
+            border: '2px solid #EF7C00',
+            cursor: loading !== null ? 'wait' : 'pointer',
+            fontWeight: 700,
+            fontSize: 14,
+            background: loading === 'runbook'
+              ? 'rgba(239,124,0,0.15)'
+              : 'transparent',
+            color: '#EF7C00',
+            transition: 'opacity 0.15s, background 0.15s',
+            opacity: loading !== null && loading !== 'runbook' ? 0.5 : 1,
+            display: 'flex', alignItems: 'center', gap: 7,
+          }}
         >
-          {loading === 'runbook' ? 'Generating...' : 'Generate Runbook'}
+          <span style={{ fontSize: 16 }}>📋</span>
+          {loading === 'runbook' ? 'Generating...' : runbook ? 'Regenerate Runbook' : 'Generate Runbook'}
         </button>
       </div>
 
@@ -104,11 +138,14 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
 
       {sop && (
         <div className="knowledge-doc" style={{
-          background: 'var(--color-surface-50, #f9fafb)',
-          border: '1px solid var(--color-border, #e5e7eb)',
+          background: '#ffffff',
+          border: '1px solid #e5e7eb',
           borderRadius: 8,
           padding: 'var(--space-4, 1.5rem)',
           marginBottom: 'var(--space-4, 1.5rem)',
+          color: '#111827',
+          position: 'relative',
+          zIndex: 1,
         }}>
           <h3 style={{ marginTop: 0 }}>{sop.title}</h3>
           <p><strong>Purpose:</strong> {sop.purpose}</p>
@@ -137,10 +174,13 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
 
       {runbook && (
         <div className="knowledge-doc" style={{
-          background: 'var(--color-surface-50, #f9fafb)',
-          border: '1px solid var(--color-border, #e5e7eb)',
+          background: '#ffffff',
+          border: '1px solid #e5e7eb',
           borderRadius: 8,
           padding: 'var(--space-4, 1.5rem)',
+          color: '#111827',
+          position: 'relative',
+          zIndex: 1,
         }}>
           <h3 style={{ marginTop: 0 }}>{runbook.title}</h3>
           <p>{runbook.description}</p>

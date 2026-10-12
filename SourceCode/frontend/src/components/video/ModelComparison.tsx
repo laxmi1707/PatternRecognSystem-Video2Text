@@ -94,7 +94,7 @@ export function ModelComparison({ comparison, bestModel, allResults, onSelectMod
                   border: `2px solid ${isWinner ? TIER_COLORS[block.tier] : '#e5e7eb'}`,
                   borderRadius: 8,
                   padding: '8px 14px',
-                  background: isWinner ? `${TIER_COLORS[block.tier]}18` : 'var(--color-surface-50, #f9fafb)',
+                  background: isWinner ? `${TIER_COLORS[block.tier]}18` : 'rgba(255,255,255,0.06)',
                   minWidth: 140,
                   position: 'relative',
                 }}>
