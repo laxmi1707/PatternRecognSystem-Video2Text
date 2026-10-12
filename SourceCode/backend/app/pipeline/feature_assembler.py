@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
 import numpy as np
@@ -15,7 +16,17 @@ from app.pipeline.visual_features import VISUAL_FEATURE_DIM, VisualFeatureExtrac
 
 logger = logging.getLogger(__name__)
 
-_BASE_FEATURES = OCR_FEATURE_DIM + UI_FEATURE_DIM + VISUAL_FEATURE_DIM + INTERACTION_FEATURE_DIM
+# FEATURE_BACKEND="hog"  → v1: hand-crafted HOG/color features (default, production-ready)
+# FEATURE_BACKEND="cnn"  → v2: EfficientNet-B0 embeddings (higher accuracy, requires torchvision)
+FEATURE_BACKEND: str = os.environ.get("FEATURE_BACKEND", "hog").lower()
+
+if FEATURE_BACKEND == "cnn":
+    from app.pipeline.cnn_features import CNN_FEATURE_DIM
+    _VISUAL_DIM = CNN_FEATURE_DIM
+else:
+    _VISUAL_DIM = VISUAL_FEATURE_DIM
+
+_BASE_FEATURES = OCR_FEATURE_DIM + UI_FEATURE_DIM + _VISUAL_DIM + INTERACTION_FEATURE_DIM
 TOTAL_FEATURES = _BASE_FEATURES + 1  # +1 for has_action_log flag
 
 MODALITY_MAP: dict[str, tuple[int, int]] = {
@@ -23,16 +34,17 @@ MODALITY_MAP: dict[str, tuple[int, int]] = {
     "ui_elements": (OCR_FEATURE_DIM, OCR_FEATURE_DIM + UI_FEATURE_DIM),
     "visual": (
         OCR_FEATURE_DIM + UI_FEATURE_DIM,
-        OCR_FEATURE_DIM + UI_FEATURE_DIM + VISUAL_FEATURE_DIM,
+        OCR_FEATURE_DIM + UI_FEATURE_DIM + _VISUAL_DIM,
     ),
     "interaction": (
-        OCR_FEATURE_DIM + UI_FEATURE_DIM + VISUAL_FEATURE_DIM,
+        OCR_FEATURE_DIM + UI_FEATURE_DIM + _VISUAL_DIM,
         _BASE_FEATURES,
     ),
     # Index _BASE_FEATURES: 1.0 if action log present, 0.0 if absent.
-    # Lets models learn to discount zero interaction features at inference time.
     "has_action_log": (_BASE_FEATURES, TOTAL_FEATURES),
 }
+
+print(f"[FeatureAssembler] backend={FEATURE_BACKEND} TOTAL_FEATURES={TOTAL_FEATURES}", flush=True)
 
 _LABEL_TO_IDX = {label: i for i, label in enumerate(ACTIVITY_LABELS)}
 
@@ -53,6 +65,9 @@ class FeatureAssembler:
         self._vp = video_processor
         self._ocr_corpus: list[str] = []
         self._ocr_fitted = False
+        if FEATURE_BACKEND == "cnn":
+            from app.pipeline.cnn_features import CNNFeatureExtractor
+            self._cnn = CNNFeatureExtractor(use_gpu=isinstance(ocr._use_gpu, bool) and ocr._use_gpu)
 
     def extract_segment_features(self, segment: SegmentData) -> np.ndarray:
         features = np.zeros(TOTAL_FEATURES, dtype=np.float32)
@@ -84,7 +99,10 @@ class FeatureAssembler:
 
         start, end = MODALITY_MAP["visual"]
         if segment.keyframes:
-            visual_features = self._visual.extract_segment(segment.keyframes)
+            if FEATURE_BACKEND == "cnn":
+                visual_features = self._cnn.extract_segment(segment.keyframes)
+            else:
+                visual_features = self._visual.extract_segment(segment.keyframes)
             features[start:end] = visual_features
 
         start, end = MODALITY_MAP["interaction"]
