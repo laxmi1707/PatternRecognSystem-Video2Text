@@ -124,15 +124,10 @@ def _step_description(label: str, platform: str, ocr: str) -> str:
     else:
         base = _LABEL_DESCRIPTIONS.get(label, f"Perform {label.replace('_', ' ')} activity")
 
-    # Try to extract a meaningful action from OCR keywords
+    # Only enrich description when OCR contains a recognisable UI keyword
     keyword_action = _extract_keywords(ocr)
     if keyword_action:
         return f"{base}: {keyword_action}."
-
-    # Fall back to cleaned OCR words as context
-    cleaned = _clean_ocr(ocr)
-    if cleaned:
-        return f"{base}. Visible on screen: {cleaned}."
     return f"{base}."
 
 

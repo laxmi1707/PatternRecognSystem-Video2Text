@@ -143,8 +143,13 @@ async def generate_sop(job_id: int, db: AsyncSession = Depends(get_db)):
 
     action_log = _load_action_log(action_log_path)
 
-    task_instruction = action_log.get("task_instruction") or (
-        video.original_filename if video else f"Analysis job #{job_id}"
+    raw_filename = video.original_filename if video else ""
+    # "video.mp4" is the generic CUA dataset name — not useful as a title
+    generic_names = {"video.mp4", "video", "recording.mp4", "screen.mp4"}
+    task_instruction = (
+        action_log.get("task_instruction")
+        or (raw_filename if raw_filename and raw_filename.lower() not in generic_names else None)
+        or f"Screen Activity Analysis #{job_id}"
     )
     platform = action_log.get("platform") or "Screen Recording"
 
@@ -209,8 +214,12 @@ async def generate_runbook(job_id: int, db: AsyncSession = Depends(get_db)):
 
     action_log = _load_action_log(action_log_path)
 
-    task_instruction = action_log.get("task_instruction") or (
-        video.original_filename if video else f"Analysis job #{job_id}"
+    raw_filename = video.original_filename if video else ""
+    generic_names = {"video.mp4", "video", "recording.mp4", "screen.mp4"}
+    task_instruction = (
+        action_log.get("task_instruction")
+        or (raw_filename if raw_filename and raw_filename.lower() not in generic_names else None)
+        or f"Screen Activity Analysis #{job_id}"
     )
     platform = action_log.get("platform") or "Screen Recording"
 
