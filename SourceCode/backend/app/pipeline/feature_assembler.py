@@ -67,7 +67,10 @@ class FeatureAssembler:
         self._ocr_fitted = False
         if FEATURE_BACKEND == "cnn":
             from app.pipeline.cnn_features import CNNFeatureExtractor
-            self._cnn = CNNFeatureExtractor(use_gpu=isinstance(ocr._use_gpu, bool) and ocr._use_gpu)
+            import torch as _torch
+            _gpu = _torch.cuda.is_available()
+            self._cnn = CNNFeatureExtractor(use_gpu=_gpu)
+            print(f"[CNN] GPU available={_gpu}", flush=True)
 
     def extract_segment_features(self, segment: SegmentData) -> np.ndarray:
         features = np.zeros(TOTAL_FEATURES, dtype=np.float32)
