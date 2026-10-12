@@ -56,60 +56,83 @@ class SOPStep:
     detected_text: str = ""
 
 
-# Keywords that indicate meaningful UI actions — matched against OCR text
+# Keywords that indicate meaningful UI actions — matched against OCR text.
+# Each tuple: (keyword_variants, action_description)
+# Variants include common Tesseract misreads of UI elements.
 _UI_KEYWORDS: list[tuple[list[str], str]] = [
-    (["perspective", "java perspective", "debug perspective"], "Switch perspective"),
-    (["breakpoint", "debug", "step over", "step into", "resume"], "Debug code"),
-    (["install", "extension", "plugin", "marketplace"], "Install extension or plugin"),
-    (["terminal", "command", "shell", "bash", "run"], "Execute terminal command"),
-    (["git", "commit", "push", "pull", "branch", "merge"], "Perform Git operation"),
-    (["docker", "container", "image", "compose"], "Manage Docker container"),
-    (["settings", "preferences", "configure", "configuration"], "Configure settings"),
-    (["file", "open", "save", "new file", "create"], "Work with file"),
-    (["search", "find", "replace", "grep"], "Search or find in files"),
-    (["build", "compile", "run", "execute", "maven", "gradle"], "Build or run project"),
-    (["test", "junit", "pytest", "assert"], "Run tests"),
-    (["import", "export", "module", "package"], "Manage imports or packages"),
-    (["class", "method", "function", "interface"], "Edit code structure"),
-    (["aws", "s3", "ec2", "lambda", "iam"], "Manage AWS resources"),
-    (["kubectl", "pod", "deployment", "namespace"], "Manage Kubernetes resources"),
+    # Eclipse perspective switching (Tesseract reads "Perspective" as "Penpecon"/"Perpectne")
+    (["perspective", "penpecon", "perpectne", "perspect", "open perspective", "close perspective",
+      "save perspective", "java perspective", "debug perspective"], "Switch IDE perspective"),
+    # Eclipse / IDE detection
+    (["eclipse", "echpse", "eclipse ide", "eclipse-workspace"], "Navigate Eclipse IDE"),
+    # Debugger
+    (["breakpoint", "step over", "step into", "resume", "debug view", "debug perspective",
+      "statements", "behaviour", "breviicn"], "Debug code"),
+    # Terminal / shell
+    (["terminal", "bash", "shell", "command prompt", "powershell"], "Execute terminal command"),
+    # Git
+    (["commit", "push origin", "pull request", "git branch", "merge branch"], "Perform Git operation"),
+    # Docker
+    (["docker", "container", "compose", "dockerfile"], "Manage Docker container"),
+    # Settings / preferences
+    (["preferences", "settings", "configure", "configuration", "appeaance", "appearance"], "Configure settings"),
+    # File operations
+    (["save as", "new file", "open file", "close all"], "Work with files"),
+    # Search
+    (["find in files", "search project", "replace all"], "Search or replace in files"),
+    # Build / run
+    (["build project", "run as", "maven", "gradle", "compile"], "Build or run project"),
+    # Tests
+    (["junit", "pytest", "test suite", "test runner"], "Run tests"),
+    # AWS
+    (["aws console", "s3 bucket", "ec2 instance", "lambda", "iam"], "Manage AWS resources"),
+    # Kubernetes
+    (["kubectl", "kubernetes", "namespace", "deployment"], "Manage Kubernetes resources"),
+    # VS Code specific
+    (["vscode", "visual studio code", "code insiders", "extensions marketplace"], "Navigate VS Code"),
 ]
 
 
 def _extract_keywords(ocr_text: str) -> str:
-    """Extract meaningful UI action from OCR keywords."""
+    """Extract meaningful UI action from OCR keywords, tolerating Tesseract misreads."""
     if not ocr_text:
         return ""
     text_lower = ocr_text.lower()
     for keywords, action in _UI_KEYWORDS:
         for kw in keywords:
             if kw in text_lower:
-                # Find the actual matching text in OCR for context
-                words = re.findall(r"[A-Za-z][a-zA-Z0-9\s]{2,30}", ocr_text)
-                context = next((w.strip() for w in words if len(w.strip()) > 4), "")
-                if context and context.lower() != kw:
-                    return f"{action} ({context})"
                 return action
     return ""
 
 
+# Known meaningful words that may appear in screen recordings
+_KNOWN_SCREEN_WORDS: set[str] = {
+    "eclipse", "echpse", "vscode", "intellij", "pycharm", "terminal", "bash",
+    "perspective", "penpecon", "perpectne", "debug", "java", "python", "window",
+    "navigate", "search", "project", "refactor", "source", "workspace",
+    "docker", "container", "commit", "branch", "merge", "push", "pull",
+    "settings", "preferences", "appearance", "configure",
+    "build", "compile", "maven", "gradle", "junit",
+    "file", "save", "open", "close", "edit",
+    "statement", "behaviour", "projects",
+}
+
+
 def _clean_ocr(text: str) -> str:
-    """Extract meaningful words from Tesseract output — filter single chars and symbol noise."""
+    """Extract recognisable screen words from Tesseract output."""
     if not text:
         return ""
-    # Extract real English words (4+ chars) from the OCR dump
     words = re.findall(r"[A-Za-z]{4,}", text)
-    # Deduplicate while preserving order
     seen: set[str] = set()
     unique = []
     for w in words:
         wl = w.lower()
-        if wl not in seen:
+        if wl not in seen and wl in _KNOWN_SCREEN_WORDS:
             seen.add(wl)
             unique.append(w)
     if not unique:
         return ""
-    return " · ".join(unique[:8])  # max 8 meaningful words
+    return " · ".join(unique[:6])
 
 
 def _step_description(label: str, platform: str, ocr: str) -> str:
