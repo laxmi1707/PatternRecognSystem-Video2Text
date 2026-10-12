@@ -62,6 +62,26 @@ def _best_segments(results) -> list[dict]:
     return segs
 
 
+_ECLIPSE_OCR_KEYS = [
+    "eclipse", "echpse", "echpze", "ccliosc", "ccipre", "idipre",
+    "worecpece", "worerpace", "woricpoce", "worespece", "window help",
+]
+
+
+def _detect_platform(ocr_texts: list[str], fallback: str) -> str:
+    """Detect IDE/platform from OCR text; returns fallback if nothing recognised."""
+    if fallback != "Screen Recording":
+        return fallback
+    all_ocr = " ".join(ocr_texts).lower()
+    if any(kw in all_ocr for kw in _ECLIPSE_OCR_KEYS):
+        return "Eclipse IDE"
+    if any(kw in all_ocr for kw in ["vscode", "visual studio code"]):
+        return "VS Code"
+    if any(kw in all_ocr for kw in ["intellij", "pycharm"]):
+        return "IntelliJ / PyCharm"
+    return fallback
+
+
 def _load_action_log(action_log_path: str | None) -> dict:
     """Load action log JSON; return empty dict on failure."""
     if not action_log_path:
@@ -227,11 +247,15 @@ async def generate_runbook(job_id: int, db: AsyncSession = Depends(get_db)):
     segments = _best_segments(results)
     total_duration = segments[-1]["end_time"] - segments[0]["start_time"] if segments else 0
 
+    ocr_texts_rb = [seg.get("ocr_text", "").strip() for seg in segments]
+    detected_platform_rb = _detect_platform(ocr_texts_rb, platform)
+
     runbook = runbook_gen.generate_from_workflow(
         workflow_description=task_instruction,
-        platform=platform,
+        platform=detected_platform_rb,
         duration_seconds=total_duration,
         activity_sequence=segments,
+        ocr_texts=ocr_texts_rb,
     )
 
     return RunbookResponse(
