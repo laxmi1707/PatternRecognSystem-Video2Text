@@ -56,31 +56,64 @@ class SOPStep:
     detected_text: str = ""
 
 
+# Keywords that indicate meaningful UI actions — matched against OCR text
+_UI_KEYWORDS: list[tuple[list[str], str]] = [
+    (["perspective", "java perspective", "debug perspective"], "Switch perspective"),
+    (["breakpoint", "debug", "step over", "step into", "resume"], "Debug code"),
+    (["install", "extension", "plugin", "marketplace"], "Install extension or plugin"),
+    (["terminal", "command", "shell", "bash", "run"], "Execute terminal command"),
+    (["git", "commit", "push", "pull", "branch", "merge"], "Perform Git operation"),
+    (["docker", "container", "image", "compose"], "Manage Docker container"),
+    (["settings", "preferences", "configure", "configuration"], "Configure settings"),
+    (["file", "open", "save", "new file", "create"], "Work with file"),
+    (["search", "find", "replace", "grep"], "Search or find in files"),
+    (["build", "compile", "run", "execute", "maven", "gradle"], "Build or run project"),
+    (["test", "junit", "pytest", "assert"], "Run tests"),
+    (["import", "export", "module", "package"], "Manage imports or packages"),
+    (["class", "method", "function", "interface"], "Edit code structure"),
+    (["aws", "s3", "ec2", "lambda", "iam"], "Manage AWS resources"),
+    (["kubectl", "pod", "deployment", "namespace"], "Manage Kubernetes resources"),
+]
+
+
+def _extract_keywords(ocr_text: str) -> str:
+    """Extract meaningful UI action from OCR keywords."""
+    if not ocr_text:
+        return ""
+    text_lower = ocr_text.lower()
+    for keywords, action in _UI_KEYWORDS:
+        for kw in keywords:
+            if kw in text_lower:
+                # Find the actual matching text in OCR for context
+                words = re.findall(r"[A-Za-z][a-zA-Z0-9\s]{2,30}", ocr_text)
+                context = next((w.strip() for w in words if len(w.strip()) > 4), "")
+                if context and context.lower() != kw:
+                    return f"{action} ({context})"
+                return action
+    return ""
+
+
 def _clean_ocr(text: str) -> str:
-    """Remove Tesseract noise — keep only lines with enough real words."""
+    """Extract meaningful words from Tesseract output — filter single chars and symbol noise."""
     if not text:
         return ""
-    lines = []
-    for line in text.splitlines():
-        line = line.strip()
-        if len(line) < 3:
-            continue
-        # Count alphabetic words (length >= 2)
-        words = re.findall(r"[a-zA-Z]{2,}", line)
-        total_chars = len(re.sub(r"\s", "", line))
-        if not words:
-            continue
-        # Reject lines that are mostly symbols/numbers
-        alpha_ratio = sum(len(w) for w in words) / max(total_chars, 1)
-        if alpha_ratio < 0.35:
-            continue
-        lines.append(line)
-    cleaned = " · ".join(lines[:4])  # max 4 lines, joined with bullet separator
-    return cleaned[:200]
+    # Extract real English words (4+ chars) from the OCR dump
+    words = re.findall(r"[A-Za-z]{4,}", text)
+    # Deduplicate while preserving order
+    seen: set[str] = set()
+    unique = []
+    for w in words:
+        wl = w.lower()
+        if wl not in seen:
+            seen.add(wl)
+            unique.append(w)
+    if not unique:
+        return ""
+    return " · ".join(unique[:8])  # max 8 meaningful words
 
 
 def _step_description(label: str, platform: str, ocr: str) -> str:
-    """Build a meaningful step description from label + platform + cleaned OCR."""
+    """Build a meaningful step description from label + platform + OCR keywords."""
     plat_lower = platform.lower()
 
     # Try platform-specific verb first
@@ -91,8 +124,15 @@ def _step_description(label: str, platform: str, ocr: str) -> str:
     else:
         base = _LABEL_DESCRIPTIONS.get(label, f"Perform {label.replace('_', ' ')} activity")
 
-    if ocr:
-        return f"{base}. Screen shows: {ocr}"
+    # Try to extract a meaningful action from OCR keywords
+    keyword_action = _extract_keywords(ocr)
+    if keyword_action:
+        return f"{base}: {keyword_action}."
+
+    # Fall back to cleaned OCR words as context
+    cleaned = _clean_ocr(ocr)
+    if cleaned:
+        return f"{base}. Visible on screen: {cleaned}."
     return f"{base}."
 
 
