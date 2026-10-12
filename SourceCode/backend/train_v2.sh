@@ -21,8 +21,8 @@ echo "========================================"
 
 mkdir -p "$MODEL_DIR"
 
-FEATURE_BACKEND=cnn \
-  python -m app.train \
+FEATURE_BACKEND=cnn SKIP_OCR=1 \
+  python3 -m app.train \
     --dataset-root "$DATASET_ROOT" \
     --model-dir "$MODEL_DIR" \
     $EXTRA_ARGS \

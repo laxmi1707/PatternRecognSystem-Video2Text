@@ -90,7 +90,7 @@ class FeatureAssembler:
 
         start, end = MODALITY_MAP["ocr_text"]
         self._last_ocr_text: str = ""
-        if segment.keyframes:
+        if segment.keyframes and not os.environ.get("SKIP_OCR"):
             ocr_features, ocr_text = self._ocr.extract_segment(segment.keyframes)
             features[start:end] = ocr_features
             self._last_ocr_text = ocr_text
