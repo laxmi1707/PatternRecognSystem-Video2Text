@@ -35,6 +35,7 @@ def _extract_features(
             )
             return X, segments, True
         except Exception as e:
+            print(f"[OCR-DEBUG] Real feature extraction FAILED: {e}", flush=True)
             logger.warning(f"Real feature extraction failed, falling back to synthetic: {e}")
             X_full, _ = generate_synthetic_dataset(n_samples=100, n_features=TOTAL_FEATURES)
             duration = 50.0
@@ -163,10 +164,13 @@ def _extract_real_features(
     for seg in segments:
         feat = assembler.extract_segment_features(seg)
         features_list.append(feat)
+        ocr = getattr(assembler, "_last_ocr_text", "")
+        print(f"[OCR-DEBUG] Segment {seg.segment_index} [{seg.start_time:.1f}-{seg.end_time:.1f}s] "
+              f"keyframes={len(seg.keyframes)} ocr_len={len(ocr)} ocr={repr(ocr[:120])}", flush=True)
         segment_info.append({
             "start_time": seg.start_time,
             "end_time": seg.end_time,
-            "ocr_text": getattr(assembler, "_last_ocr_text", ""),
+            "ocr_text": ocr,
         })
 
     X = np.array(features_list)

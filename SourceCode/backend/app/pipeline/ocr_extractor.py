@@ -70,6 +70,7 @@ class OCRExtractor:
             return OCRResult(regions=regions, full_text=full_text, mean_confidence=mean_conf)
 
         except Exception as e:
+            print(f"[OCR-DEBUG] EasyOCR FAILED: {type(e).__name__}: {e}", flush=True)
             logger.warning(f"EasyOCR failed, trying Tesseract fallback: {e}")
             return self._tesseract_fallback(image)
 
@@ -131,14 +132,26 @@ class OCRExtractor:
         vec = self._tfidf.transform([text]).toarray()[0]
         return vec.astype(np.float32)
 
+    def _upscale_for_ocr(self, image: np.ndarray) -> np.ndarray:
+        """Upscale image to at least 1000px wide for reliable OCR on screen recordings."""
+        h, w = image.shape[:2]
+        if w < 1000:
+            scale = 1000 / w
+            new_w, new_h = int(w * scale), int(h * scale)
+            image = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_CUBIC)
+        return image
+
     def extract_segment(self, keyframes: list) -> tuple[np.ndarray, str]:
         all_text_parts: list[str] = []
         all_confidences: list[float] = []
 
         for kf in keyframes:
-            result = self.extract_with_fallback(kf.image)
+            # Upscale to full resolution before OCR — resized (640x480) frames produce noise
+            img = self._upscale_for_ocr(kf.image)
+            result = self.extract_with_fallback(img)
             if result.full_text:
                 all_text_parts.append(result.full_text)
+                print(f"[OCR-DEBUG] frame OCR len={len(result.full_text)} conf={result.mean_confidence:.2f} text={repr(result.full_text[:100])}", flush=True)
             all_confidences.extend(r.confidence for r in result.regions)
 
         combined_text = " ".join(all_text_parts)
