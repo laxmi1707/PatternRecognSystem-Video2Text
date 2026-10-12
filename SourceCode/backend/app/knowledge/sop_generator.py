@@ -297,7 +297,10 @@ class SOPGenerator:
         keyword_actions = [_extract_keywords(o) for o in merged_raw_ocr if o]
         dominant_action = max(set(keyword_actions), key=keyword_actions.count) if keyword_actions else ""
         if dominant_action:
-            purpose = f"Step-by-step procedure to perform: {dominant_action} on {detected_platform}."
+            if detected_platform.lower() in dominant_action.lower():
+                purpose = f"Step-by-step procedure to perform: {dominant_action}."
+            else:
+                purpose = f"Step-by-step procedure to perform: {dominant_action} on {detected_platform}."
         else:
             label_counts: dict[str, int] = {}
             for s in merged_segs:
