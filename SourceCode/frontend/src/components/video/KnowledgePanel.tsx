@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { apiPost } from '../../services/api/client';
 
 interface SOPStep {
@@ -44,6 +44,8 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
   const [loading, setLoading] = useState<'sop' | 'runbook' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => { generateSOP(); }, [jobId]);
+
   async function generateSOP() {
     setLoading('sop');
     setError(null);
@@ -85,7 +87,7 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
           onClick={generateSOP}
           disabled={loading !== null}
         >
-          {loading === 'sop' ? 'Generating...' : 'Generate SOP'}
+          {loading === 'sop' ? 'Generating...' : sop ? 'Regenerate SOP' : 'Generate SOP'}
         </button>
         <button
           className="btn btn-secondary"
