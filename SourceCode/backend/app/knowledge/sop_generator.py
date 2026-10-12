@@ -230,45 +230,73 @@ class SOPGenerator:
 
         # 3. Build steps
         steps: list[SOPStep] = []
+        # Collect all raw OCR texts for prerequisite detection (before merging)
+        all_raw_ocr = " ".join(ocr_texts).lower()
+
         for i, (seg, ocr) in enumerate(zip(merged_segs, merged_ocr)):
             label = seg.get("predicted_label", "other")
-            label_title = label.replace("_", " ").title()
             start = seg.get("start_time", 0)
             end = seg.get("end_time", 0)
+
+            # Use OCR keyword action as step title when available — more accurate than model label
+            keyword_action = _extract_keywords(ocr)
+            if keyword_action:
+                step_title = keyword_action
+            else:
+                # Fall back to model label only when OCR gives no signal
+                step_title = label.replace("_", " ").title()
+
             description = _step_description(label, platform, ocr)
 
             steps.append(SOPStep(
                 number=i + 1,
-                title=label_title,
+                title=step_title,
                 description=description,
                 time_range=f"{start:.1f}s - {end:.1f}s",
                 detected_text=ocr,
             ))
 
-        # 4. Build prerequisites from platform + detected activities
+        # 4. Prerequisites driven by OCR content (more reliable than model labels on F1=0.29)
         activity_labels = {s.get("predicted_label", "") for s in segments}
         prerequisites = [f"Access to {platform}"]
-        if "terminal_ops" in activity_labels:
+        # Only add tool-specific prerequisites when OCR actually shows those tools
+        if any(kw in all_raw_ocr for kw in ["terminal", "bash", "shell", "wcrkepacc"]):
             prerequisites.append("Terminal or shell access")
-        if "git_operations" in activity_labels:
+        if any(kw in all_raw_ocr for kw in ["commit", "push", "branch", "merge", "git"]):
             prerequisites.append("Git installed and repository cloned")
-        if "docker_workflow" in activity_labels:
+        if any(kw in all_raw_ocr for kw in ["docker", "container", "compose"]):
             prerequisites.append("Docker installed and running")
-        if "aws_console" in activity_labels:
+        if any(kw in all_raw_ocr for kw in ["aws", "s3", "ec2", "lambda", "iam"]):
             prerequisites.append("AWS account with appropriate IAM permissions")
         prerequisites.append("Required permissions and credentials")
 
-        # 5. Dominant activity for outcome sentence
-        label_counts: dict[str, int] = {}
-        for s in merged_segs:
-            lbl = s.get("predicted_label", "other")
-            label_counts[lbl] = label_counts.get(lbl, 0) + 1
-        dominant = max(label_counts, key=label_counts.__getitem__) if label_counts else "other"
-        dominant_desc = _LABEL_DESCRIPTIONS.get(dominant, "complete the task").lower()
+        # 5. Purpose — prefer OCR-detected platform over "Screen Recording"
+        detected_platform = platform
+        if platform == "Screen Recording":
+            if any(kw in all_raw_ocr for kw in ["eclipse", "echpse", "echpze", "ccliosc"]):
+                detected_platform = "Eclipse IDE"
+            elif any(kw in all_raw_ocr for kw in ["vscode", "visual studio code"]):
+                detected_platform = "VS Code"
+            elif any(kw in all_raw_ocr for kw in ["intellij", "pycharm"]):
+                detected_platform = "IntelliJ / PyCharm"
+
+        # Use most frequent OCR keyword action as the purpose verb
+        keyword_actions = [_extract_keywords(o) for o in merged_ocr if o]
+        dominant_action = max(set(keyword_actions), key=keyword_actions.count) if keyword_actions else ""
+        if dominant_action:
+            purpose = f"Step-by-step procedure to perform: {dominant_action} on {detected_platform}."
+        else:
+            label_counts: dict[str, int] = {}
+            for s in merged_segs:
+                lbl = s.get("predicted_label", "other")
+                label_counts[lbl] = label_counts.get(lbl, 0) + 1
+            dominant = max(label_counts, key=label_counts.__getitem__) if label_counts else "other"
+            dominant_desc = _LABEL_DESCRIPTIONS.get(dominant, "complete the task").lower()
+            purpose = f"Step-by-step procedure to {dominant_desc} on {detected_platform}."
 
         return SOPDocument(
             title=f"SOP: {task_instruction}",
-            purpose=f"Step-by-step procedure to {dominant_desc} on {platform}.",
+            purpose=purpose,
             prerequisites=prerequisites,
             steps=steps,
             expected_outcome=f"Successfully completed: {task_instruction}",
