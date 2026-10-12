@@ -224,50 +224,26 @@ class SOPGenerator:
         if not ocr_texts:
             ocr_texts = [""] * len(segments)
 
-        # 1. Clean OCR text for each segment
-        cleaned_ocr = [_clean_ocr(t) for t in ocr_texts]
-
-        # 2. Merge consecutive same-label segments
-        merged_segs, merged_ocr = _merge_consecutive_segments(segments, cleaned_ocr)
-
-        # 3. Build steps
-        steps: list[SOPStep] = []
-        # Collect all raw OCR texts for prerequisite detection (before merging)
+        # 1. Collect raw OCR for whole-document keyword/platform detection
         all_raw_ocr = " ".join(ocr_texts).lower()
 
-        for i, (seg, ocr) in enumerate(zip(merged_segs, merged_ocr)):
-            label = seg.get("predicted_label", "other")
-            start = seg.get("start_time", 0)
-            end = seg.get("end_time", 0)
+        # 2. Clean OCR text for each segment (for display only)
+        cleaned_ocr = [_clean_ocr(t) for t in ocr_texts]
 
-            # Use OCR keyword action as step title — more accurate than model label (F1=0.29)
-            keyword_action = _extract_keywords(ocr)
-            step_title = keyword_action if keyword_action else label.replace("_", " ").title()
-            description = _step_description(label, platform, ocr, keyword_action)
+        # 3. Merge consecutive same-label segments
+        merged_segs, merged_ocr = _merge_consecutive_segments(segments, cleaned_ocr)
+        # Keep raw OCR per merged segment for keyword matching (cleaned loses multi-word phrases)
+        merged_raw_ocr: list[str] = []
+        n = len(segments)
+        i_raw = 0
+        for seg in merged_segs:
+            parts = []
+            while i_raw < n and segments[i_raw].get("start_time", 0) < seg.get("end_time", 9999):
+                parts.append(ocr_texts[i_raw])
+                i_raw += 1
+            merged_raw_ocr.append(" ".join(parts))
 
-            steps.append(SOPStep(
-                number=i + 1,
-                title=step_title,
-                description=description,
-                time_range=f"{start:.1f}s - {end:.1f}s",
-                detected_text=ocr,
-            ))
-
-        # 4. Prerequisites driven by OCR content (more reliable than model labels on F1=0.29)
-        activity_labels = {s.get("predicted_label", "") for s in segments}
-        prerequisites = [f"Access to {platform}"]
-        # Only add tool-specific prerequisites when OCR actually shows those tools
-        if any(kw in all_raw_ocr for kw in ["terminal", "bash", "shell", "wcrkepacc"]):
-            prerequisites.append("Terminal or shell access")
-        if any(kw in all_raw_ocr for kw in ["commit", "push", "branch", "merge", "git"]):
-            prerequisites.append("Git installed and repository cloned")
-        if any(kw in all_raw_ocr for kw in ["docker", "container", "compose"]):
-            prerequisites.append("Docker installed and running")
-        if any(kw in all_raw_ocr for kw in ["aws", "s3", "ec2", "lambda", "iam"]):
-            prerequisites.append("AWS account with appropriate IAM permissions")
-        prerequisites.append("Required permissions and credentials")
-
-        # 5. Purpose — prefer OCR-detected platform over "Screen Recording"
+        # 4. Detect platform from OCR (overrides "Screen Recording" fallback)
         detected_platform = platform
         if platform == "Screen Recording":
             if any(kw in all_raw_ocr for kw in [
@@ -280,8 +256,42 @@ class SOPGenerator:
             elif any(kw in all_raw_ocr for kw in ["intellij", "pycharm"]):
                 detected_platform = "IntelliJ / PyCharm"
 
-        # Use most frequent OCR keyword action as the purpose verb
-        keyword_actions = [_extract_keywords(o) for o in merged_ocr if o]
+        # 5. Build steps
+        steps: list[SOPStep] = []
+        for i, (seg, raw_ocr) in enumerate(zip(merged_segs, merged_raw_ocr)):
+            label = seg.get("predicted_label", "other")
+            start = seg.get("start_time", 0)
+            end = seg.get("end_time", 0)
+
+            # Run keyword matching on RAW ocr (multi-word phrases intact, not split by · )
+            keyword_action = _extract_keywords(raw_ocr)
+            step_title = keyword_action if keyword_action else label.replace("_", " ").title()
+            description = _step_description(label, detected_platform, raw_ocr, keyword_action)
+
+            steps.append(SOPStep(
+                number=i + 1,
+                title=step_title,
+                description=description,
+                time_range=f"{start:.1f}s - {end:.1f}s",
+                detected_text=ocr,
+            ))
+
+        # 4. Prerequisites driven by OCR content (more reliable than model labels on F1=0.29)
+        activity_labels = {s.get("predicted_label", "") for s in segments}
+        prerequisites = [f"Access to {detected_platform}"]
+        # Only add tool-specific prerequisites when OCR actually shows those tools
+        if any(kw in all_raw_ocr for kw in ["terminal", "bash", "shell", "wcrkepacc"]):
+            prerequisites.append("Terminal or shell access")
+        if any(kw in all_raw_ocr for kw in ["commit", "push", "branch", "merge", "git"]):
+            prerequisites.append("Git installed and repository cloned")
+        if any(kw in all_raw_ocr for kw in ["docker", "container", "compose"]):
+            prerequisites.append("Docker installed and running")
+        if any(kw in all_raw_ocr for kw in ["aws", "s3", "ec2", "lambda", "iam"]):
+            prerequisites.append("AWS account with appropriate IAM permissions")
+        prerequisites.append("Required permissions and credentials")
+
+        # 6. Purpose — use detected_platform and most frequent OCR keyword action
+        keyword_actions = [_extract_keywords(o) for o in merged_raw_ocr if o]
         dominant_action = max(set(keyword_actions), key=keyword_actions.count) if keyword_actions else ""
         if dominant_action:
             purpose = f"Step-by-step procedure to perform: {dominant_action} on {detected_platform}."
