@@ -11,6 +11,7 @@ interface VideoResultsProps {
 
 export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
   const [selectedModel, setSelectedModel] = useState<string | null>(result.bestModel);
+  const [showComparison, setShowComparison] = useState(false);
 
   const displaySteps =
     selectedModel && result.allResults[selectedModel]
@@ -38,13 +39,24 @@ export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
       <p className="results-summary">{result.summary}</p>
 
       {result.modelComparison.length > 0 && (
-        <ModelComparison
-          comparison={result.modelComparison}
-          bestModel={result.bestModel}
-          allResults={result.allResults}
-          onSelectModel={setSelectedModel}
-          selectedModel={selectedModel}
-        />
+        <div style={{ marginBottom: 'var(--space-4, 1.5rem)' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowComparison(v => !v)}
+            style={{ fontSize: 13 }}
+          >
+            {showComparison ? 'Hide Model Comparison' : `Show Model Comparison (${result.modelComparison.length} classifiers)`}
+          </button>
+          {showComparison && (
+            <ModelComparison
+              comparison={result.modelComparison}
+              bestModel={result.bestModel}
+              allResults={result.allResults}
+              onSelectModel={setSelectedModel}
+              selectedModel={selectedModel}
+            />
+          )}
+        </div>
       )}
 
       <div className="results-grid">
