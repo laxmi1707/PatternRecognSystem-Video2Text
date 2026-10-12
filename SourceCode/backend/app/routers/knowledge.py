@@ -133,7 +133,15 @@ async def generate_sop(job_id: int, db: AsyncSession = Depends(get_db)):
     # Load video metadata for task context
     video_result = await db.execute(select(Video).where(Video.id == job.video_id))
     video = video_result.scalar_one_or_none()
-    action_log = _load_action_log(video.action_log_path if video else None)
+
+    # Auto-detect action_log.json next to the video file (dataset videos have one)
+    action_log_path = video.action_log_path if video else None
+    if not action_log_path and video and video.file_path:
+        candidate = Path(video.file_path).parent / "action_log.json"
+        if candidate.exists():
+            action_log_path = str(candidate)
+
+    action_log = _load_action_log(action_log_path)
 
     task_instruction = action_log.get("task_instruction") or (
         video.original_filename if video else f"Analysis job #{job_id}"
@@ -192,7 +200,14 @@ async def generate_runbook(job_id: int, db: AsyncSession = Depends(get_db)):
     # Load video metadata
     video_result = await db.execute(select(Video).where(Video.id == job.video_id))
     video = video_result.scalar_one_or_none()
-    action_log = _load_action_log(video.action_log_path if video else None)
+
+    action_log_path = video.action_log_path if video else None
+    if not action_log_path and video and video.file_path:
+        candidate = Path(video.file_path).parent / "action_log.json"
+        if candidate.exists():
+            action_log_path = str(candidate)
+
+    action_log = _load_action_log(action_log_path)
 
     task_instruction = action_log.get("task_instruction") or (
         video.original_filename if video else f"Analysis job #{job_id}"

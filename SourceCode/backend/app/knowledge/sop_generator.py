@@ -1,11 +1,39 @@
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 
-from app.knowledge.templates import SOP_SYSTEM_PROMPT, SOP_USER_TEMPLATE
-
 logger = logging.getLogger(__name__)
+
+# Human-readable descriptions for each activity label
+_LABEL_DESCRIPTIONS: dict[str, str] = {
+    "coding_editing":   "Edit code or configuration files in the IDE",
+    "web_browsing":     "Browse the web or search for information",
+    "terminal_ops":     "Execute commands in the terminal or shell",
+    "system_config":    "Configure system settings or application preferences",
+    "debugging":        "Debug code using breakpoints or the debugger",
+    "git_operations":   "Perform version control operations with Git",
+    "docker_workflow":  "Build, run, or manage Docker containers",
+    "aws_console":      "Manage cloud resources in the AWS console",
+    "kubernetes_ops":   "Manage Kubernetes clusters or deployments",
+    "terraform_iac":    "Provision infrastructure using Terraform",
+    "jenkins_ci_cd":    "Configure or trigger CI/CD pipelines",
+    "documentation":    "Write or update documentation",
+    "other":            "Perform general screen activity",
+}
+
+# Platform-specific action verbs for more natural step descriptions
+_PLATFORM_VERBS: dict[str, dict[str, str]] = {
+    "eclipse":          {"coding_editing": "Edit code in Eclipse IDE", "debugging": "Use Eclipse debugger"},
+    "visual studio code": {"coding_editing": "Edit code in VS Code", "debugging": "Debug in VS Code"},
+    "vscode":           {"coding_editing": "Edit code in VS Code", "debugging": "Debug in VS Code"},
+    "intellij":         {"coding_editing": "Edit code in IntelliJ IDEA", "debugging": "Debug in IntelliJ IDEA"},
+    "pycharm":          {"coding_editing": "Edit Python code in PyCharm", "debugging": "Debug in PyCharm"},
+    "terminal":         {"terminal_ops": "Run commands in the terminal"},
+    "firefox":          {"web_browsing": "Browse using Firefox"},
+    "chrome":           {"web_browsing": "Browse using Chrome"},
+}
 
 
 @dataclass
@@ -28,6 +56,81 @@ class SOPStep:
     detected_text: str = ""
 
 
+def _clean_ocr(text: str) -> str:
+    """Remove Tesseract noise — keep only lines with enough real words."""
+    if not text:
+        return ""
+    lines = []
+    for line in text.splitlines():
+        line = line.strip()
+        if len(line) < 3:
+            continue
+        # Count alphabetic words (length >= 2)
+        words = re.findall(r"[a-zA-Z]{2,}", line)
+        total_chars = len(re.sub(r"\s", "", line))
+        if not words:
+            continue
+        # Reject lines that are mostly symbols/numbers
+        alpha_ratio = sum(len(w) for w in words) / max(total_chars, 1)
+        if alpha_ratio < 0.35:
+            continue
+        lines.append(line)
+    cleaned = " · ".join(lines[:4])  # max 4 lines, joined with bullet separator
+    return cleaned[:200]
+
+
+def _step_description(label: str, platform: str, ocr: str) -> str:
+    """Build a meaningful step description from label + platform + cleaned OCR."""
+    plat_lower = platform.lower()
+
+    # Try platform-specific verb first
+    for plat_key, verbs in _PLATFORM_VERBS.items():
+        if plat_key in plat_lower and label in verbs:
+            base = verbs[label]
+            break
+    else:
+        base = _LABEL_DESCRIPTIONS.get(label, f"Perform {label.replace('_', ' ')} activity")
+
+    if ocr:
+        return f"{base}. Screen shows: {ocr}"
+    return f"{base}."
+
+
+def _merge_consecutive_segments(
+    segments: list[dict],
+    ocr_texts: list[str],
+) -> tuple[list[dict], list[str]]:
+    """Merge consecutive segments with the same activity label into one step."""
+    if not segments:
+        return [], []
+
+    merged_segs: list[dict] = []
+    merged_ocr: list[str] = []
+
+    cur = dict(segments[0])
+    cur_ocr_parts = [ocr_texts[0]] if ocr_texts else [""]
+
+    for i in range(1, len(segments)):
+        seg = segments[i]
+        ocr = ocr_texts[i] if i < len(ocr_texts) else ""
+        if seg["predicted_label"] == cur["predicted_label"]:
+            # Extend current segment
+            cur["end_time"] = seg["end_time"]
+            cur["confidence"] = max(cur["confidence"], seg.get("confidence", 0))
+            if ocr and ocr not in cur_ocr_parts:
+                cur_ocr_parts.append(ocr)
+        else:
+            merged_segs.append(cur)
+            merged_ocr.append(" · ".join(p for p in cur_ocr_parts if p)[:200])
+            cur = dict(seg)
+            cur_ocr_parts = [ocr]
+
+    merged_segs.append(cur)
+    merged_ocr.append(" · ".join(p for p in cur_ocr_parts if p)[:200])
+
+    return merged_segs, merged_ocr
+
+
 class SOPGenerator:
     def __init__(self, llm_client=None):
         self._llm = llm_client
@@ -39,43 +142,7 @@ class SOPGenerator:
         segments: list[dict],
         ocr_texts: list[str] | None = None,
     ) -> SOPDocument:
-        if self._llm:
-            return self._generate_with_llm(task_instruction, platform, segments, ocr_texts)
         return self._generate_rule_based(task_instruction, platform, segments, ocr_texts)
-
-    def _generate_with_llm(
-        self,
-        task_instruction: str,
-        platform: str,
-        segments: list[dict],
-        ocr_texts: list[str] | None,
-    ) -> SOPDocument:
-        segments_text = "\n".join(
-            f"{i+1}. [{s.get('start_time', 0):.1f}s - {s.get('end_time', 0):.1f}s] "
-            f"{s.get('predicted_label', 'unknown')} (confidence: {s.get('confidence', 0):.2f})"
-            for i, s in enumerate(segments)
-        )
-        ocr_text = "\n".join(ocr_texts) if ocr_texts else "No OCR text available"
-
-        prompt = SOP_USER_TEMPLATE.format(
-            task_instruction=task_instruction,
-            platform=platform,
-            segments=segments_text,
-            ocr_text=ocr_text,
-        )
-
-        try:
-            response = self._llm.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=2000,
-                system=SOP_SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            raw = response.content[0].text
-            return self._parse_llm_response(raw, task_instruction, platform, segments)
-        except Exception as e:
-            logger.warning(f"LLM generation failed, falling back to rule-based: {e}")
-            return self._generate_rule_based(task_instruction, platform, segments, ocr_texts)
 
     def _generate_rule_based(
         self,
@@ -84,57 +151,62 @@ class SOPGenerator:
         segments: list[dict],
         ocr_texts: list[str] | None,
     ) -> SOPDocument:
+        if not ocr_texts:
+            ocr_texts = [""] * len(segments)
+
+        # 1. Clean OCR text for each segment
+        cleaned_ocr = [_clean_ocr(t) for t in ocr_texts]
+
+        # 2. Merge consecutive same-label segments
+        merged_segs, merged_ocr = _merge_consecutive_segments(segments, cleaned_ocr)
+
+        # 3. Build steps
         steps: list[SOPStep] = []
-        for i, seg in enumerate(segments):
-            label = seg.get("predicted_label", "unknown").replace("_", " ").title()
+        for i, (seg, ocr) in enumerate(zip(merged_segs, merged_ocr)):
+            label = seg.get("predicted_label", "other")
+            label_title = label.replace("_", " ").title()
             start = seg.get("start_time", 0)
             end = seg.get("end_time", 0)
-            ocr = ocr_texts[i] if ocr_texts and i < len(ocr_texts) else ""
+            description = _step_description(label, platform, ocr)
 
-            if ocr:
-                description = f"{ocr[:120]}"
-            else:
-                description = f"Perform {label.lower()} activity on {platform}."
+            steps.append(SOPStep(
+                number=i + 1,
+                title=label_title,
+                description=description,
+                time_range=f"{start:.1f}s - {end:.1f}s",
+                detected_text=ocr,
+            ))
 
-            steps.append(
-                SOPStep(
-                    number=i + 1,
-                    title=label,
-                    description=description,
-                    time_range=f"{start:.1f}s - {end:.1f}s",
-                    detected_text=ocr,
-                )
-            )
+        # 4. Build prerequisites from platform + detected activities
+        activity_labels = {s.get("predicted_label", "") for s in segments}
+        prerequisites = [f"Access to {platform}"]
+        if "terminal_ops" in activity_labels:
+            prerequisites.append("Terminal or shell access")
+        if "git_operations" in activity_labels:
+            prerequisites.append("Git installed and repository cloned")
+        if "docker_workflow" in activity_labels:
+            prerequisites.append("Docker installed and running")
+        if "aws_console" in activity_labels:
+            prerequisites.append("AWS account with appropriate IAM permissions")
+        prerequisites.append("Required permissions and credentials")
+
+        # 5. Dominant activity for outcome sentence
+        label_counts: dict[str, int] = {}
+        for s in merged_segs:
+            lbl = s.get("predicted_label", "other")
+            label_counts[lbl] = label_counts.get(lbl, 0) + 1
+        dominant = max(label_counts, key=label_counts.__getitem__) if label_counts else "other"
+        dominant_desc = _LABEL_DESCRIPTIONS.get(dominant, "complete the task").lower()
 
         return SOPDocument(
             title=f"SOP: {task_instruction}",
-            purpose=f"Step-by-step procedure for: {task_instruction} on {platform}.",
-            prerequisites=[f"Access to {platform}", "Required permissions and credentials"],
+            purpose=f"Step-by-step procedure to {dominant_desc} on {platform}.",
+            prerequisites=prerequisites,
             steps=steps,
             expected_outcome=f"Successfully completed: {task_instruction}",
             troubleshooting=[
                 "Verify all prerequisites are met",
                 "Check application version compatibility",
-                "Review error messages in the console/log",
+                "Review error messages in the console or log output",
             ],
-        )
-
-    def _parse_llm_response(
-        self, raw: str, task_instruction: str, platform: str, segments: list[dict]
-    ) -> SOPDocument:
-        return SOPDocument(
-            title=f"SOP: {task_instruction}",
-            purpose=f"Generated procedure for {task_instruction} on {platform}.",
-            prerequisites=[f"Access to {platform}"],
-            steps=[
-                SOPStep(
-                    number=i + 1,
-                    title=seg.get("predicted_label", "unknown").replace("_", " ").title(),
-                    description="",
-                    time_range=f"{seg.get('start_time', 0):.1f}s - {seg.get('end_time', 0):.1f}s",
-                )
-                for i, seg in enumerate(segments)
-            ],
-            expected_outcome=f"Completed: {task_instruction}",
-            raw_text=raw,
         )
