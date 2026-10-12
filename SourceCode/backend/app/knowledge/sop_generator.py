@@ -160,6 +160,9 @@ def _step_description(label: str, platform: str, ocr: str, keyword_action: str =
         for plat_key, verbs in _PLATFORM_VERBS.items():
             if plat_key in plat_lower and label in verbs:
                 return f"{verbs[label]}."
+        # Avoid "Navigate Eclipse IDE on Eclipse IDE" when action already names the platform
+        if platform.lower() in keyword_action.lower():
+            return f"{keyword_action}."
         return f"{keyword_action} on {platform}."
     # Fall back to model label description only when OCR gives no signal
     base = _LABEL_DESCRIPTIONS.get(label, f"Perform {label.replace('_', ' ')} activity")
@@ -273,7 +276,7 @@ class SOPGenerator:
                 title=step_title,
                 description=description,
                 time_range=f"{start:.1f}s - {end:.1f}s",
-                detected_text=ocr,
+                detected_text=raw_ocr,
             ))
 
         # 4. Prerequisites driven by OCR content (more reliable than model labels on F1=0.29)
