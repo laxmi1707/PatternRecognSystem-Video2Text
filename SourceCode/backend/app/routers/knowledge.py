@@ -79,6 +79,12 @@ def _detect_platform(ocr_texts: list[str], fallback: str) -> str:
         return "VS Code"
     if any(kw in all_ocr for kw in ["intellij", "pycharm"]):
         return "IntelliJ / PyCharm"
+    if any(kw in all_ocr for kw in ["parallels", "ubuntu", "bash", "terminal", "gnome-terminal", "konsole", "zsh", "$ ", "% "]):
+        return "Bash Terminal"
+    if any(kw in all_ocr for kw in ["powershell", "cmd.exe", "windows terminal", "c:\\", "ps c:\\"]):
+        return "PowerShell / CMD"
+    if any(kw in all_ocr for kw in ["docker", "kubectl", "helm"]):
+        return "Terminal"
     return fallback
 
 
