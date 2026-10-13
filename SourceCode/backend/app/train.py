@@ -183,8 +183,14 @@ def main() -> None:
         logger.info(f"Augmenting training data ({X_train.shape[0]} → ~{X_train.shape[0] * 6} samples)")
         X_train, y_train = augment_features(X_train, y_train, n_augmented=5)
 
-    # 4. Initialize ML service (all models registered at startup)
+    # 4. Initialize ML service — re-register with actual class count from data
     from app.services.ml_service import ml_service
+    import numpy as _np
+    actual_nc = int(_np.max(y_train)) + 1
+    if actual_nc != ml_service._config.num_classes:
+        logger.info(f"Re-registering models with actual num_classes={actual_nc} (config had {ml_service._config.num_classes})")
+        ml_service._registry = type(ml_service._registry)()
+        ml_service._register_all(num_classes=actual_nc)
 
     logger.info(f"Registered {len(ml_service.list_models())} models (all tiers)")
 

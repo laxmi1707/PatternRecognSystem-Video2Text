@@ -38,13 +38,13 @@ class MLService:
         self._register_all()
         self._try_load_models()
 
-    def _register_all(self) -> None:
+    def _register_all(self, num_classes: int | None = None) -> None:
         from app.ml.classifiers.tier2 import MLPClassifier, CNN1DClassifier, LSTMClassifier, TransformerClassifier
         from app.ml.classifiers.tier2.workflow_lstm import WorkflowLSTMClassifier
         from app.ml.classifiers.tier2.workflow_transformer import WorkflowTransformerClassifier
         from app.ml.classifiers.tier3 import VotingClassifier, StackingClassifier, LateFusionClassifier
 
-        nc = self._config.num_classes
+        nc = num_classes if num_classes is not None else self._config.num_classes
         nf = self._config.n_features
 
         mlp = MLPClassifier(num_classes=nc)
