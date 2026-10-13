@@ -33,7 +33,7 @@ export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
             {displayLabel && <> &middot; Viewing: <strong>{displayLabel}</strong></>}
           </p>
         </div>
-        <button className="btn btn-secondary" onClick={onAnalyzeAnother}>Analyze another video</button>
+        <button className="btn btn-secondary" onClick={onAnalyzeAnother} style={{background:'linear-gradient(135deg,#EF7C00,#d46a00)',color:'#fff',border:'none',fontWeight:600}}>Analyze another video</button>
       </div>
 
       <p className="results-summary">{result.summary}</p>
