@@ -65,7 +65,7 @@ class MLService:
             # Tier 3 — Ensemble / multimodal fusion (RQ2: fusion vs individual modalities)
             VotingClassifier(estimators=[svm, rf, mlp], voting="soft"),
             StackingClassifier(base_estimators=[svm, rf, mlp]),
-            LateFusionClassifier(branches=[svm, rf]),
+            LateFusionClassifier(branches=[SVMClassifier(), RandomForestClassifier()]),
             #
             # ── Level 3: Workflow Recognition ─────────────────────────────────────
             # Recognises SEQUENCES of Level 2 activity predictions to identify

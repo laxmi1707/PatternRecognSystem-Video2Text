@@ -105,9 +105,9 @@ class WorkflowLSTMClassifier(BaseClassifier):
         )
 
         classes, counts = torch.unique(y_t, return_counts=True)
-        weights = torch.ones(n_classes, device=self._device)
+        weights = torch.ones(self._num_classes, device=self._device)
         for c, cnt in zip(classes.tolist(), counts.tolist()):
-            weights[c] = len(y_t) / (n_classes * cnt)
+            weights[c] = len(y_t) / (self._num_classes * cnt)
 
         optimizer = torch.optim.Adam(self._model.parameters(), lr=self._lr)
         criterion = nn.CrossEntropyLoss(weight=weights)

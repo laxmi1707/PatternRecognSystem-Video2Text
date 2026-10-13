@@ -4,14 +4,12 @@ import numpy as np
 from sklearn.naive_bayes import GaussianNB
 
 from app.ml.base import BaseClassifier, PredictionResult
-from app.ml.config import NUM_CLASSES
 
 
 class NaiveBayesClassifier(BaseClassifier):
 
     def __init__(self) -> None:
-        # Uniform priors prevent majority-class bias from imbalanced training data
-        self._model = GaussianNB(priors=[1.0 / NUM_CLASSES] * NUM_CLASSES)
+        self._model = GaussianNB()
 
     @property
     def name(self) -> str:
@@ -22,6 +20,8 @@ class NaiveBayesClassifier(BaseClassifier):
         return "tier1"
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
+        n = len(np.unique(y))
+        self._model.set_params(priors=[1.0 / n] * n)
         self._model.fit(X, y)
 
     def predict(self, X: np.ndarray) -> PredictionResult:
