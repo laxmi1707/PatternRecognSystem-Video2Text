@@ -1,0 +1,653 @@
+{
+  "min_len": 3,
+  "threshold": 0.5,
+  "table": [
+    {
+      "variant": "predicted",
+      "threshold": 0.3,
+      "emitted": 2627,
+      "precision": 0.49828701941377995,
+      "recall": 0.31893491124260354
+    },
+    {
+      "variant": "predicted",
+      "threshold": 0.5,
+      "emitted": 1847,
+      "precision": 0.5912290200324851,
+      "recall": 0.28106508875739644
+    },
+    {
+      "variant": "oracle",
+      "threshold": 0.3,
+      "emitted": 2595,
+      "precision": 0.5013487475915221,
+      "recall": 0.31597633136094677
+    },
+    {
+      "variant": "oracle",
+      "threshold": 0.5,
+      "emitted": 1814,
+      "precision": 0.5931642778390298,
+      "recall": 0.2757396449704142
+    },
+    {
+      "variant": "no_routing",
+      "threshold": 0.3,
+      "emitted": 825,
+      "precision": 0.6084848484848485,
+      "recall": 0.142603550295858
+    },
+    {
+      "variant": "no_routing",
+      "threshold": 0.5,
+      "emitted": 478,
+      "precision": 0.7217573221757322,
+      "recall": 0.10295857988165681
+    }
+  ],
+  "ceiling": {
+    "emitted": 515941,
+    "precision": 0.01074735289500156,
+    "recall": 0.9005917159763314
+  },
+  "per_app": [
+    {
+      "app": "Ubuntu Terminal",
+      "targets": 106,
+      "emitted": 155,
+      "correct": 127,
+      "precision": 0.8193548387096774,
+      "recall": 0.7169811320754716
+    },
+    {
+      "app": "Bash",
+      "targets": 78,
+      "emitted": 108,
+      "correct": 80,
+      "precision": 0.7407407407407407,
+      "recall": 0.6666666666666666
+    },
+    {
+      "app": "OnlyOffice Spreadsheet",
+      "targets": 59,
+      "emitted": 68,
+      "correct": 55,
+      "precision": 0.8088235294117647,
+      "recall": 0.6440677966101694
+    },
+    {
+      "app": "Chromium",
+      "targets": 40,
+      "emitted": 245,
+      "correct": 211,
+      "precision": 0.8612244897959184,
+      "recall": 0.9
+    },
+    {
+      "app": "Bitwarden",
+      "targets": 91,
+      "emitted": 61,
+      "correct": 37,
+      "precision": 0.6065573770491803,
+      "recall": 0.38461538461538464
+    },
+    {
+      "app": "DuckDuckGo",
+      "targets": 52,
+      "emitted": 221,
+      "correct": 142,
+      "precision": 0.6425339366515838,
+      "recall": 0.6153846153846154
+    },
+    {
+      "app": "Zotero",
+      "targets": 59,
+      "emitted": 36,
+      "correct": 29,
+      "precision": 0.8055555555555556,
+      "recall": 0.4915254237288136
+    },
+    {
+      "app": "Lemmy",
+      "targets": 48,
+      "emitted": 210,
+      "correct": 136,
+      "precision": 0.6476190476190476,
+      "recall": 0.4375
+    },
+    {
+      "app": "Frappe Books",
+      "targets": 122,
+      "emitted": 115,
+      "correct": 57,
+      "precision": 0.4956521739130435,
+      "recall": 0.16393442622950818
+    },
+    {
+      "app": "Anki",
+      "targets": 100,
+      "emitted": 35,
+      "correct": 18,
+      "precision": 0.5142857142857142,
+      "recall": 0.18
+    },
+    {
+      "app": "Veusz",
+      "targets": 27,
+      "emitted": 89,
+      "correct": 51,
+      "precision": 0.5730337078651685,
+      "recall": 0.6666666666666666
+    },
+    {
+      "app": "LibreOffice Calc",
+      "targets": 60,
+      "emitted": 41,
+      "correct": 26,
+      "precision": 0.6341463414634146,
+      "recall": 0.25
+    },
+    {
+      "app": "LibreOffice Writer",
+      "targets": 46,
+      "emitted": 17,
+      "correct": 14,
+      "precision": 0.8235294117647058,
+      "recall": 0.2391304347826087
+    },
+    {
+      "app": "Cryptomator",
+      "targets": 28,
+      "emitted": 19,
+      "correct": 13,
+      "precision": 0.6842105263157895,
+      "recall": 0.32142857142857145
+    },
+    {
+      "app": "OnlyOffice PDF Forms",
+      "targets": 50,
+      "emitted": 23,
+      "correct": 13,
+      "precision": 0.5652173913043478,
+      "recall": 0.18
+    },
+    {
+      "app": "Shotcut",
+      "targets": 33,
+      "emitted": 28,
+      "correct": 10,
+      "precision": 0.35714285714285715,
+      "recall": 0.2727272727272727
+    },
+    {
+      "app": "Zulip",
+      "targets": 54,
+      "emitted": 10,
+      "correct": 6,
+      "precision": 0.6,
+      "recall": 0.1111111111111111
+    },
+    {
+      "app": "GnuCash",
+      "targets": 25,
+      "emitted": 28,
+      "correct": 14,
+      "precision": 0.5,
+      "recall": 0.2
+    },
+    {
+      "app": "Atom",
+      "targets": 15,
+      "emitted": 15,
+      "correct": 8,
+      "precision": 0.5333333333333333,
+      "recall": 0.26666666666666666
+    },
+    {
+      "app": "Bluefish",
+      "targets": 34,
+      "emitted": 24,
+      "correct": 6,
+      "precision": 0.25,
+      "recall": 0.11764705882352941
+    },
+    {
+      "app": "GNU Octave",
+      "targets": 19,
+      "emitted": 17,
+      "correct": 5,
+      "precision": 0.29411764705882354,
+      "recall": 0.21052631578947367
+    },
+    {
+      "app": "WeKan",
+      "targets": 37,
+      "emitted": 25,
+      "correct": 4,
+      "precision": 0.16,
+      "recall": 0.10810810810810811
+    },
+    {
+      "app": "Brackets",
+      "targets": 29,
+      "emitted": 32,
+      "correct": 7,
+      "precision": 0.21875,
+      "recall": 0.10344827586206896
+    },
+    {
+      "app": "Affine",
+      "targets": 27,
+      "emitted": 8,
+      "correct": 2,
+      "precision": 0.25,
+      "recall": 0.07407407407407407
+    },
+    {
+      "app": "IntelliJ IDEA",
+      "targets": 6,
+      "emitted": 10,
+      "correct": 2,
+      "precision": 0.2,
+      "recall": 0.3333333333333333
+    },
+    {
+      "app": "OpenShot",
+      "targets": 6,
+      "emitted": 7,
+      "correct": 5,
+      "precision": 0.7142857142857143,
+      "recall": 0.3333333333333333
+    },
+    {
+      "app": "Spyder",
+      "targets": 15,
+      "emitted": 8,
+      "correct": 3,
+      "precision": 0.375,
+      "recall": 0.13333333333333333
+    },
+    {
+      "app": "Arduino IDE",
+      "targets": 10,
+      "emitted": 5,
+      "correct": 2,
+      "precision": 0.4,
+      "recall": 0.1
+    },
+    {
+      "app": "Eclipse",
+      "targets": 9,
+      "emitted": 10,
+      "correct": 1,
+      "precision": 0.1,
+      "recall": 0.1111111111111111
+    },
+    {
+      "app": "FreeCAD",
+      "targets": 8,
+      "emitted": 3,
+      "correct": 1,
+      "precision": 0.3333333333333333,
+      "recall": 0.125
+    },
+    {
+      "app": "Gedit",
+      "targets": 16,
+      "emitted": 6,
+      "correct": 2,
+      "precision": 0.3333333333333333,
+      "recall": 0.0625
+    },
+    {
+      "app": "Krita",
+      "targets": 8,
+      "emitted": 5,
+      "correct": 1,
+      "precision": 0.2,
+      "recall": 0.125
+    },
+    {
+      "app": "Matrix",
+      "targets": 27,
+      "emitted": 12,
+      "correct": 1,
+      "precision": 0.08333333333333333,
+      "recall": 0.037037037037037035
+    },
+    {
+      "app": "OnlyOffice Calendar",
+      "targets": 24,
+      "emitted": 9,
+      "correct": 1,
+      "precision": 0.1111111111111111,
+      "recall": 0.041666666666666664
+    },
+    {
+      "app": "VSCode",
+      "targets": 23,
+      "emitted": 10,
+      "correct": 1,
+      "precision": 0.1,
+      "recall": 0.043478260869565216
+    },
+    {
+      "app": "WordPress",
+      "targets": 28,
+      "emitted": 10,
+      "correct": 1,
+      "precision": 0.1,
+      "recall": 0.03571428571428571
+    },
+    {
+      "app": "7-Zip",
+      "targets": 4,
+      "emitted": 6,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "Audacity",
+      "targets": 4,
+      "emitted": 0,
+      "correct": 0,
+      "precision": null,
+      "recall": 0.0
+    },
+    {
+      "app": "Blender",
+      "targets": 2,
+      "emitted": 0,
+      "correct": 0,
+      "precision": null,
+      "recall": 0.0
+    },
+    {
+      "app": "Code__Blocks",
+      "targets": 8,
+      "emitted": 1,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "Geany",
+      "targets": 7,
+      "emitted": 5,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "Inkscape",
+      "targets": 5,
+      "emitted": 0,
+      "correct": 0,
+      "precision": null,
+      "recall": 0.0
+    },
+    {
+      "app": "Jitsi",
+      "targets": 10,
+      "emitted": 3,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "KDevelop",
+      "targets": 7,
+      "emitted": 8,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "Komodo Edit",
+      "targets": 3,
+      "emitted": 24,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "LibreOffice Draw",
+      "targets": 7,
+      "emitted": 1,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "LibreOffice Impress",
+      "targets": 15,
+      "emitted": 1,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "Metabase",
+      "targets": 13,
+      "emitted": 6,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "Mozilla Firefox",
+      "targets": 21,
+      "emitted": 3,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "MuseScore",
+      "targets": 9,
+      "emitted": 0,
+      "correct": 0,
+      "precision": null,
+      "recall": 0.0
+    },
+    {
+      "app": "NetBeans",
+      "targets": 5,
+      "emitted": 1,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "OnlyOffice Document Editor",
+      "targets": 36,
+      "emitted": 24,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "OnlyOffice Presentation",
+      "targets": 13,
+      "emitted": 2,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "OpenBoard",
+      "targets": 4,
+      "emitted": 1,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "OpenProject",
+      "targets": 17,
+      "emitted": 18,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "OpenToonz",
+      "targets": 4,
+      "emitted": 1,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "PyCharm",
+      "targets": 10,
+      "emitted": 2,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "QGIS",
+      "targets": 9,
+      "emitted": 5,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "Scribus",
+      "targets": 19,
+      "emitted": 1,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "Signal",
+      "targets": 16,
+      "emitted": 2,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "app": "draw.io",
+      "targets": 23,
+      "emitted": 7,
+      "correct": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    }
+  ],
+  "rankers_per_fold": [
+    60,
+    59,
+    57,
+    58,
+    59
+  ],
+  "n_candidates": 515941,
+  "n_recordings": 6716,
+  "n_apps": 61,
+  "n_targets": 1690,
+  "n_logged_all": 2085,
+  "stage1": {
+    "raw": 0.8762694893434416,
+    "normalised": 0.9449291946788728,
+    "n": 6991,
+    "raw_labels": 107,
+    "canonical_labels": 70
+  },
+  "length_profile": [
+    {
+      "band": "0",
+      "count": 31,
+      "share": 0.01486810551558753
+    },
+    {
+      "band": "1",
+      "count": 155,
+      "share": 0.07434052757793765
+    },
+    {
+      "band": "2",
+      "count": 209,
+      "share": 0.10023980815347722
+    },
+    {
+      "band": "3",
+      "count": 132,
+      "share": 0.06330935251798561
+    },
+    {
+      "band": "4-5",
+      "count": 402,
+      "share": 0.19280575539568345
+    },
+    {
+      "band": "6-9",
+      "count": 447,
+      "share": 0.2143884892086331
+    },
+    {
+      "band": "10+",
+      "count": 709,
+      "share": 0.34004796163069545
+    }
+  ],
+  "importance": [
+    [
+      "x_norm",
+      2090
+    ],
+    [
+      "y_norm",
+      1913
+    ],
+    [
+      "final_len",
+      1105
+    ],
+    [
+      "frac_alpha",
+      842
+    ],
+    [
+      "conf_mean",
+      823
+    ],
+    [
+      "conf_min",
+      640
+    ],
+    [
+      "frames_growing",
+      596
+    ],
+    [
+      "frac_digit",
+      416
+    ],
+    [
+      "n_words",
+      309
+    ],
+    [
+      "growth",
+      148
+    ],
+    [
+      "after_prompt",
+      94
+    ],
+    [
+      "distinct_states",
+      24
+    ],
+    [
+      "screen_life",
+      0
+    ]
+  ]
+}

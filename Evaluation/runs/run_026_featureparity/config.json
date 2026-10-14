@@ -1,0 +1,28 @@
+{
+  "created": "2026-09-29 19:50",
+  "apps": "all cached",
+  "labels": "keyword",
+  "features": [
+    "main150",
+    "native150"
+  ],
+  "models": [
+    "stacking",
+    "xgboost",
+    "lightgbm",
+    "random_forest"
+  ],
+  "folds": 5,
+  "min_tasks": 2,
+  "augment": 0,
+  "balance": "none",
+  "sample_tasks": "all",
+  "tasks_available": 6991,
+  "level": "task",
+  "seed": 42,
+  "backend_snapshot": "main-d866716",
+  "backend_commit": "d86671666ba687ad6b798d17b6249b5c5b6a571b",
+  "frame_cache": "C:\\Users\\joshua.y.NUSSTF\\Desktop\\v2k-training\\cache\\frames_v1_main-d866716",
+  "n_tasks": 6991,
+  "n_segments": 6991
+}

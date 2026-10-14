@@ -1,0 +1,9 @@
+true \ predicted,aws_console,coding_editing,debugging,docker_workflow,documentation,git_operations,kubernetes_ops,other
+aws_console,0,30,0,0,0,0,0,11
+coding_editing,1,1717,0,5,4,0,0,859
+debugging,0,7,2,0,0,0,0,16
+docker_workflow,0,36,0,52,0,0,0,126
+documentation,0,35,0,1,6,0,0,150
+git_operations,0,28,0,1,0,0,0,31
+kubernetes_ops,0,1,0,0,0,0,0,4
+other,0,411,0,20,6,0,0,3431

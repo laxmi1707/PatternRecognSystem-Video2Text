@@ -1,0 +1,8 @@
+feature_set,model,tier,macro_f1,macro_f1_fold_sd,balanced_accuracy,segment_accuracy,task_accuracy,fit_seconds,predict_ms_per_segment,error
+native150,majority,baseline,0.0902,0.0058,0.125,0.5641,0.5533,0.0,0.0,
+native150,svm,tier1,0.2138,0.0187,0.2069,0.7278,0.7369,80.845,1.7289,
+native150,random_forest,tier1,0.2583,0.0381,0.2324,0.7342,0.7434,0.833,0.0115,
+native150,xgboost,tier1,0.2624,0.03,0.2392,0.7303,0.7369,2.358,0.0023,
+native150,lightgbm,tier1,0.2439,0.0379,0.2359,0.7112,0.7276,1.346,0.0069,
+native150,mlp,tier2,0.2752,0.0263,0.2464,0.7201,0.7315,14.789,0.0003,
+native150,stacking,tier3,0.2884,0.0391,0.2599,0.7012,0.7182,142.73,2.0888,

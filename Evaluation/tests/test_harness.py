@@ -98,6 +98,33 @@ def test_sampling_keeps_whole_recordings_and_every_class():
     assert set(kept_y) == set(y)
 
 
+def test_sequences_keep_time_order_and_never_mix_recordings():
+    from v2k.sequence import segments_by_task, to_sequences
+
+    table, labels = _table(n_tasks=6, segs_per_task=3)
+    rows, _, _ = select(table, labels, min_tasks=2)
+    # Hand the rows over shuffled: the builder must sort by segment index itself,
+    # or a recording's timeline arrives scrambled and the model sees noise.
+    rng = np.random.RandomState(7)
+    rows = rows[rng.permutation(len(rows))]
+
+    by_task = segments_by_task(table, rows)
+    tasks = sorted(by_task)
+    # One dimension carrying the segment index, so order is checkable after packing.
+    X = np.array([[float(table.segment_index[r])] for r in rows], dtype=np.float32)
+    seq = to_sequences(X, by_task, tasks, max_segments=5)
+
+    assert seq.shape == (6, 5)
+    for i, t in enumerate(tasks):
+        assert list(seq[i, :3]) == [0.0, 1.0, 2.0], "segments arrived out of order"
+        assert list(seq[i, 3:]) == [0.0, 0.0], "the tail past the last segment must be padding"
+    # A recording's row must be built from its own segments only.
+    X2 = np.array([[float(table.task_id[r]) + 1] for r in rows], dtype=np.float32)
+    seq2 = to_sequences(X2, by_task, tasks, max_segments=5)
+    for i, t in enumerate(tasks):
+        assert set(seq2[i, :3]) == {float(t) + 1}
+
+
 def test_merging_joins_only_neighbours_and_keeps_every_step():
     from v2k.sop import Section, Step, merge_adjacent
 

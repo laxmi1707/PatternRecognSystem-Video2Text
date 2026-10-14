@@ -85,6 +85,18 @@ def _parser() -> argparse.ArgumentParser:
     tu.add_argument("--name", default="tuned")
     tu.add_argument("--threads", type=int, default=MAX_THREADS)
 
+    sq = sub.add_parser("sequence", help="the two unregistered models that read a recording's segments in order")
+    sq.add_argument("--apps", nargs="*")
+    sq.add_argument("--labels", default="keyword", help="keyword | app | csv:PATH")
+    sq.add_argument("--features", default="native150")
+    sq.add_argument("--models", nargs="+", default=["workflow_lstm", "workflow_transformer"])
+    sq.add_argument("--folds", type=int, default=5)
+    sq.add_argument("--min-tasks", type=int, default=2)
+    sq.add_argument("--max-segments", type=int, default=20,
+                    help="timesteps per recording; the models default to 20 and p100 here is 20")
+    sq.add_argument("--name", default="sequence")
+    sq.add_argument("--threads", type=int, default=MAX_THREADS)
+
     pr = sub.add_parser("predict", help="step B: classify a recording with a saved bundle")
     pr.add_argument("--bundle", type=Path, required=True)
     pr.add_argument("--video", type=Path, required=True)
@@ -194,6 +206,14 @@ def main(argv: list[str] | None = None) -> None:
             apps = [safe_name(a) for a in args.apps] if args.apps else None
             prepare(apps, args.labels, args.features, args.models, args.folds, args.min_tasks,
                     args.augment, args.level, args.balance, args.name, 42, args.split)
+
+    elif args.cmd == "sequence":
+        from v2k.download import safe_name
+        from v2k.sequence import run as run_sequence
+
+        apps = [safe_name(a) for a in args.apps] if args.apps else None
+        run_sequence(apps, args.labels, args.features, args.models, args.folds,
+                     args.min_tasks, args.max_segments, args.name)
 
     elif args.cmd == "predict":
         import torch

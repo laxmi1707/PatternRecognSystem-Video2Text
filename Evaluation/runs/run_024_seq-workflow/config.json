@@ -1,0 +1,25 @@
+{
+  "created": "2026-09-28 12:25",
+  "stage": "sequence - are the segments' order worth anything",
+  "labels": "csv:labels/labels_v3.csv",
+  "feature_set": "native150",
+  "models": [
+    "workflow_lstm",
+    "workflow_transformer"
+  ],
+  "folds": 5,
+  "min_tasks": 10,
+  "max_segments": 20,
+  "feature_dim": 150,
+  "seed": 42,
+  "n_tasks": 6991,
+  "n_segments": 23256,
+  "n_classes": 14,
+  "dropped_classes": {},
+  "segments_per_recording": {
+    "median": 3.0,
+    "p90": 6.0,
+    "max": 20,
+    "padded_fraction": 0.834
+  }
+}

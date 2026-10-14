@@ -106,7 +106,7 @@ python -m v2k tune --collect --run-dir runs/<run>
 .venv/Scripts/python.exe tests/test_harness.py
 ```
 
-12 tests. Several exist only to catch leakage: one fails if a fold ever splits a
+13 tests. Several exist only to catch leakage: one fails if a fold ever splits a
 recording, one if a test task's own token reaches the TF-IDF vocabulary, one if
 the scaler sees a test row. The oversampling test asserts no synthetic point is
 invented, and the sampling test asserts whole recordings are kept.
@@ -117,7 +117,7 @@ invented, and the sampling test asserts whole recordings are kept.
 |---|---|
 | `report/` | the evaluation report, Markdown and Word |
 | `v2k/` | the harness: one module per stage |
-| `tests/` | 12 tests, mostly leakage guards |
+| `tests/` | 13 tests, mostly leakage guards |
 | `labels/` | the three label sets and the taxonomy each was derived with |
 | `runs/` | one folder per run: settings, scores, predictions, confusion matrices |
 | `scripts/` | the shell drivers that chain the stages unattended |
