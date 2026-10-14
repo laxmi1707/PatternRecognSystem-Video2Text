@@ -20,3 +20,6 @@ logs/
 
 # Personal notes and unsent drafts stay out of the shared repo
 ~$*
+
+# The SOP detector's fitted rankers sit at the run root, not under models/
+runs/*/*.joblib

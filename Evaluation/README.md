@@ -13,6 +13,52 @@ This directory imports the backend's own feature extractors and classifier
 classes rather than reimplementing them, so the scores describe `SourceCode/backend`
 as it stands. Nothing under `SourceCode/` is modified by anything here.
 
+## Bare-video SOP detector
+
+`v2k/sop.py` writes an SOP by reading `action_log.json`, which a user uploading a
+recording does not have. `v2k/sop_detector.py` reads only the frames:
+
+1. **Stage 1** names the application with run_029's best classifier
+   (OCR + UI + visual + CNN, MLP).
+2. **Stage 2** tracks OCR regions by screen position and keeps any whose text
+   extends between keyframes, which is a field being typed into. The ranker for
+   the application stage 1 named scores each candidate, and repeated reads of one
+   string are merged into a single "Type ..." step.
+
+Out of fold over the 61 applications with at least five logged typed strings
+(6,716 recordings, 1,690 typed strings of three or more characters), threshold 0.5:
+
+| | precision | recall |
+|---|---|---|
+| **routed by stage 1, as delivered** | **38.1%** | **26.6%** |
+| routed by the true application | 37.8% | 26.2% |
+| one pooled ranker, no routing | 53.4% | 9.8% |
+
+Stage 1 is 94.49% correct once application labels are normalised; the dataset
+spells 70 applications 107 ways (`ATOM`/`Atom`, `krtia`), which costs 6.87 points
+when scored on raw strings. 90.1% of typed strings are present among the
+candidates, so the ranker, not extraction, is where recall is lost. Only typing is
+recovered: it is 4.3% of logged actions, and clicks (41.3%) are not detected, so a
+task done entirely by clicking yields an empty SOP.
+
+"As delivered" means repeated reads are merged and scoring is one-to-one, so a
+duplicate is a false positive and a string typed twice needs two steps. Crediting
+every copy instead gives 59.1% / 28.1%; `runs/run_032_sop-detector/report.md` has
+both. A picture of the mechanism and every result: `viz/sop_detector_viz_v1.html`.
+
+```
+python -m v2k.sop_detector train                      # cache, evaluate out of fold, fit, save
+python -m v2k.sop_detector detect --bundle runs/<run>/sop_detector.joblib \
+    --video path/to/recording.mp4 --out sop.md        # a bare video, nothing else read
+python -m v2k.sop_detector detect --bundle runs/<run>/sop_detector.joblib --cached Bash 111478
+python viz/build_sop_viz_v1.py runs/<run> viz/<page>.html
+```
+
+`train` needs the frame cache and run_029's saved stage-1 bundle, neither of which
+is committed. The fitted rankers (`sop_detector.joblib`, 15 MB) and out-of-fold
+scores (`oof_scores.npz`) stay local; the scores the numbers above come from are
+in `results.json`.
+
 ## What is committed and what is not
 
 Committed: the harness code, the label sets, the run configurations, and every
@@ -76,6 +122,7 @@ invented, and the sampling test asserts whole recordings are kept.
 | `runs/` | one folder per run: settings, scores, predictions, confusion matrices |
 | `scripts/` | the shell drivers that chain the stages unattended |
 | `examples/` | three generated SOPs (one pair shows the effect of merging repeated step headings), and the encoding-bug reproduction script |
+| `viz/` | the SOP detector's visual explainer, its template, and the script that fills it from a run folder |
 
 ## Commands
 
@@ -87,7 +134,8 @@ invented, and the sampling test asserts whole recordings are kept.
 | `train` | cross-validate the 14 classifiers, write a run folder |
 | `tune` | grid-search the hyperparameters the backend's classes accept |
 | `predict` | classify one recording with a saved bundle |
-| `sop` | step-by-step procedure with timestamps for one cached recording |
+| `sop` | step-by-step procedure with timestamps for one cached recording, read from its action log |
+| `v2k.sop_detector` | the same from frames alone; run as `python -m v2k.sop_detector` (see above) |
 | `taxonomy` | propose a label set from the instructions, write a labels CSV |
 | `survey` | label coverage and extraction cost of a dataset folder |
 | `parity` | check the cache reproduces the backend's live vectors |
