@@ -507,8 +507,16 @@ def ranker_matrix(X, lex, ts, ctx) -> np.ndarray:
 # ------------------------------------------------------------- rankers
 
 def _fit_app(X, y):
+    """One application's ranker. Kept conservative because some applications have
+    only a few dozen positives: shallower trees, larger leaves, row and feature
+    subsampling. Against the earlier defaults (200 trees, 31 leaves) this raised
+    precision in all five folds, by 0.7 to 4.2 points, while recall moved by -0.9
+    to +1.5 (run_036). The settings were fixed before scoring, not tuned on test
+    folds."""
     import lightgbm as lgb
-    return lgb.LGBMClassifier(n_estimators=200, learning_rate=0.05, verbose=-1,
+    return lgb.LGBMClassifier(n_estimators=300, learning_rate=0.03, num_leaves=15,
+                              min_child_samples=40, subsample=0.8, subsample_freq=1,
+                              colsample_bytree=0.8, reg_lambda=1.0, verbose=-1,
                               n_jobs=8).fit(X, y)
 
 
