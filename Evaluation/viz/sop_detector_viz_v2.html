@@ -1,0 +1,771 @@
+<title>Bare-Video SOP Detector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a 720px reading column; figures widen to 1000px; the flow diagram scrolls sideways on phones. */
+:root {
+  --bg: #f3f5f7;
+  --surface: #fcfcfb;
+  --ink: #0d1117;
+  --ink-2: #4a5260;
+  --muted: #737b87;
+  --grid: #e2e5e9;
+  --axis: #c3c8cf;
+  --line: rgba(13, 17, 23, 0.10);
+  --accent: #2a78d6;
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --quiet-mark: #b4bac3;
+  --ramp-1: #86b6ef;
+  --ramp-2: #3987e5;
+  --ramp-3: #1c5cab;
+  --scr-bg: #ffffff;
+  --scr-edge: #cfd5dc;
+  --scr-ink: #1f2630;
+  --scr-dim: #8a929d;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1013; --surface: #1a1a19; --ink: #f1f3f5; --ink-2: #c3c8cf; --muted: #929aa5;
+    --grid: #2b2e33; --axis: #3b3f46; --line: rgba(255, 255, 255, 0.10);
+    --accent: #3987e5; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --quiet-mark: #5a616b;
+    --ramp-1: #184f95; --ramp-2: #2a78d6; --ramp-3: #6da7ec;
+    --scr-bg: #1f2329; --scr-edge: #3a4048; --scr-ink: #e4e8ee; --scr-dim: #8b939e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1013; --surface: #1a1a19; --ink: #f1f3f5; --ink-2: #c3c8cf; --muted: #929aa5;
+  --grid: #2b2e33; --axis: #3b3f46; --line: rgba(255, 255, 255, 0.10);
+  --accent: #3987e5; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --quiet-mark: #5a616b;
+  --ramp-1: #184f95; --ramp-2: #2a78d6; --ramp-3: #6da7ec;
+  --scr-bg: #1f2329; --scr-edge: #3a4048; --scr-ink: #e4e8ee; --scr-dim: #8b939e;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 16px/1.6 var(--font-body);
+  padding-inline: 16px;
+  padding-block: 0 64px;
+}
+.wrap { max-width: 1000px; margin-inline: auto; }
+.col { max-width: 720px; }
+h1, h2 { font-family: var(--font-display); text-wrap: balance; margin: 0; color: var(--ink); }
+h1 { font-size: clamp(34px, 6vw, 48px); line-height: 1.04; font-weight: 700; letter-spacing: -0.015em; }
+h2 { font-size: clamp(24px, 3.4vw, 30px); line-height: 1.15; font-weight: 600; letter-spacing: -0.005em; }
+h3 { font: 600 17px/1.35 var(--font-body); margin: 0; text-wrap: balance; }
+p { margin: 0; }
+p + p { margin-top: 12px; }
+code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+.eyebrow { font: 500 12px/1.4 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 18px; line-height: 1.55; color: var(--ink-2); margin-top: 16px; }
+.small { font-size: 13px; line-height: 1.5; color: var(--muted); }
+
+header.masthead { padding-block: 56px 32px; display: grid; gap: 4px; }
+header.masthead h1 { margin-top: 10px; }
+
+.figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 32px 0 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.figures > div { padding: 16px 16px 16px 0; min-width: 0; }
+.figures > div + div { padding-left: 16px; border-left: 1px solid var(--line); }
+.figures dt { font-size: 13px; line-height: 1.35; color: var(--ink-2); }
+.figures dd { margin: 6px 0 2px; font: 600 32px/1.1 var(--font-body); color: var(--ink); }
+.figures .sub { font-size: 12.5px; color: var(--muted); }
+@media (max-width: 720px) {
+  .figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .figures > div:nth-child(3) { border-left: 0; padding-left: 0; }
+  .figures > div:nth-child(n+3) { border-top: 1px solid var(--line); }
+}
+
+section { padding-block: 40px 8px; display: grid; gap: 16px; }
+section > h2 + p, section > .col > p:first-child { margin-top: 2px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 14px; min-width: 0; }
+.card-head { display: grid; gap: 4px; }
+.card-head p { color: var(--ink-2); font-size: 14.5px; line-height: 1.5; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 860px) { .grid-2 { grid-template-columns: minmax(0, 1fr); } }
+.source { font: 400 12px/1.45 var(--font-mono); color: var(--muted); }
+
+/* legend */
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.key { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
+.key.dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* charts */
+.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { font-family: var(--font-body); }
+.tick { fill: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.axis-title { fill: var(--ink-2); font-size: 12.5px; }
+.lbl { fill: var(--ink); font-size: 12.5px; }
+.lbl-2 { fill: var(--ink-2); font-size: 12px; }
+.lbl-mono { fill: var(--ink); font: 12.5px var(--font-mono); }
+.gridline { stroke: var(--grid); stroke-width: 1; }
+.baseline { stroke: var(--axis); stroke-width: 1; }
+.hit { fill: transparent; cursor: default; }
+.hit:focus { outline: none; }
+.hit:focus-visible { stroke: var(--ink); stroke-width: 1.5; }
+.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+details.numbers { font-size: 13.5px; }
+details.numbers summary { cursor: pointer; color: var(--ink-2); width: fit-content; }
+details.numbers summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.tbl-wrap { overflow-x: auto; margin-top: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--ink-2); }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* tooltip */
+#tip { position: fixed; z-index: 10; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; line-height: 1.45; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12); max-width: 280px; }
+#tip b { font-weight: 600; }
+#tip .t-mono { font-family: var(--font-mono); }
+
+/* flow diagram */
+.flow text { font-family: var(--font-body); }
+.flow .box { fill: var(--surface); stroke: var(--axis); stroke-width: 1; }
+.flow .box.stage { stroke: var(--ink-2); }
+.flow .t1 { fill: var(--ink); font-size: 14px; font-weight: 600; }
+.flow .t2 { fill: var(--ink-2); font-size: 12.5px; }
+.flow .t3 { fill: var(--muted); font: 500 11px var(--font-mono); letter-spacing: 0.06em; }
+.flow .edge { stroke: var(--ink-2); stroke-width: 1.5; fill: none; }
+.flow .edge.key-edge { stroke: var(--accent); stroke-width: 2; }
+.flow .elab { fill: var(--muted); font-size: 12px; }
+.flow .elab.key-lab { fill: var(--accent); font-weight: 600; }
+.flow .head { fill: var(--ink-2); }
+.flow .head.key-head { fill: var(--accent); }
+.flow .out { fill: var(--accent); fill-opacity: 0.10; stroke: var(--accent); stroke-width: 1; }
+.flow .mono-out { fill: var(--ink); font: 12.5px var(--font-mono); }
+.flow .band { fill: var(--grid); fill-opacity: 0.55; }
+
+/* growth panel */
+.frames { display: grid; gap: 8px; }
+.frame { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; align-items: center; }
+.frame-meta { font: 12px/1.35 var(--font-mono); color: var(--muted); }
+.frame-meta b { color: var(--ink); font-weight: 500; }
+.screen { background: var(--scr-bg); border: 1px solid var(--scr-edge); border-radius: 6px; padding: 8px 10px; display: flex; align-items: center; gap: 10px; min-width: 0; overflow-x: auto; }
+.screen .fx { font: italic 600 13px var(--font-body); color: var(--scr-dim); flex: none; }
+.screen .read { font: 13.5px/1.3 var(--font-mono); color: var(--scr-ink); white-space: pre; border-radius: 3px; padding: 2px 5px; outline: 2px solid var(--accent); outline-offset: 0; }
+.screen .new { background: color-mix(in srgb, var(--accent) 22%, transparent); border-radius: 2px; }
+@media (max-width: 520px) { .frame { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+.cand { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 18px; }
+.cand div { min-width: 0; }
+.cand dt { font-size: 12.5px; color: var(--muted); }
+.cand dd { margin: 2px 0 0; font-size: 15px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.verdict { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.pill { font: 500 12px/1 var(--font-mono); padding: 5px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); }
+.pill.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+
+.note { border-left: 3px solid var(--axis); padding-left: 14px; color: var(--ink-2); font-size: 14.5px; }
+ul.plain { margin: 0; padding-left: 18px; }
+ul.plain li + li { margin-top: 6px; }
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Video2Knowledge · evaluation workstream · 14 October 2026</p>
+  <h1>Bare-video SOP detector</h1>
+  <p class="lede col">A screen recording arrives with no action log. The detector names the application from the pixels, finds the text the user typed by watching screen regions grow between frames, and keeps the readings that application's model trusts.</p>
+  <dl class="figures">
+    <div><dt>Application named correctly</dt><dd>94.5%</dd><span class="sub">of 6,991 recordings, 70 applications</span></div>
+    <div><dt>SOP steps that are real</dt><dd>47.9%</dd><span class="sub">precision at threshold 0.5</span></div>
+    <div><dt>Typed steps recovered</dt><dd>26.3%</dd><span class="sub">recall, of 1,690 logged</span></div>
+    <div><dt>Applications covered</dt><dd>61</dd><span class="sub">6,716 recordings</span></div>
+  </dl>
+  <p class="small col" style="margin-top:12px">All figures are out-of-fold: every recording is scored by models that never saw it. Steps are counted after repeated reads are merged, one-to-one against the log. Definitions are at the end of the page.</p>
+</header>
+
+<section id="how">
+  <div class="col">
+    <h2>How it works</h2>
+    <p style="margin-top:10px">Two stages run on the same extracted frames. The first decides which application is on screen. The second finds candidate text and scores it with a model trained on that application, because where an input field sits on screen is still one of the strongest clues it has, and that differs from one application to the next.</p>
+  </div>
+  <figure class="card" style="margin:0">
+    <div class="scroll-x">
+      <svg class="flow" viewBox="0 0 1090 410" style="min-width:900px; width:100%; height:auto; display:block" role="img" aria-label="Flow diagram. A bare screen recording is decoded into frames. Stage 1 names the application. Stage 2 finds text that grows between frames, scores it with the ranker that stage 1 selected, merges repeated reads, and outputs typed steps.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker>
+          <marker id="ahk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head key-head"/></marker>
+        </defs>
+        <rect class="band" x="226" y="16" width="530" height="148" rx="10"/>
+        <rect class="band" x="226" y="186" width="852" height="208" rx="10"/>
+        <text class="t3" x="242" y="38">STAGE 1</text>
+        <text class="t3" x="242" y="208">STAGE 2</text>
+
+        <rect class="box" x="12" y="160" width="176" height="84" rx="8"/>
+        <text class="t1" x="28" y="190">Screen recording</text>
+        <text class="t2" x="28" y="211">.mp4, no action log</text>
+        <text class="t2" x="28" y="229">what a real user uploads</text>
+
+        <rect class="box stage" x="242" y="54" width="220" height="90" rx="8"/>
+        <text class="t1" x="258" y="82">Name the application</text>
+        <text class="t2" x="258" y="103">classifier over 70 apps</text>
+        <text class="t2" x="258" y="121">ResNet-18 · layout · OCR text</text>
+
+        <rect class="box stage" x="242" y="224" width="220" height="90" rx="8"/>
+        <text class="t1" x="258" y="252">Find growing text</text>
+        <text class="t2" x="258" y="273">OCR regions that extend</text>
+        <text class="t2" x="258" y="291">at the same screen position</text>
+
+        <rect class="box stage" x="566" y="224" width="210" height="90" rx="8"/>
+        <text class="t1" x="582" y="252">Score each candidate</text>
+        <text class="t2" x="582" y="273">that application's ranker</text>
+        <text class="t2" x="582" y="291">LightGBM · frame, text, context</text>
+
+        <rect class="box stage" x="840" y="224" width="222" height="90" rx="8"/>
+        <text class="t1" x="856" y="252">Merge repeated reads</text>
+        <text class="t2" x="856" y="273">one step per typed string</text>
+        <text class="t2" x="856" y="291">reads only the candidates</text>
+
+        <rect class="out" x="566" y="62" width="174" height="76" rx="8"/>
+        <text class="t3" x="582" y="84">STAGE 1 SAYS</text>
+        <text class="mono-out" x="582" y="106">OnlyOffice Spreadsheet</text>
+        <text class="t2" x="582" y="125">94.5% correct out of fold</text>
+
+        <rect class="out" x="796" y="338" width="266" height="40" rx="8"/>
+        <text class="mono-out" x="810" y="363">1. Type =textjoin(" ", A1,B1,C1</text>
+
+        <path class="edge" d="M188,190 C214,190 214,99 238,99" marker-end="url(#ah)"/>
+        <path class="edge" d="M188,214 C214,214 214,269 238,269" marker-end="url(#ah)"/>
+        <text class="elab" x="134" y="150">keyframes</text>
+
+        <path class="edge" d="M462,99 L562,99" marker-end="url(#ah)"/>
+        <text class="elab" x="476" y="91">names the app</text>
+        <path class="edge key-edge" d="M653,138 L653,220" marker-end="url(#ahk)"/>
+        <text class="elab key-lab" x="663" y="184">selects which ranker</text>
+
+        <path class="edge" d="M462,269 L562,269" marker-end="url(#ah)"/>
+        <text class="elab" x="476" y="261">516k candidates</text>
+        <text class="elab" x="476" y="289">1.1% are real</text>
+
+        <path class="edge" d="M776,269 L836,269" marker-end="url(#ah)"/>
+        <text class="elab" x="786" y="261">≥ 0.5</text>
+
+        <path class="edge" d="M951,314 L951,334" marker-end="url(#ah)"/>
+      </svg>
+    </div>
+    <figcaption class="small">The example values are OnlyOffice Spreadsheet recording 70039, out of fold, the same one shown in the next section. The highlighted edge is the design choice the evaluation tests: stage 1's answer picks the stage-2 model. A recording sent to an application that has no model produces no steps rather than invented ones. The action log is never read here; it is used only to train and to score.</figcaption>
+  </figure>
+</section>
+
+<section id="growth">
+  <div class="col">
+    <h2>Seeing typing without a keystroke log</h2>
+    <p style="margin-top:10px">The extractor tracks every OCR region by where it sits on screen. When the text at one position gets longer from one keyframe to the next, something is being typed there. This works in a spreadsheet's formula bar as well as at a shell prompt, which a rule that looked for <code>$</code> never could.</p>
+  </div>
+  <figure class="card" style="margin:0">
+    <div class="card-head">
+      <h3>OnlyOffice Spreadsheet, recording 70039</h3>
+      <p>"Use the TEXTJOIN function to concatenate text with a delimiter." These are the OCR readings at one screen position, x 0.124 and y 0.221 of the frame, as the formula was typed.</p>
+    </div>
+    <div class="frames" id="frames"></div>
+    <div style="display:grid; gap:10px; border-top:1px solid var(--line); padding-top:14px">
+      <h3>One candidate, scored from the frames alone</h3>
+      <dl class="cand" id="cand" style="margin:0"></dl>
+      <p class="small" id="cand-truth"></p>
+    </div>
+    <figcaption class="small">Readings are the real OCR output, drawn as a formula bar. OCR misreads ("Tablel", ",," read as ",") are tolerated: a reading still extends the region if its start matches the previous one closely. Source: frame cache, OnlyOffice Spreadsheet/70039; score from <span class="mono">runs/run_034_sop-detector/oof_scores.npz</span>.</figcaption>
+  </figure>
+</section>
+
+<section id="loss">
+  <div class="col">
+    <h2>Where steps are lost</h2>
+    <p style="margin-top:10px">Almost every typed string is somewhere in the candidate set. Most of the loss happens when the ranker decides what to keep, so the filter, not the extractor, is where further work should go.</p>
+  </div>
+  <div class="grid-2">
+    <figure class="card" style="margin:0">
+      <div class="card-head">
+        <h3>From logged strings to SOP steps</h3>
+        <p>1,690 typed strings of three characters or more, across 61 applications.</p>
+      </div>
+      <svg class="chart" id="funnel" role="img" aria-label="Funnel: logged typed strings, the share present among candidates, and the share recovered as SOP steps."></svg>
+      <p class="small">Candidates emitted: 515,941, of which 1.1% are real. Steps kept after scoring and merging: 926, of which 47.9% are real.</p>
+      <details class="numbers"><summary>Show the numbers</summary><div class="tbl-wrap"><table id="t-funnel"></table></div></details>
+      <p class="source">runs/run_034_sop-detector/results.json</p>
+    </figure>
+    <figure class="card" style="margin:0">
+      <div class="card-head">
+        <h3>One recording, every decision</h3>
+        <p>Bash, recording 111478, "Add a new user." Candidate scores from the ranker stage 1 chose, out of fold.</p>
+      </div>
+      <div class="legend"><span><i class="key dot" style="background:var(--s1)"></i>matches something the user typed</span><span><i class="key dot" style="background:var(--quiet-mark)"></i>screen text, not typed</span></div>
+      <svg class="chart" id="worked" role="img" aria-label="Bar chart of candidate scores for one Bash recording, with the 0.5 keep threshold marked."></svg>
+      <p class="small" id="worked-sum"></p>
+      <details class="numbers"><summary>Show the numbers</summary><div class="tbl-wrap"><table id="t-worked"></table></div></details>
+      <p class="source">runs/run_034_sop-detector/oof_scores.npz · frame cache Bash/111478</p>
+    </figure>
+  </div>
+</section>
+
+<section id="results">
+  <div class="col">
+    <h2>Results</h2>
+    <p style="margin-top:10px">Seven measurements, each out of fold. The first answers whether naming the application first is worth it, the second what the ranker needs to read, and the rest where the detector works and where it stops.</p>
+  </div>
+
+  <figure class="card" style="margin:0">
+    <div class="card-head">
+      <h3>Routing by application recovers more steps</h3>
+      <p>Each line sweeps the keep threshold from 0.05 to 0.95; the ring marks 0.5. Routing on stage 1's guess lands on the line for routing on the true application, so stage 1's mistakes cost almost nothing. One pooled ranker for every application recovers 18.3% at threshold 0.5, against 26.3% routed. The gap was wider before the ranker could read the text, when position, which only means something within one application, was all it had.</p>
+    </div>
+    <div class="legend" id="pr-legend"></div>
+    <svg class="chart" id="pr" role="img" aria-label="Precision against recall for three variants: routed by stage 1, routed by the true application, and one pooled ranker."></svg>
+    <details class="numbers"><summary>Show the numbers</summary><div class="tbl-wrap"><table id="t-pr"></table></div></details>
+    <p class="source">runs/run_034_sop-detector/results.json · curves</p>
+  </figure>
+
+  <figure class="card" style="margin:0">
+    <div class="card-head">
+      <h3>Reading the text, not just its position</h3>
+      <p>The first ranker saw only where a string sat on screen, so lines of program output outranked what the user typed. Each version below adds one kind of evidence, measured on the same folds. Context, meaning which other lines share the row and how often the string was read, does most of the work. The same evidence also carries over to applications the ranker never trained on, where position alone did not.</p>
+    </div>
+    <div class="grid-2">
+      <div style="display:grid; gap:8px; min-width:0">
+        <p class="small"><b style="color:var(--ink)">Known applications.</b> Precision of the delivered SOP at 26.6% recall or better, routed by stage 1.</p>
+        <svg class="chart" id="abl-in" role="img" aria-label="Precision for four ranker versions on known applications."></svg>
+      </div>
+      <div style="display:grid; gap:8px; min-width:0">
+        <p class="small"><b style="color:var(--ink)">Applications never seen in training.</b> Recall at threshold 0.5, one ranker for all, whole applications held out.</p>
+        <svg class="chart" id="abl-out" role="img" aria-label="Recall for three ranker versions on applications never seen in training."></svg>
+      </div>
+    </div>
+    <details class="numbers"><summary>Show the numbers</summary><div class="tbl-wrap"><table id="t-abl"></table></div></details>
+    <p class="source">runs/run_033_sop-ranker-experiments/results.json · sop_ranker_experiments_v1.py</p>
+  </figure>
+
+  <div class="grid-2">
+    <figure class="card" style="margin:0">
+      <div class="card-head">
+        <h3>By application</h3>
+        <p>The 16 applications that contribute most recovered steps, threshold 0.5. Browsers and terminals lead: one obvious input box. Chat apps trail: a message vanishes once sent.</p>
+      </div>
+      <div class="legend"><span><i class="key dot" style="background:var(--s1)"></i>recall</span><span><i class="key dot" style="background:var(--s2)"></i>precision</span></div>
+      <svg class="chart" id="perapp" role="img" aria-label="Recall and precision for each application."></svg>
+      <p class="small">The top 8 applications carry 69% of recovered steps.</p>
+      <details class="numbers"><summary>Show the numbers</summary><div class="tbl-wrap"><table id="t-perapp"></table></div></details>
+      <p class="source">runs/run_034_sop-detector/results.json · per_app</p>
+    </figure>
+
+    <div style="display:grid; gap:16px; align-content:start; min-width:0">
+      <figure class="card" style="margin:0">
+        <div class="card-head">
+          <h3>Stage 1 after fixing the labels</h3>
+          <p>The dataset spells 70 applications 107 ways (<code>ATOM</code>, <code>Atom</code>, <code>krtia</code>). Scoring against canonical names lifts every model by 5.3 to 9.1 points.</p>
+        </div>
+        <div class="legend"><span><i class="key dot" style="background:var(--quiet-mark)"></i>raw labels</span><span><i class="key dot" style="background:var(--s1)"></i>canonical labels</span></div>
+        <svg class="chart" id="stage1" role="img" aria-label="Accuracy of nine application classifiers on raw and canonical labels."></svg>
+        <details class="numbers"><summary>Show the numbers</summary><div class="tbl-wrap"><table id="t-stage1"></table></div></details>
+        <p class="source">runs/run_029_appid70/predictions.csv</p>
+      </figure>
+
+      <figure class="card" style="margin:0">
+        <div class="card-head">
+          <h3>More training data alone does not reach new applications</h3>
+          <p>Fifteen held-out applications, a frame-features-only ranker trained on more and more others. Precision barely leaves the floor, because screen position does not transfer. Adding text and context evidence is what moves it (previous card).</p>
+        </div>
+        <svg class="chart" id="scope" role="img" aria-label="Precision on held-out applications as the number of training applications grows from 8 to 32."></svg>
+        <details class="numbers"><summary>Show the numbers</summary><div class="tbl-wrap"><table id="t-scope"></table></div></details>
+        <p class="source">ranker_scope_v1.py · pooled ranker, threshold 0.3, earlier scoring rule</p>
+      </figure>
+    </div>
+  </div>
+
+  <figure class="card" style="margin:0">
+    <div class="card-head">
+      <h3>What the detector does not see</h3>
+      <p>Every logged action across the 61 applications, by type. Only typing is recovered, so whole-workflow coverage is about 1.1%: recall 26.3% of a 4.3% slice. A task done entirely by clicking produces an empty SOP.</p>
+    </div>
+    <svg class="chart" id="mix" role="img" aria-label="Share of logged actions by type; typing is a small slice and the only type recovered."></svg>
+    <p class="small" id="mix-rest"></p>
+    <details class="numbers"><summary>Show the numbers</summary><div class="tbl-wrap"><table id="t-mix"></table></div></details>
+    <p class="source">frame cache, 48,708 logged actions in 61 applications</p>
+  </figure>
+
+  <figure class="card" style="margin:0">
+    <div class="card-head">
+      <h3>Why steps are counted after merging</h3>
+      <p>The extractor often reads one typed string twice, a frame apart or with one character changed. Crediting every copy counts the duplicates as extra correct steps. Merging them and scoring one-to-one describes the document a reader actually gets.</p>
+    </div>
+    <div class="tbl-wrap"><table id="t-rule"></table></div>
+    <p class="source">runs/run_034_sop-detector/results.json · table</p>
+  </figure>
+</section>
+
+<section id="method">
+  <div class="col">
+    <h2>How this was measured</h2>
+    <ul class="plain" style="margin-top:12px">
+      <li><b>Data.</b> VideoCUA screen recordings with their action logs: 6,991 recordings in 70 applications. The 61 applications with at least five logged typed strings have a stage-2 model.</li>
+      <li><b>Folds.</b> Five folds grouped by recording, shared by both stages, so a recording's application guess and the ranker applied to it both come from models that never saw it.</li>
+      <li><b>A step.</b> A logged typed string of at least three letters or digits. Shorter keystrokes such as <code>1</code> or <code>ok</code> are not instructions a reader can follow.</li>
+      <li><b>A match.</b> Lowercase letters and digits only; one string contains the other, or they are at least 80% similar, which tolerates OCR misreads.</li>
+      <li><b>Precision</b> is the share of SOP steps that claim a logged string; <b>recall</b> is the share of logged strings claimed by a step. Each step claims at most one string and each string is claimed once.</li>
+      <li><b>Not measured.</b> Whether a human finds a step useful; applications, themes or versions outside the dataset; clicks of any kind.</li>
+    </ul>
+    <p class="small" style="margin-top:16px">Code: <span class="mono">v2k/sop_detector.py</span> (train, evaluate, detect). Full write-up: <span class="mono">sop_evaluation_report</span>. Built 2026-10-14 14:52 from <span class="mono">runs/run_034_sop-detector</span>.</p>
+  </div>
+</section>
+
+</div>
+
+<div id="tip" role="tooltip" hidden></div>
+<script type="application/json" id="data">{"growth": {"states": [{"frame": 2, "time": "0:18.7", "text": "=textjoin(\""}, {"frame": 3, "time": "0:19.6", "text": "=textjoin(\" \",,A1"}, {"frame": 5, "time": "0:21.9", "text": "=textjoin(\" \",A1,B1"}, {"frame": 6, "time": "0:23.1", "text": "=textjoin(\" \", A1,B1,C1"}], "candidate": {"text": "=textjoin(\" \", A1,B1,C1", "growth": 6, "frames_growing": 7, "conf_mean": 0.7037571428571429, "x_norm": 0.12356020942408377, "y_norm": 0.22134387351778656, "score": 0.998965801089838, "truth": "=TEXTJOIN(\" \",,", "correct": true}}, "worked": {"rows": [{"text": "sudo adduser priya", "score": 0.998230729281597, "correct": true, "merged": false}, {"text": "sudo adduser priyal", "score": 0.9945981973882229, "correct": true, "merged": true}, {"text": "priya", "score": 0.9870158457462365, "correct": true, "merged": true}, {"text": "priya\"", "score": 0.9838081206314829, "correct": true, "merged": true}, {"text": "priya", "score": 0.9781677824322007, "correct": true, "merged": true}, {"text": "New password:", "score": 0.9680751342359913, "correct": false, "merged": false}, {"text": "priya", "score": 0.952967953480627, "correct": true, "merged": true}, {"text": "priya", "score": 0.9344750219079317, "correct": true, "merged": true}, {"text": "new password:", "score": 0.9038200134649937, "correct": false, "merged": true}, {"text": "the", "score": 0.8860012043817725, "correct": false, "merged": false}, {"text": "the", "score": 0.8752029070178723, "correct": false, "merged": true}, {"text": "password", "score": 0.8658062132884979, "correct": false, "merged": true}, {"text": "password", "score": 0.8537849364326298, "correct": false, "merged": true}, {"text": "user", "score": 0.8528153086189466, "correct": true, "merged": true}, {"text": "priyanka", "score": 0.6995163865218803, "correct": true, "merged": false}, {"text": "the dictionary", "score": 0.6364595178385061, "correct": false, "merged": true}, {"text": "1234567890", "score": 0.5819820648165627, "correct": true, "merged": false}, {"text": "userdworkstation-priyankaj-mAtvmpl6:~$", "score": 0.5586641508680915, "correct": true, "merged": true}, {"text": "user", "score": 0.4918250915148893, "correct": true, "merged": false}, {"text": "priyankal", "score": 0.4844678651881742, "correct": true, "merged": false}], "summary": "21 candidates pass 0.5; merging repeats leaves 7 steps, of which 3 are real. 3 of the 7 typed strings are recovered, although 7 of them were among the 77 candidates."}, "funnel": [{"label": "Typed strings in the action logs", "count": 1690, "share": 1.0}, {"label": "Present among the candidates", "count": 1522, "share": 0.9005917159763314}, {"label": "Recovered as SOP steps, threshold 0.5", "count": 444, "share": 0.26272189349112424}], "curves": {"predicted": [{"threshold": 0.05, "emitted": 2650, "precision": 0.2513207547169811, "recall": 0.3940828402366864}, {"threshold": 0.1, "emitted": 1908, "precision": 0.3160377358490566, "recall": 0.35680473372781063}, {"threshold": 0.15, "emitted": 1584, "precision": 0.3529040404040404, "recall": 0.33076923076923076}, {"threshold": 0.2, "emitted": 1410, "precision": 0.3780141843971631, "recall": 0.3153846153846154}, {"threshold": 0.25, "emitted": 1273, "precision": 0.401413982717989, "recall": 0.30236686390532547}, {"threshold": 0.3, "emitted": 1185, "precision": 0.4219409282700422, "recall": 0.2958579881656805}, {"threshold": 0.35, "emitted": 1107, "precision": 0.44173441734417346, "recall": 0.2893491124260355}, {"threshold": 0.4, "emitted": 1037, "precision": 0.45515911282545807, "recall": 0.27928994082840236}, {"threshold": 0.45, "emitted": 976, "precision": 0.46311475409836067, "recall": 0.26745562130177514}, {"threshold": 0.5, "emitted": 926, "precision": 0.4794816414686825, "recall": 0.26272189349112424}, {"threshold": 0.55, "emitted": 887, "precision": 0.49379932356257045, "recall": 0.2591715976331361}, {"threshold": 0.6, "emitted": 837, "precision": 0.5125448028673835, "recall": 0.25384615384615383}, {"threshold": 0.65, "emitted": 794, "precision": 0.5277078085642317, "recall": 0.24792899408284025}, {"threshold": 0.7, "emitted": 758, "precision": 0.5369393139841688, "recall": 0.2408284023668639}, {"threshold": 0.75, "emitted": 716, "precision": 0.5488826815642458, "recall": 0.23254437869822486}, {"threshold": 0.8, "emitted": 673, "precision": 0.5705794947994056, "recall": 0.2272189349112426}, {"threshold": 0.85, "emitted": 610, "precision": 0.578688524590164, "recall": 0.20887573964497042}, {"threshold": 0.9, "emitted": 538, "precision": 0.6078066914498141, "recall": 0.19349112426035503}, {"threshold": 0.95, "emitted": 439, "precision": 0.662870159453303, "recall": 0.17218934911242603}], "oracle": [{"threshold": 0.05, "emitted": 2643, "precision": 0.25312145289443816, "recall": 0.39585798816568046}, {"threshold": 0.1, "emitted": 1909, "precision": 0.31849135673127293, "recall": 0.35976331360946745}, {"threshold": 0.15, "emitted": 1587, "precision": 0.354127284183995, "recall": 0.33254437869822484}, {"threshold": 0.2, "emitted": 1425, "precision": 0.3775438596491228, "recall": 0.3183431952662722}, {"threshold": 0.25, "emitted": 1286, "precision": 0.4004665629860031, "recall": 0.3047337278106509}, {"threshold": 0.3, "emitted": 1189, "precision": 0.4222035323801514, "recall": 0.29704142011834317}, {"threshold": 0.35, "emitted": 1109, "precision": 0.44274120829576197, "recall": 0.29053254437869824}, {"threshold": 0.4, "emitted": 1042, "precision": 0.45585412667946257, "recall": 0.28106508875739644}, {"threshold": 0.45, "emitted": 978, "precision": 0.4652351738241309, "recall": 0.2692307692307692}, {"threshold": 0.5, "emitted": 926, "precision": 0.47840172786177104, "recall": 0.2621301775147929}, {"threshold": 0.55, "emitted": 881, "precision": 0.4960272417707151, "recall": 0.25857988165680473}, {"threshold": 0.6, "emitted": 832, "precision": 0.515625, "recall": 0.25384615384615383}, {"threshold": 0.65, "emitted": 792, "precision": 0.5290404040404041, "recall": 0.24792899408284025}, {"threshold": 0.7, "emitted": 758, "precision": 0.5382585751978892, "recall": 0.24142011834319527}, {"threshold": 0.75, "emitted": 717, "precision": 0.5481171548117155, "recall": 0.23254437869822486}, {"threshold": 0.8, "emitted": 674, "precision": 0.56973293768546, "recall": 0.2272189349112426}, {"threshold": 0.85, "emitted": 612, "precision": 0.5784313725490197, "recall": 0.20946745562130178}, {"threshold": 0.9, "emitted": 541, "precision": 0.6044362292051756, "recall": 0.19349112426035503}, {"threshold": 0.95, "emitted": 441, "precision": 0.655328798185941, "recall": 0.17100591715976332}], "no_routing": [{"threshold": 0.05, "emitted": 10317, "precision": 0.08791315304836678, "recall": 0.5366863905325444}, {"threshold": 0.1, "emitted": 4502, "precision": 0.1581519324744558, "recall": 0.421301775147929}, {"threshold": 0.15, "emitted": 2665, "precision": 0.21425891181988743, "recall": 0.3378698224852071}, {"threshold": 0.2, "emitted": 1822, "precision": 0.2678375411635565, "recall": 0.28875739644970416}, {"threshold": 0.25, "emitted": 1358, "precision": 0.3269513991163476, "recall": 0.26272189349112424}, {"threshold": 0.3, "emitted": 1063, "precision": 0.3715898400752587, "recall": 0.23372781065088757}, {"threshold": 0.35, "emitted": 896, "precision": 0.41294642857142855, "recall": 0.21893491124260356}, {"threshold": 0.4, "emitted": 764, "precision": 0.45418848167539266, "recall": 0.20532544378698225}, {"threshold": 0.45, "emitted": 678, "precision": 0.4837758112094395, "recall": 0.1940828402366864}, {"threshold": 0.5, "emitted": 603, "precision": 0.5124378109452736, "recall": 0.18284023668639054}, {"threshold": 0.55, "emitted": 546, "precision": 0.5366300366300366, "recall": 0.17337278106508874}, {"threshold": 0.6, "emitted": 487, "precision": 0.5728952772073922, "recall": 0.1650887573964497}, {"threshold": 0.65, "emitted": 431, "precision": 0.6009280742459396, "recall": 0.15325443786982249}, {"threshold": 0.7, "emitted": 382, "precision": 0.6282722513089005, "recall": 0.14201183431952663}, {"threshold": 0.75, "emitted": 342, "precision": 0.6491228070175439, "recall": 0.13136094674556212}, {"threshold": 0.8, "emitted": 285, "precision": 0.6947368421052632, "recall": 0.11715976331360947}, {"threshold": 0.85, "emitted": 248, "precision": 0.7338709677419355, "recall": 0.1076923076923077}, {"threshold": 0.9, "emitted": 209, "precision": 0.7799043062200957, "recall": 0.09644970414201183}, {"threshold": 0.95, "emitted": 144, "precision": 0.8472222222222222, "recall": 0.07218934911242604}]}, "pr_xmax": 0.6, "per_app": [{"app": "Chromium", "targets": 40, "emitted": 50, "correct": 37, "precision": 0.74, "recall": 0.925}, {"app": "Bash", "targets": 78, "emitted": 90, "correct": 52, "precision": 0.5777777777777777, "recall": 0.6666666666666666}, {"app": "DuckDuckGo", "targets": 52, "emitted": 74, "correct": 34, "precision": 0.4594594594594595, "recall": 0.6538461538461539}, {"app": "Ubuntu Terminal", "targets": 106, "emitted": 119, "correct": 68, "precision": 0.5714285714285714, "recall": 0.6415094339622641}, {"app": "OnlyOffice Spreadsheet", "targets": 59, "emitted": 48, "correct": 36, "precision": 0.75, "recall": 0.6101694915254238}, {"app": "Zotero", "targets": 59, "emitted": 38, "correct": 30, "precision": 0.7894736842105263, "recall": 0.5084745762711864}, {"app": "Cryptomator", "targets": 28, "emitted": 27, "correct": 14, "precision": 0.5185185185185185, "recall": 0.5}, {"app": "Lemmy", "targets": 48, "emitted": 117, "correct": 20, "precision": 0.17094017094017094, "recall": 0.4166666666666667}, {"app": "Veusz", "targets": 27, "emitted": 21, "correct": 10, "precision": 0.47619047619047616, "recall": 0.37037037037037035}, {"app": "LibreOffice Calc", "targets": 60, "emitted": 32, "correct": 21, "precision": 0.65625, "recall": 0.35}, {"app": "Shotcut", "targets": 33, "emitted": 22, "correct": 10, "precision": 0.45454545454545453, "recall": 0.30303030303030304}, {"app": "Bitwarden", "targets": 91, "emitted": 32, "correct": 25, "precision": 0.78125, "recall": 0.27472527472527475}, {"app": "Anki", "targets": 100, "emitted": 31, "correct": 24, "precision": 0.7741935483870968, "recall": 0.24}, {"app": "LibreOffice Writer", "targets": 46, "emitted": 12, "correct": 8, "precision": 0.6666666666666666, "recall": 0.17391304347826086}, {"app": "Frappe Books", "targets": 122, "emitted": 52, "correct": 20, "precision": 0.38461538461538464, "recall": 0.16393442622950818}, {"app": "OnlyOffice PDF Forms", "targets": 50, "emitted": 11, "correct": 7, "precision": 0.6363636363636364, "recall": 0.14}], "stage1": [{"name": "OCR + UI + visual + CNN : MLP", "raw": 0.8762694893434416, "canon": 0.9449291946788728}, {"name": "OCR + UI + visual + CNN : SVM", "raw": 0.8639679588041768, "canon": 0.9310542125590044}, {"name": "OCR + UI + visual : RF", "raw": 0.858389357745673, "canon": 0.9297668430839651}, {"name": "OCR + UI + visual + CNN : RF", "raw": 0.8668287798598198, "canon": 0.9289085967672722}, {"name": "CNN : MLP", "raw": 0.8561007009011586, "canon": 0.9241882420254613}, {"name": "OCR + UI + visual : MLP", "raw": 0.8197682734944929, "canon": 0.9107423830639394}, {"name": "CNN : SVM", "raw": 0.8389357745673008, "canon": 0.9028751251609212}, {"name": "OCR + UI + visual : SVM", "raw": 0.8147618366471178, "canon": 0.8991560577885853}, {"name": "CNN : RF", "raw": 0.8031755113717637, "canon": 0.8561007009011586}], "stage1_xmin": 0.8, "scope": {"points": [{"train_apps": 8, "precision": 0.013, "recall": 0.017}, {"train_apps": 16, "precision": 0.029, "recall": 0.013}, {"train_apps": 32, "precision": 0.032, "recall": 0.009}], "refs": [{"label": "same ranker on applications it trained on", "value": 0.564}, {"label": "keeping every candidate", "value": 0.012}]}, "mix": [{"label": "Mouse move", "count": 21310, "share": 0.43750513262708385, "recovered": false}, {"label": "Click", "count": 20118, "share": 0.4130327666913033, "recovered": false}, {"label": "Typing", "count": 2085, "share": 0.04280610987928061, "recovered": true}, {"label": "Key press", "count": 1365, "share": 0.028024143877802415, "recovered": false}, {"label": "Hotkey", "count": 944, "share": 0.019380799868604748, "recovered": false}, {"label": "Other", "count": 2886, "share": 0.059251047055925106, "recovered": false}], "ablation": {"in_domain": [{"v": "A", "name": "13 frame features (shipped)", "short": "Frame features only", "baseline": true, "precision": 0.38147833474936277, "recall": 0.26568047337278106, "precision_at": 0.38147833474936277}, {"v": "B", "name": "A + lexical shape", "short": "+ shape of the text", "baseline": false, "precision": 0.39456342668863265, "recall": 0.2834319526627219, "precision_at": 0.40614035087719297}, {"v": "C", "name": "B + cross-application text score", "short": "+ text model", "baseline": false, "precision": 0.42322456813819576, "recall": 0.26094674556213016, "precision_at": 0.4019434628975265}, {"v": "D", "name": "C + recording context", "short": "+ recording context", "baseline": false, "precision": 0.4794816414686825, "recall": 0.26272189349112424, "precision_at": 0.46311475409836067}], "unseen": [{"v": "A", "name": "13 frame features (shipped)", "short": "Frame features only", "baseline": true, "precision": 0.2896174863387978, "recall": 0.031360946745562134, "precision_at": null}, {"v": "C", "name": "B + cross-application text score", "short": "+ text model", "baseline": false, "precision": 0.3311897106109325, "recall": 0.06094674556213018, "precision_at": null}, {"v": "D", "name": "C + recording context", "short": "+ recording context", "baseline": false, "precision": 0.34774436090225563, "recall": 0.10946745562130178, "precision_at": null}]}, "rule": [{"variant": "Routed by stage 1", "threshold": 0.3, "emitted": 2286, "precision": 0.6067366579177603, "recall": 0.3136094674556213, "precision_strict": 0.2274715660542432, "recall_strict": 0.3076923076923077, "emitted_dedup": 1185, "precision_dedup": 0.4219409282700422, "recall_dedup": 0.2958579881656805}, {"variant": "Routed by stage 1", "threshold": 0.5, "emitted": 1801, "precision": 0.6690727373681288, "recall": 0.2798816568047337, "precision_strict": 0.25652415324819544, "recall_strict": 0.2733727810650888, "emitted_dedup": 926, "precision_dedup": 0.4794816414686825, "recall_dedup": 0.26272189349112424}, {"variant": "One pooled ranker", "threshold": 0.3, "emitted": 1726, "precision": 0.541135573580533, "recall": 0.24792899408284025, "precision_strict": 0.2358053302433372, "recall_strict": 0.2408284023668639, "emitted_dedup": 1063, "precision_dedup": 0.3715898400752587, "recall_dedup": 0.23372781065088757}, {"variant": "One pooled ranker", "threshold": 0.5, "emitted": 961, "precision": 0.6659729448491155, "recall": 0.19112426035502958, "precision_strict": 0.3267429760665973, "recall_strict": 0.18579881656804734, "emitted_dedup": 603, "precision_dedup": 0.5124378109452736, "recall_dedup": 0.18284023668639054}]}</script>
+<script>
+(function () {
+  "use strict";
+  const D = JSON.parse(document.getElementById("data").textContent);
+  const NS = "http://www.w3.org/2000/svg";
+  const pct = (v, d = 1) => (v * 100).toFixed(d) + "%";
+  const fmt = (n) => n.toLocaleString("en-US");
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function txt(parent, x, y, s, cls, anchor) {
+    const t = el("text", { x, y, class: cls || "lbl" }, parent);
+    if (anchor) t.setAttribute("text-anchor", anchor);
+    t.textContent = s;
+    return t;
+  }
+  const lin = (d0, d1, r0, r1) => (v) => r0 + ((v - d0) / (d1 - d0)) * (r1 - r0);
+
+  // a horizontal bar with a square baseline end and a 4px rounded data end
+  function hbar(parent, x0, x1, y, h, fill) {
+    const r = Math.min(4, Math.max(0, x1 - x0) / 2, h / 2);
+    const d = `M${x0},${y} H${x1 - r} Q${x1},${y} ${x1},${y + r} V${y + h - r} Q${x1},${y + h} ${x1 - r},${y + h} H${x0} Z`;
+    return el("path", { d, style: `fill:${fill}` }, parent);
+  }
+
+  // tooltip: hover and keyboard focus show the same content
+  const tip = document.getElementById("tip");
+  function place(x, y) {
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    let left = x + 14, top = y - h - 10;
+    if (left + w > innerWidth - 8) left = x - w - 14;
+    if (top < 8) top = y + 16;
+    tip.style.left = Math.max(8, left) + "px";
+    tip.style.top = top + "px";
+  }
+  function bindTip(node, html) {
+    node.setAttribute("tabindex", "0");
+    node.addEventListener("pointerenter", (e) => { tip.innerHTML = html; tip.hidden = false; place(e.clientX, e.clientY); });
+    node.addEventListener("pointermove", (e) => place(e.clientX, e.clientY));
+    node.addEventListener("pointerleave", () => { tip.hidden = true; });
+    node.addEventListener("focus", () => { const b = node.getBoundingClientRect(); tip.innerHTML = html; tip.hidden = false; place(b.left + b.width / 2, b.top); });
+    node.addEventListener("blur", () => { tip.hidden = true; });
+  }
+  function table(id, head, rows, numeric) {
+    const t = document.getElementById(id);
+    const n = numeric || [];
+    t.innerHTML = "<thead><tr>" + head.map((h, i) => `<th${n.includes(i) ? ' class="n"' : ""}>${esc(h)}</th>`).join("") + "</tr></thead><tbody>" +
+      rows.map((r) => "<tr>" + r.map((c, i) => `<td${n.includes(i) ? ' class="n"' : ""}>${esc(c)}</td>`).join("") + "</tr>").join("") + "</tbody>";
+  }
+  function xGrid(svg, x, ticks, y0, y1, label) {
+    ticks.forEach((v) => {
+      el("line", { x1: x(v), x2: x(v), y1: y0, y2: y1, class: "gridline" }, svg);
+      txt(svg, x(v), y1 + 16, label(v), "tick", "middle");
+    });
+  }
+
+  // ---------------------------------------------------------------- growth panel
+  (function growth() {
+    const g = D.growth, box = document.getElementById("frames");
+    let prev = "";
+    g.states.forEach((s) => {
+      const row = document.createElement("div");
+      row.className = "frame";
+      const meta = document.createElement("div");
+      meta.className = "frame-meta";
+      meta.innerHTML = `<b>frame ${s.frame}</b><br>${s.time}`;
+      const scr = document.createElement("div");
+      scr.className = "screen";
+      const fx = document.createElement("span");
+      fx.className = "fx"; fx.textContent = "fx";
+      const read = document.createElement("span");
+      read.className = "read";
+      // highlight what is new against the previous reading, by shared prefix
+      let k = 0;
+      while (k < prev.length && k < s.text.length && prev[k] === s.text[k]) k++;
+      const old = document.createTextNode(s.text.slice(0, k));
+      const fresh = document.createElement("span");
+      fresh.className = "new"; fresh.textContent = s.text.slice(k);
+      read.append(old, fresh);
+      scr.append(fx, read);
+      row.append(meta, scr);
+      box.appendChild(row);
+      prev = s.text;
+    });
+    const c = g.candidate, dl = document.getElementById("cand");
+    const items = [
+      ["Final reading", `<span class="mono">${esc(c.text)}</span>`],
+      ["Letters and digits gained", `+${c.growth}`],
+      ["Frames the region was tracked", c.frames_growing],
+      ["OCR confidence, mean", c.conf_mean.toFixed(2)],
+      ["Screen position", `x ${c.x_norm.toFixed(3)}, y ${c.y_norm.toFixed(3)}`],
+      ["Ranker score", `<span class="verdict">${c.score.toFixed(3)} <span class="pill ${c.score >= 0.5 ? "on" : ""}">${c.score >= 0.5 ? "kept" : "dropped"}</span></span>`],
+    ];
+    dl.innerHTML = items.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${v}</dd></div>`).join("");
+    document.getElementById("cand-truth").innerHTML =
+      `Afterwards, for scoring only: the log records <span class="mono">${esc(c.truth)}</span>, so this candidate ${c.correct ? "counts as a correct step" : "does not count"}.`;
+  })();
+
+  // ---------------------------------------------------------------- funnel
+  (function funnel() {
+    const f = D.funnel, svg = document.getElementById("funnel");
+    const W = 460, rowH = 54, top = 8, H = top + rowH * f.length + 8;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const x0 = 0, x1 = W - 96, x = lin(0, 1, x0, x1);
+    const fills = ["var(--ramp-1)", "var(--ramp-2)", "var(--ramp-3)"];
+    f.forEach((s, i) => {
+      const y = top + i * rowH;
+      txt(svg, 0, y + 14, s.label, "lbl");
+      el("line", { x1: x0, x2: x1, y1: y + 22, y2: y + 22, class: "gridline" }, svg);
+      const bar = hbar(svg, x0, Math.max(x0 + 2, x(s.share)), y + 22, 20, fills[i]);
+      txt(svg, x(s.share) + 8, y + 37, `${pct(s.share)} · ${fmt(s.count)}`, "lbl-2");
+      const hit = el("rect", { x: x0, y: y + 18, width: x1 - x0, height: 28, class: "hit" }, svg);
+      bindTip(hit, `<b>${esc(s.label)}</b><br>${fmt(s.count)} of ${fmt(f[0].count)} (${pct(s.share)})`);
+      void bar;
+    });
+    table("t-funnel", ["Stage", "Strings", "Share"], f.map((s) => [s.label, fmt(s.count), pct(s.share)]), [1, 2]);
+  })();
+
+  // ---------------------------------------------------------------- worked example
+  (function worked() {
+    const w = D.worked, svg = document.getElementById("worked");
+    const rows = w.rows, rowH = 24, top = 22, labelW = 190, W = 460;
+    const H = top + rows.length * rowH + 26;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const x = lin(0, 1, labelW, W - 44);
+    [0, 0.5, 1].forEach((v) => {
+      el("line", { x1: x(v), x2: x(v), y1: top - 6, y2: H - 22, class: v === 0 ? "baseline" : "gridline" }, svg);
+      txt(svg, x(v), H - 6, v.toFixed(1), "tick", "middle");
+    });
+    el("line", { x1: x(0.5), x2: x(0.5), y1: top - 8, y2: H - 22, style: "stroke:var(--ink-2);stroke-width:1.5" }, svg);
+    txt(svg, x(0.5) + 6, top - 8, "keep at 0.5 or above", "lbl-2");
+    rows.forEach((r, i) => {
+      const y = top + i * rowH;
+      const label = r.text.length > 24 ? r.text.slice(0, 23) + "…" : r.text;
+      txt(svg, labelW - 10, y + 14, label, "lbl-mono", "end");
+      hbar(svg, x(0), Math.max(x(0) + 2, x(r.score)), y + 5, 13, r.correct ? "var(--s1)" : "var(--quiet-mark)");
+      let note = r.score.toFixed(2);
+      if (r.merged) note += "  merged";
+      txt(svg, Math.max(x(0) + 2, x(r.score)) + 5, y + 15, note, "lbl-2");
+      const hit = el("rect", { x: 0, y: y + 1, width: W, height: rowH - 2, class: "hit" }, svg);
+      bindTip(hit, `<span class="t-mono">${esc(r.text)}</span><br>score <b>${r.score.toFixed(3)}</b> · ${r.score >= 0.5 ? "kept" : "dropped"}` +
+        (r.merged ? " · merged into an earlier step" : "") + `<br>${r.correct ? "matches a logged typed string" : "screen text, not typed"}`);
+    });
+    document.getElementById("worked-sum").textContent = w.summary;
+    table("t-worked", ["Candidate", "Score", "Kept", "Typed by the user"],
+      rows.map((r) => [r.text, r.score.toFixed(3), r.score >= 0.5 ? (r.merged ? "merged" : "yes") : "no", r.correct ? "yes" : "no"]), [1]);
+  })();
+
+  // ---------------------------------------------------------------- precision-recall
+  (function pr() {
+    const C = D.curves, svg = document.getElementById("pr");
+    const W = 900, H = 420, m = { l: 62, r: 24, t: 16, b: 52 };
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const xMax = D.pr_xmax, x = lin(0, xMax, m.l, W - m.r), y = lin(0, 1, H - m.b, m.t);
+    for (let v = 0; v <= 1.0001; v += 0.2) {
+      el("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), class: v === 0 ? "baseline" : "gridline" }, svg);
+      txt(svg, m.l - 10, y(v) + 4, Math.round(v * 100) + "%", "tick", "end");
+    }
+    for (let v = 0; v <= xMax + 1e-9; v += 0.1) {
+      el("line", { x1: x(v), x2: x(v), y1: m.t, y2: H - m.b, class: "gridline" }, svg);
+      txt(svg, x(v), H - m.b + 18, Math.round(v * 100) + "%", "tick", "middle");
+    }
+    txt(svg, (m.l + W - m.r) / 2, H - 10, "Recall: share of logged typed strings recovered", "axis-title", "middle");
+    const yt = txt(svg, 16, (m.t + H - m.b) / 2, "Precision: share of SOP steps that are real", "axis-title", "middle");
+    yt.setAttribute("transform", `rotate(-90 16 ${(m.t + H - m.b) / 2})`);
+
+    const series = [
+      { key: "no_routing", name: "One pooled ranker", color: "var(--s3)" },
+      { key: "oracle", name: "Routed by the true application", color: "var(--s2)" },
+      { key: "predicted", name: "Routed by stage 1 (deployed)", color: "var(--s1)" },
+    ];
+    const legend = document.getElementById("pr-legend");
+    legend.innerHTML = series.slice().reverse().map((s) => `<span><i class="key" style="background:${s.color}"></i>${esc(s.name)}</span>`).join("");
+    series.forEach((s) => {
+      const pts = C[s.key].slice().sort((a, b) => a.recall - b.recall);
+      el("polyline", { points: pts.map((p) => `${x(p.recall)},${y(p.precision)}`).join(" "),
+        style: `fill:none;stroke:${s.color};stroke-width:2;stroke-linejoin:round;stroke-linecap:round` }, svg);
+    });
+    series.forEach((s) => {
+      const p5 = C[s.key].find((p) => Math.abs(p.threshold - 0.5) < 1e-6);
+      if (p5) el("circle", { cx: x(p5.recall), cy: y(p5.precision), r: 5, style: `fill:${s.color};stroke:var(--surface);stroke-width:2` }, svg);
+      C[s.key].forEach((p) => {
+        const hit = el("circle", { cx: x(p.recall), cy: y(p.precision), r: 11, class: "hit" }, svg);
+        bindTip(hit, `<b>${esc(s.name)}</b><br>threshold ${p.threshold.toFixed(2)}<br>precision ${pct(p.precision)} · recall ${pct(p.recall)}<br>${fmt(p.emitted)} steps`);
+      });
+    });
+    // direct labels at the 0.5 points; routed and oracle coincide, so one label serves both
+    const r5 = C.predicted.find((p) => Math.abs(p.threshold - 0.5) < 1e-6);
+    const n5 = C.no_routing.find((p) => Math.abs(p.threshold - 0.5) < 1e-6);
+    if (r5) {
+      txt(svg, x(r5.recall) + 12, y(r5.precision) - 12, `Routed, threshold 0.5: ${pct(r5.precision)} · ${pct(r5.recall)}`, "lbl");
+      txt(svg, x(r5.recall) + 12, y(r5.precision) + 6, "true-application routing sits on the same point", "lbl-2");
+    }
+    // left of and below its point, so it never meets the routed label up and to the right
+    if (n5) txt(svg, x(n5.recall) - 12, y(n5.precision) + 22, `Pooled, 0.5: ${pct(n5.precision)} · ${pct(n5.recall)}`, "lbl", "end");
+
+    const rows = [];
+    series.slice().reverse().forEach((s) => C[s.key].forEach((p) => rows.push([s.name, p.threshold.toFixed(2), fmt(p.emitted), pct(p.precision), pct(p.recall)])));
+    table("t-pr", ["Variant", "Threshold", "Steps", "Precision", "Recall"], rows, [1, 2, 3, 4]);
+  })();
+
+  // ---------------------------------------------------------------- ranker evidence
+  (function ablation() {
+    const A = D.ablation;
+    function bars(id, rows, key, xmax) {
+      const svg = document.getElementById(id);
+      const rowH = 30, top = 4, labelW = 170, W = 440, H = top + rows.length * rowH + 28;
+      svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+      const x = lin(0, xmax, labelW, W - 52);
+      const ticks = [];
+      for (let v = 0; v <= xmax + 1e-9; v += xmax / 4) ticks.push(v);
+      xGrid(svg, x, ticks, top, H - 24, (v) => Math.round(v * 100) + "%");
+      rows.forEach((r, i) => {
+        const y = top + i * rowH;
+        txt(svg, labelW - 10, y + 19, r.short, "lbl-2", "end");
+        const v = r[key];
+        hbar(svg, x(0), Math.max(x(0) + 2, x(v)), y + 8, 14, r.baseline ? "var(--quiet-mark)" : "var(--s1)");
+        txt(svg, Math.max(x(0) + 2, x(v)) + 6, y + 19, pct(v), "lbl");
+        const hit = el("rect", { x: 0, y: y + 2, width: W, height: rowH - 4, class: "hit" }, svg);
+        bindTip(hit, `<b>${esc(r.name)}</b><br>precision ${pct(r.precision)} · recall ${pct(r.recall)} at threshold 0.5` +
+          (r.precision_at != null ? `<br>precision at matched recall ${pct(r.precision_at)}` : ""));
+      });
+    }
+    const top = (rows, k) => Math.min(1, Math.ceil(Math.max(...rows.map((r) => r[k])) * 10 + 1) / 10);
+    bars("abl-in", A.in_domain, "precision_at", top(A.in_domain, "precision_at"));
+    bars("abl-out", A.unseen, "recall", top(A.unseen, "recall"));
+    table("t-abl", ["Version", "Where", "Precision @0.5", "Recall @0.5", "Precision at matched recall"],
+      A.in_domain.map((r) => [r.name, "known applications", pct(r.precision), pct(r.recall), pct(r.precision_at)])
+        .concat(A.unseen.map((r) => [r.name, "unseen applications", pct(r.precision), pct(r.recall), ""])), [2, 3, 4]);
+  })();
+
+  // ---------------------------------------------------------------- per application
+  (function perapp() {
+    const A = D.per_app, svg = document.getElementById("perapp");
+    const rowH = 26, top = 6, labelW = 168, W = 460, H = top + A.length * rowH + 30;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const x = lin(0, 1, labelW, W - 16);
+    xGrid(svg, x, [0, 0.25, 0.5, 0.75, 1], top, H - 26, (v) => Math.round(v * 100) + "%");
+    A.forEach((a, i) => {
+      const y = top + i * rowH + rowH / 2;
+      txt(svg, labelW - 10, y + 4, a.app, "lbl", "end");
+      const lo = Math.min(a.recall, a.precision), hi = Math.max(a.recall, a.precision);
+      el("line", { x1: x(lo), x2: x(hi), y1: y, y2: y, style: "stroke:var(--axis);stroke-width:2" }, svg);
+      el("circle", { cx: x(a.precision), cy: y, r: 5, style: "fill:var(--s2);stroke:var(--surface);stroke-width:2" }, svg);
+      el("circle", { cx: x(a.recall), cy: y, r: 5, style: "fill:var(--s1);stroke:var(--surface);stroke-width:2" }, svg);
+      const hit = el("rect", { x: 0, y: y - rowH / 2 + 1, width: W, height: rowH - 2, class: "hit" }, svg);
+      bindTip(hit, `<b>${esc(a.app)}</b><br>recall ${pct(a.recall)} of ${fmt(a.targets)} typed strings<br>precision ${pct(a.precision)} of ${fmt(a.emitted)} steps`);
+    });
+    table("t-perapp", ["Application", "Typed strings", "Steps", "Precision", "Recall"],
+      A.map((a) => [a.app, fmt(a.targets), fmt(a.emitted), pct(a.precision), pct(a.recall)]), [1, 2, 3, 4]);
+  })();
+
+  // ---------------------------------------------------------------- stage 1
+  (function stage1() {
+    const S = D.stage1, svg = document.getElementById("stage1");
+    const rowH = 24, top = 6, labelW = 200, W = 460, H = top + S.length * rowH + 30;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const lo = D.stage1_xmin, x = lin(lo, 1, labelW, W - 16);
+    const ticks = [];
+    for (let v = Math.ceil(lo * 20) / 20; v <= 1.0001; v += 0.05) ticks.push(+v.toFixed(2));
+    xGrid(svg, x, ticks, top, H - 26, (v) => Math.round(v * 100) + "%");
+    S.forEach((s, i) => {
+      const y = top + i * rowH + rowH / 2;
+      txt(svg, labelW - 10, y + 4, s.name, "lbl-2", "end");
+      el("line", { x1: x(s.raw), x2: x(s.canon), y1: y, y2: y, style: "stroke:var(--axis);stroke-width:2" }, svg);
+      el("circle", { cx: x(s.raw), cy: y, r: 4.5, style: "fill:var(--quiet-mark);stroke:var(--surface);stroke-width:2" }, svg);
+      el("circle", { cx: x(s.canon), cy: y, r: 5, style: "fill:var(--s1);stroke:var(--surface);stroke-width:2" }, svg);
+      if (i === 0) txt(svg, x(s.canon) - 8, y - 9, pct(s.canon), "lbl", "end");
+      const hit = el("rect", { x: 0, y: y - rowH / 2 + 1, width: W, height: rowH - 2, class: "hit" }, svg);
+      bindTip(hit, `<b>${esc(s.name)}</b><br>raw ${pct(s.raw, 2)} → canonical ${pct(s.canon, 2)}<br>+${((s.canon - s.raw) * 100).toFixed(2)} points`);
+    });
+    table("t-stage1", ["Features : model", "Raw labels", "Canonical", "Gain (points)"],
+      S.map((s) => [s.name, pct(s.raw, 2), pct(s.canon, 2), "+" + ((s.canon - s.raw) * 100).toFixed(2)]), [1, 2, 3]);
+  })();
+
+  // ---------------------------------------------------------------- unseen applications
+  (function scope() {
+    const S = D.scope, svg = document.getElementById("scope");
+    const rows = [{ label: "Seen in training", value: S.refs[0].value, quiet: false, note: S.refs[0].label }]
+      .concat(S.points.map((p) => ({ label: `Unseen, ${p.train_apps} apps in training`, value: p.precision, quiet: false,
+        note: `recall ${pct(p.recall)} on 15 held-out applications` })))
+      .concat([{ label: "Keep every candidate", value: S.refs[1].value, quiet: true, note: "the floor: no ranker at all" }]);
+    const rowH = 30, top = 4, labelW = 190, W = 460, H = top + rows.length * rowH + 28;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const x = lin(0, 0.6, labelW, W - 56);
+    xGrid(svg, x, [0, 0.2, 0.4, 0.6], top, H - 24, (v) => Math.round(v * 100) + "%");
+    rows.forEach((r, i) => {
+      const y = top + i * rowH;
+      txt(svg, labelW - 10, y + 19, r.label, "lbl-2", "end");
+      hbar(svg, x(0), Math.max(x(0) + 2, x(r.value)), y + 8, 14, r.quiet ? "var(--quiet-mark)" : "var(--s1)");
+      txt(svg, Math.max(x(0) + 2, x(r.value)) + 6, y + 19, pct(r.value), "lbl");
+      const hit = el("rect", { x: 0, y: y + 2, width: W, height: rowH - 4, class: "hit" }, svg);
+      bindTip(hit, `<b>${esc(r.label)}</b><br>precision ${pct(r.value)}<br>${esc(r.note)}`);
+    });
+    table("t-scope", ["Condition", "Precision", "Note"], rows.map((r) => [r.label, pct(r.value), r.note]), [1]);
+  })();
+
+  // ---------------------------------------------------------------- action mix
+  (function mix() {
+    // typing first, so the one slice that is recovered sits where the eye starts
+    const M = D.mix.slice().sort((a, b) => (b.recovered - a.recovered) || (b.share - a.share));
+    const svg = document.getElementById("mix");
+    const W = 900, H = 82, y0 = 8, h = 24;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    let cx = 0;
+    const gap = 2, total = W - gap * (M.length - 1);
+    const small = [];
+    M.forEach((s, i) => {
+      const w = Math.max(2, s.share * total);
+      const r = 4, x1 = cx + w;
+      // square inner edges, 4px rounding only on the two outer ends of the bar
+      const d = i === 0
+        ? `M${cx + r},${y0} H${x1} V${y0 + h} H${cx + r} Q${cx},${y0 + h} ${cx},${y0 + h - r} V${y0 + r} Q${cx},${y0} ${cx + r},${y0} Z`
+        : i === M.length - 1
+          ? `M${cx},${y0} H${x1 - r} Q${x1},${y0} ${x1},${y0 + r} V${y0 + h - r} Q${x1},${y0 + h} ${x1 - r},${y0 + h} H${cx} Z`
+          : `M${cx},${y0} H${x1} V${y0 + h} H${cx} Z`;
+      el("path", { d, style: `fill:${s.recovered ? "var(--s1)" : "var(--quiet-mark)"}` }, svg);
+      const label = `${s.label} ${pct(s.share)}`;
+      if (w > 130) {
+        txt(svg, cx + 10, y0 + 16, label, "lbl");
+      } else if (s.recovered) {
+        el("line", { x1: cx + w / 2, x2: cx + w / 2, y1: y0 + h + 2, y2: y0 + h + 14, style: "stroke:var(--axis);stroke-width:1" }, svg);
+        txt(svg, cx, y0 + h + 30, `${label}, the only type recovered`, "lbl");
+      } else {
+        small.push(label);
+      }
+      const hit = el("rect", { x: cx, y: y0 - 4, width: Math.max(w, 12), height: h + 8, class: "hit" }, svg);
+      bindTip(hit, `<b>${esc(s.label)}</b><br>${fmt(s.count)} actions · ${pct(s.share, 2)}<br>${s.recovered ? "recovered by the detector" : "not recovered"}`);
+      cx += w + gap;
+    });
+    document.getElementById("mix-rest").textContent = small.length ? `Narrow slices, not recovered: ${small.join(", ")}.` : "";
+    table("t-mix", ["Action type", "Count", "Share", "Recovered"], M.map((s) => [s.label, fmt(s.count), pct(s.share, 2), s.recovered ? "yes" : "no"]), [1, 2]);
+  })();
+
+  // ---------------------------------------------------------------- scoring rule table
+  (function rule() {
+    const R = D.rule;
+    table("t-rule", ["Variant", "Threshold", "Candidates kept", "Precision, every copy", "Steps after merging", "Precision, as delivered", "Recall, as delivered"],
+      R.map((r) => [r.variant, r.threshold.toFixed(1), fmt(r.emitted), pct(r.precision), fmt(r.emitted_dedup), pct(r.precision_dedup), pct(r.recall_dedup)]), [1, 2, 3, 4, 5, 6]);
+  })();
+})();
+</script>

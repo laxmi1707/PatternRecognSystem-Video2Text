@@ -210,8 +210,15 @@ def dedupe(order: list[int], texts) -> list[int]:
     The growth rule often reports the same input more than once - the field is
     re-read a frame later, or OCR drifts by a character ('sudo adduser priya',
     'sudo adduser priyal'). `order` must be best-first; each candidate is kept
-    only if it does not match one already kept. Uses the same tolerance as
-    scoring, and reads nothing but the candidates' own text.
+    only if it does not match one already kept, so every group is shown as its
+    best-scored reading. Reads nothing but the candidates' own text.
+
+    Two alternatives were measured on run_034's out-of-fold scores and rejected.
+    Showing each group's LONGEST member scored 0.2 points higher, but only
+    because it swapped a correct 'priyanka' for the shell prompt line
+    'user@workstation-priyankaj:~$', which the lenient match then credited.
+    Grouping only readings of similar length kept fragments and full lines
+    apart, and cost 6.6 points of precision.
     """
     kept: list[int] = []
     for i in order:
@@ -388,6 +395,115 @@ def stage1_accuracy() -> dict[str, float]:
             "canonical_labels": len({canon_app(r["true"]) for r in rows})}
 
 
+# ------------------------------------------------------------- ranker features
+#
+# The 13 frame features leave the ranker blind to the text itself, so terminal
+# output ('Copying', 'updated successfully') outranked what the user typed.
+# Three more kinds of evidence, all computed from the candidates alone (run_033:
+# 38.1% -> 47.9% precision at the same recall):
+#   lexical   the shape of the string - spaces, = ( / -, a known command first
+#   text      a char n-gram model trained across every application, so it can
+#             say "this looks typed" even where screen position means nothing
+#   context   where the string sits among the recording's other candidates -
+#             output arrives as a block of lines, input as one line on its own
+
+COMMANDS = set("""ls cd pwd mkdir rmdir rm cp mv cat head tail grep find touch echo sudo apt
+apt-get yum dnf snap git python python3 pip pip3 nano vim vi chmod chown ln tar zip unzip curl
+wget ssh scp docker kubectl npm node java javac gcc make cmake man less more sort uniq wc diff
+export source alias history kill ps top df du free which whereis useradd adduser passwd su
+systemctl service ping ifconfig ip""".split())
+LEX = ["has_space", "frac_upper", "frac_punct", "starts_lower", "ends_colon", "has_eq_paren",
+       "has_path", "has_flag", "has_dot", "frac_titleword", "max_word", "first_is_command",
+       "is_formula"]
+CTX = ["n_same_row", "y_rank", "n_reads", "rel_life", "is_lowest"]
+ALL_FEATURES = FEATURES + LEX + ["text_score"] + CTX
+
+
+def lexical(t: str) -> list[float]:
+    n = max(len(t), 1)
+    words = t.split()
+    first = words[0].lower() if words else ""
+    return [
+        float(" " in t.strip()),
+        sum(c.isupper() for c in t) / n,
+        sum((not c.isalnum()) and not c.isspace() for c in t) / n,
+        float(t[:1].islower()),
+        float(t.rstrip().endswith(":")),
+        float(any(c in t for c in "=(")),
+        float("/" in t or "\\" in t),
+        float(" -" in t),
+        float("." in t),
+        (sum(w[:1].isupper() for w in words) / len(words)) if words else 0.0,
+        float(max((len(w) for w in words), default=0)),
+        float(first in COMMANDS),
+        float(t.lstrip().startswith("=")),
+    ]
+
+
+def context(X: np.ndarray, tid: np.ndarray, texts) -> np.ndarray:
+    """Features relative to the other candidates of the same recording."""
+    y = X[:, FEATURES.index("y_norm")]
+    life = X[:, FEATURES.index("screen_life")]
+    out = np.zeros((len(X), len(CTX)), dtype=np.float32)
+    order = np.argsort(tid, kind="stable")
+    for rows in np.split(order, np.flatnonzero(np.diff(tid[order])) + 1):
+        if not len(rows):
+            continue
+        yr, lr = y[rows], life[rows]
+        keys = [norm(texts[i]) for i in rows]
+        ranks = np.argsort(np.argsort(yr)) / max(len(rows) - 1, 1)
+        top = yr.max()
+        for j, i in enumerate(rows):
+            k = keys[j]
+            out[i] = [float((np.abs(yr - yr[j]) < 0.01).sum() - 1),
+                      float(ranks[j]),
+                      float(sum(1 for q in keys if k and (k in q or q in k)) - 1),
+                      float(lr[j] / max(lr.max(), 1)),
+                      float(yr[j] >= top - 1e-6)]
+    return out
+
+
+def _vectoriser():
+    from sklearn.feature_extraction.text import HashingVectorizer
+    # stateless: nothing to fit, so the same transform runs at training and inference
+    return HashingVectorizer(analyzer="char_wb", ngram_range=(2, 4), n_features=2 ** 20,
+                             alternate_sign=False, norm="l2", lowercase=True)
+
+
+def fit_text_model(texts, label: np.ndarray, rows: np.ndarray):
+    from sklearn.linear_model import SGDClassifier
+    return SGDClassifier(loss="log_loss", alpha=2e-6, class_weight="balanced", max_iter=15,
+                         tol=None, random_state=0).fit(
+        _vectoriser().transform([texts[i] for i in rows]), label[rows])
+
+
+def text_score(model, strings: list[str]) -> np.ndarray:
+    return model.predict_proba(_vectoriser().transform(strings))[:, 1].astype(np.float32)
+
+
+def _inner(tid: np.ndarray) -> np.ndarray:
+    """3 inner folds, grouped by recording, stable across runs."""
+    return (tid * 2654435761 % 3).astype(int)
+
+
+def oof_text_scores(texts, label: np.ndarray, tid: np.ndarray, train: np.ndarray,
+                    test: np.ndarray | None = None) -> np.ndarray:
+    """Text score for train rows from inner folds, and for test rows from all of train,
+    so no row is ever scored by a model that saw it."""
+    out = np.zeros(len(texts), dtype=np.float32)
+    if test is not None and len(test):
+        out[test] = text_score(fit_text_model(texts, label, train), [texts[i] for i in test])
+    inner = _inner(tid[train])
+    for j in range(3):
+        a, b = train[inner != j], train[inner == j]
+        out[b] = text_score(fit_text_model(texts, label, a), [texts[i] for i in b])
+    return out
+
+
+def ranker_matrix(X, lex, ts, ctx) -> np.ndarray:
+    return np.hstack([X, lex, ts[:, None], ctx]).astype(np.float32)
+
+
 # ------------------------------------------------------------- rankers
 
 def _fit_app(X, y):
@@ -410,17 +526,22 @@ def evaluate(data: dict, min_len: int) -> dict:
     pred, fold_of = stage1_oof()
     fold = np.array([fold_of[int(t)] for t in tid])
     apps = sorted(set(app.tolist()))
+    texts = texts_of(data)
+    lex = np.array([lexical(t) for t in texts], dtype=np.float32)
+    ctx = context(X, tid, texts)
 
     scores = {v: np.zeros(len(X)) for v in ("predicted", "oracle", "no_routing")}
     rankers_per_fold = []
     for k in range(5):
         tr, te = fold != k, fold == k
-        scores["no_routing"][te] = _fit_pooled(X[tr], label[tr]).predict_proba(X[te])[:, 1]
+        ts = oof_text_scores(texts, label, tid, np.flatnonzero(tr), np.flatnonzero(te))
+        M = ranker_matrix(X, lex, ts, ctx)
+        scores["no_routing"][te] = _fit_pooled(M[tr], label[tr]).predict_proba(M[te])[:, 1]
         per_app = {}
         for a in apps:
             m = tr & (app == a)
             if m.sum() >= MIN_ROWS and label[m].sum() >= MIN_POS:
-                per_app[a] = _fit_app(X[m], label[m])
+                per_app[a] = _fit_app(M[m], label[m])
         rankers_per_fold.append(len(per_app))
         idx = np.flatnonzero(te)
         for variant, pick in (("predicted", 1), ("oracle", 0)):
@@ -430,10 +551,9 @@ def evaluate(data: dict, min_len: int) -> dict:
             for a, rows_i in routed.items():
                 if a in per_app:
                     rows_i = np.asarray(rows_i)
-                    scores[variant][rows_i] = per_app[a].predict_proba(X[rows_i])[:, 1]
+                    scores[variant][rows_i] = per_app[a].predict_proba(M[rows_i])[:, 1]
         log.info(f"  fold {k}: {len(per_app)}/{len(apps)} applications have a ranker")
 
-    texts = texts_of(data)
     table = []
     for variant in ("predicted", "oracle", "no_routing"):
         for t in (0.3, 0.5):
@@ -491,17 +611,26 @@ def evaluate(data: dict, min_len: int) -> dict:
 
 
 def fit(data: dict, min_len: int) -> dict:
-    """Final rankers on every recording, for inference."""
-    X, app = data["X"], data["app"]
+    """Final rankers on every recording, for inference.
+
+    The rankers train on out-of-fold text scores, the same way they were
+    evaluated; inference uses one text model fitted on everything.
+    """
+    X, app, tid = data["X"], data["app"], data["tid"]
     label, _ = labels_at(data, min_len)
+    texts = texts_of(data)
+    everything = np.arange(len(X))
+    M = ranker_matrix(X, np.array([lexical(t) for t in texts], dtype=np.float32),
+                      oof_text_scores(texts, label, tid, everything), context(X, tid, texts))
     per_app = {}
     for a in sorted(set(app.tolist())):
         m = app == a
         if m.sum() >= MIN_ROWS and label[m].sum() >= MIN_POS:
-            per_app[a] = _fit_app(X[m], label[m])
-    pooled = _fit_pooled(X, label)
-    imp = sorted(zip(FEATURES, pooled.feature_importances_.tolist()), key=lambda t: -t[1])
-    return {"per_app": per_app, "pooled": pooled, "features": FEATURES, "min_len": min_len,
+            per_app[a] = _fit_app(M[m], label[m])
+    pooled = _fit_pooled(M, label)
+    imp = sorted(zip(ALL_FEATURES, pooled.feature_importances_.tolist()), key=lambda t: -t[1])
+    return {"per_app": per_app, "pooled": pooled, "text_model": fit_text_model(texts, label, everything),
+            "features": FEATURES, "all_features": ALL_FEATURES, "min_len": min_len,
             "threshold": THRESHOLD, "alias": ALIAS, "stage1_bundle": str(STAGE1_BUNDLE),
             "trained": time.strftime("%Y-%m-%d %H:%M"), "n_rows": int(len(X)),
             "importance": imp}
@@ -578,6 +707,11 @@ def detect(bundle: dict, arrays: dict, record: dict, threshold: float | None = N
         rows = candidates(record)
         if rows:
             X = np.array([[r[f] for f in bundle["features"]] for r in rows], dtype=np.float32)
+            texts = [r["text"] for r in rows]
+            if "text_model" in bundle:      # bundles from run_033 on; older ones are frame-only
+                X = ranker_matrix(X, np.array([lexical(t) for t in texts], dtype=np.float32),
+                                  text_score(bundle["text_model"], texts),
+                                  context(X, np.zeros(len(rows), dtype=np.int64), texts))
             p = ranker.predict_proba(X)[:, 1]
             ts = np.asarray(arrays.get("timestamp", np.arange(len(record["frames"]))), float)
             above = sorted((i for i in range(len(rows)) if p[i] >= threshold), key=lambda i: -p[i])

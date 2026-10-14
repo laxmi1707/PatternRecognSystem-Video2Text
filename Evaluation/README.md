@@ -25,14 +25,36 @@ recording does not have. `v2k/sop_detector.py` reads only the frames:
    the application stage 1 named scores each candidate, and repeated reads of one
    string are merged into a single "Type ..." step.
 
+The ranker reads 32 features: 13 from the frames (position, length, OCR
+confidence, how long the text grew), 13 on the shape of the string (spaces,
+`=` `(` `/` `-`, a known command first), one text score from a character n-gram
+model trained across every application, and 5 on the recording around it (other
+lines on the same row, vertical rank, how often the string was read).
+
 Out of fold over the 61 applications with at least five logged typed strings
-(6,716 recordings, 1,690 typed strings of three or more characters), threshold 0.5:
+(6,716 recordings, 1,690 typed strings of three or more characters), threshold 0.5,
+from `runs/run_034_sop-detector`:
 
 | | precision | recall |
 |---|---|---|
-| **routed by stage 1, as delivered** | **38.1%** | **26.6%** |
-| routed by the true application | 37.8% | 26.2% |
-| one pooled ranker, no routing | 53.4% | 9.8% |
+| **routed by stage 1, as delivered** | **47.9%** | **26.3%** |
+| routed by the true application | 47.8% | 26.2% |
+| one pooled ranker, no routing | 51.2% | 18.3% |
+
+What each kind of evidence adds (`sop_ranker_experiments_v1.py`, `runs/run_033`),
+routed, as delivered, threshold 0.5:
+
+| ranker features | precision | recall | recall, applications never seen in training |
+|---|---|---|---|
+| 13 frame features (the first version, run_032) | 38.1% | 26.6% | 3.1% |
+| + shape of the string | 39.5% | 28.3% | |
+| + cross-application text score | 42.3% | 26.1% | 6.1% |
+| **+ recording context (shipped)** | **47.9%** | **26.3%** | **10.9%** |
+
+The frame features alone made position the strongest clue, and position means
+nothing outside the application it was learned on: a ranker that had never seen an
+application recovered 3.1% of its typed strings. Text and context carry over, which
+is why the pooled ranker and unseen applications both improved most.
 
 Stage 1 is 94.49% correct once application labels are normalised; the dataset
 spells 70 applications 107 ways (`ATOM`/`Atom`, `krtia`), which costs 6.87 points
@@ -43,16 +65,21 @@ task done entirely by clicking yields an empty SOP.
 
 "As delivered" means repeated reads are merged and scoring is one-to-one, so a
 duplicate is a false positive and a string typed twice needs two steps. Crediting
-every copy instead gives 59.1% / 28.1%; `runs/run_032_sop-detector/report.md` has
-both. A picture of the mechanism and every result: `viz/sop_detector_viz_v1.html`.
+every copy instead gives 66.9% / 28.0%; `runs/run_034_sop-detector/report.md` has
+both. A picture of the mechanism and every result: `viz/sop_detector_viz_v2.html`
+(`_v1` is the frame-features-only version, kept for comparison).
 
 ```
 python -m v2k.sop_detector train                      # cache, evaluate out of fold, fit, save
 python -m v2k.sop_detector detect --bundle runs/<run>/sop_detector.joblib \
     --video path/to/recording.mp4 --out sop.md        # a bare video, nothing else read
 python -m v2k.sop_detector detect --bundle runs/<run>/sop_detector.joblib --cached Bash 111478
-python viz/build_sop_viz_v1.py runs/<run> viz/<page>.html
+python sop_ranker_experiments_v1.py                   # the feature comparison above
+python viz/build_sop_viz_v2.py runs/<detector run> runs/<experiments run> viz/<page>.html
 ```
+
+Bundles from run_032 (frame features only) still load: `detect` adds the text and
+context features only when the bundle carries a text model.
 
 `train` needs the frame cache and run_029's saved stage-1 bundle, neither of which
 is committed. The fitted rankers (`sop_detector.joblib`, 15 MB) and out-of-fold
