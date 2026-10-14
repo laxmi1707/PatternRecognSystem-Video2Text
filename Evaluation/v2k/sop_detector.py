@@ -661,7 +661,10 @@ def _cmd_detect(args) -> None:
                                        native_ocr=True, parity_ocr="ocr" in app_bundle["blocks"])
         record.update(task_id=0, app="(input)", platform="", instruction="", keyword_label="")
         log.info(f"extracted {record['n_frames']} frames in {time.perf_counter() - t0:.0f}s")
-        title = Path(args.video).parent.name if Path(args.video).stem == "video" else Path(args.video).stem
+        p = Path(args.video)
+        # VideoCUA nests recordings as <task>/video/video.mp4: name it by the first real folder
+        title = p.stem if p.stem.lower() != "video" else next(
+            (q.name for q in p.parents if q.name and q.name.lower() != "video"), p.stem)
         source = f"bare video {Path(args.video).name}, no action log"
     result = detect(bundle, arrays, record, args.threshold, app_bundle)
     duration = (record.get("video") or {}).get("duration_seconds")
