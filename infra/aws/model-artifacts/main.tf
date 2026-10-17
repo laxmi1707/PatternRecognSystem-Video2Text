@@ -124,6 +124,44 @@ data "aws_iam_policy_document" "bucket" {
       values   = ["false"]
     }
   }
+
+  # Grant the backend's runtime role(s) read access from the bucket side, so no
+  # IAM policy has to be created on the role (needs no iam:* permissions).
+  dynamic "statement" {
+    for_each = length(var.reader_role_arns) > 0 ? [1] : []
+    content {
+      sid       = "AllowReadersListModelsPrefix"
+      effect    = "Allow"
+      actions   = ["s3:ListBucket"]
+      resources = [aws_s3_bucket.models.arn]
+
+      principals {
+        type        = "AWS"
+        identifiers = var.reader_role_arns
+      }
+
+      condition {
+        test     = "StringLike"
+        variable = "s3:prefix"
+        values   = ["${var.models_prefix}/*"]
+      }
+    }
+  }
+
+  dynamic "statement" {
+    for_each = length(var.reader_role_arns) > 0 ? [1] : []
+    content {
+      sid       = "AllowReadersGetModelArtifacts"
+      effect    = "Allow"
+      actions   = ["s3:GetObject", "s3:GetObjectVersion"]
+      resources = ["${aws_s3_bucket.models.arn}/${var.models_prefix}/*"]
+
+      principals {
+        type        = "AWS"
+        identifiers = var.reader_role_arns
+      }
+    }
+  }
 }
 
 resource "aws_s3_bucket_policy" "models" {

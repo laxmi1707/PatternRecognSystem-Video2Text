@@ -7,3 +7,5 @@ models_prefix = "models"
 noncurrent_version_retention_days = 90
 force_destroy                     = false
 create_read_policy                = false # true needs iam:CreatePolicy
+# Backend runtime role(s) allowed to read models via the bucket policy (no IAM permissions needed)
+# reader_role_arns = ["arn:aws:iam::984263476980:role/<app-runner-instance-role>"]

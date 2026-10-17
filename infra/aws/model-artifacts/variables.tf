@@ -46,6 +46,12 @@ variable "force_destroy" {
   default     = false
 }
 
+variable "reader_role_arns" {
+  description = "IAM role ARNs granted read access to the models prefix via the bucket policy (e.g. the App Runner instance role)"
+  type        = list(string)
+  default     = []
+}
+
 variable "create_read_policy" {
   description = "Create the read-only IAM policy for the models prefix (needs iam:CreatePolicy)"
   type        = bool

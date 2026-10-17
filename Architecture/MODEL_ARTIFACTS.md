@@ -8,7 +8,8 @@ re-check the code and `aws s3 ls` before relying on specifics.
 - Trained models live in a **private S3 bucket**, versioned by key prefix (`models/v1/`, `models/v2/`, ...).
 - At startup the backend **downloads models from S3 into the local model directory**, then loads them as before.
 - **Fallback:** if S3 is not configured or anything fails, the backend uses whatever is already in the local
-  model directory (`./models`, which the Dockerfile bakes into the image via `COPY models ./models`).
+  model directory (`./models`). The Docker image ships **without** models, so in deployment S3 is the only
+  source; the local fallback applies to local dev and training runs.
 
 ## AWS resources
 
@@ -87,9 +88,12 @@ Also verified against the real bucket: `models/v1` downloads 7/7 with checksums 
 
 ## Still open
 
-1. **Deployed backend needs read access:** the bucket/prefix/region are now code defaults, so no env vars are
-   required on App Runner, but the App Runner instance role still needs the IAM read policy. Until then the
-   sync logs `AccessDenied` and the service falls back to the models baked into the image.
+1. **Deployed backend needs read access:** the bucket/prefix/region are code defaults, so no env vars are
+   required on App Runner. Models are **not baked into the image** (Dockerfile no longer copies `models/`,
+   `.dockerignore` excludes it), so S3 is the only source. Grant the App Runner instance role read access via
+   the bucket policy: set `reader_role_arns = ["<instance role ARN>"]` in `terraform.tfvars` and
+   `terraform apply` (needs only S3 permissions). Until then the sync logs `AccessDenied`, no models load,
+   and `_ensure_trained()` fits models on the fly per request.
    Local dev with AWS credentials will also overwrite `./models/*.pkl` with `models/v1` at startup; set
    `MODEL_S3_BUCKET=` in `.env` to keep locally trained models.
 2. **Missing models are trained silently:** `MLService.classify()` → `_ensure_trained()` fits any model without

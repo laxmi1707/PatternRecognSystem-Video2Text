@@ -20,8 +20,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --timeout=1200 --retries=10 ".[ml,aws]"
 
 RUN useradd --create-home --uid 1000 appuser
-COPY models ./models
 
+# Models are not baked into the image: MLService downloads them from S3
+# (MODEL_S3_BUCKET / MODEL_S3_PREFIX, see app/config.py) into /app/models at startup.
 RUN mkdir -p /app/uploads /app/models && chown -R appuser:appuser /app
 USER appuser
 EXPOSE 8000
