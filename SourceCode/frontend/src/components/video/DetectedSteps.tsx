@@ -9,6 +9,8 @@ interface DetectedStepsProps {
 }
 
 const ORANGE = '#EF7C00';
+// the app's .text-muted is too light on this white card
+const MUTED = '#6b7280';
 
 export function DetectedSteps({ jobId, job, error }: DetectedStepsProps) {
   if (jobId === undefined) return null;
@@ -16,7 +18,7 @@ export function DetectedSteps({ jobId, job, error }: DetectedStepsProps) {
   let body: JSX.Element;
   if (jobId === null) {
     body = (
-      <p className="text-muted" style={{ fontSize: 14, margin: 0 }}>
+      <p style={{ color: MUTED, fontSize: 14, margin: 0 }}>
         The SOP detector is not running, so no steps were read from the video.
         Start it with <code>python Evaluation/sop_detector_service.py</code>.
       </p>
@@ -27,7 +29,7 @@ export function DetectedSteps({ jobId, job, error }: DetectedStepsProps) {
     const pct = Math.round(job?.progress_pct ?? 0);
     body = (
       <div>
-        <p className="text-muted" style={{ fontSize: 13, margin: '0 0 6px' }}>
+        <p style={{ color: MUTED, fontSize: 13, margin: '0 0 6px' }}>
           {pct}% — {job?.stage ?? 'starting'}
         </p>
         <div style={{ height: 6, borderRadius: 3, background: '#f3f4f6', overflow: 'hidden' }}>
@@ -45,12 +47,12 @@ export function DetectedSteps({ jobId, job, error }: DetectedStepsProps) {
           {' '}&middot; {r.steps.length} steps
         </p>
         {r.steps.length === 0 ? (
-          <p className="text-muted" style={{ fontSize: 14, margin: 0 }}>No clicks or typing were found.</p>
+          <p style={{ color: MUTED, fontSize: 14, margin: 0 }}>No clicks or typing were found.</p>
         ) : (
           <ol style={{ margin: 0, paddingLeft: 22 }}>
             {r.steps.map((s, i) => (
               <li key={i} style={{ marginBottom: 4, fontSize: 14 }}>
-                <span className="text-muted" style={{ fontSize: 12, marginRight: 8 }}>{formatClock(s.t)}</span>
+                <span style={{ color: MUTED, fontSize: 12, marginRight: 8 }}>{formatClock(s.t)}</span>
                 {describeStep(s)}
               </li>
             ))}
@@ -71,7 +73,7 @@ export function DetectedSteps({ jobId, job, error }: DetectedStepsProps) {
       }}>
         Steps detected from the video
       </h6>
-      <p className="text-muted" style={{ fontSize: 13, margin: '0 0 12px' }}>
+      <p style={{ color: MUTED, fontSize: 13, margin: '0 0 12px' }}>
         Clicks and typing read from the screen recording alone, without an action log.
       </p>
       {body}

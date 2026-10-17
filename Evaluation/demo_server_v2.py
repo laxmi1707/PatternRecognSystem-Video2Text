@@ -58,6 +58,11 @@ STAGES = [(5, "reading the screen (OCR, one frame per second)"),
           (90, "writing the SOP")]
 
 app = FastAPI(title="Video2Knowledge SOP detector demo")
+# The frontend's .env.development points the browser straight at port 8000, so this
+# stand-in needs the team backend's CORS settings (app/config.py allowed_origins).
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+                   allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 jobs: dict[int, dict] = {}
 live_lock = threading.Lock()
 
