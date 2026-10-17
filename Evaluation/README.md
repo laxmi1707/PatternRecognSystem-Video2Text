@@ -176,12 +176,18 @@ from are in `results.json`.
 
 Committed: the harness code, the label sets, the run configurations, and every
 score (`runs/*/config.json`, `results.csv`, `tuning.csv`, `predictions.csv`,
-`confusion/`). About 38 MB. Plus the four fitted models the bare-video SOP detector
-runs on, about 14 MB (listed above).
+`confusion/`). About 38 MB. And the fitted models of every run (`runs/*/models/`,
+`runs/*/sop_detector.joblib`, about 300 MB), except the three full-dataset
+classification runs below.
+
+The fitted models of `run_010_v2-full-tasklevel`, `run_012_v2-full-segment` and
+`run_013_v3-tasklevel` (814 MB together) are attached to the GitHub release
+**models-2026-10-17** instead, one zip per run; unzip each into its run folder. They are
+kept out of git so that cloning the repository stays light.
 
 Not committed, because it is large and regenerable (see `.gitignore`): the 26 GB
-dataset, the frame-vector cache, the model weights, and the other fitted model
-bundles (150-270 MB per run).
+dataset, the frame-vector cache, the YOLO and ResNet weights, and the out-of-fold
+score files (`*.npz`).
 
 ## Reproducing a number
 

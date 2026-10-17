@@ -8,8 +8,12 @@ data/
 cache/*
 # YOLOv8n and ResNet-18 weights, downloaded on first use
 weights/
-# Fitted model bundles: 150-270 MB per run
-runs/*/models/*
+# Fitted models of the three full-dataset classification runs (814 MB together) are
+# attached to the GitHub release models-2026-10-17 instead of being versioned here.
+# Every other run's fitted models are committed (about 300 MB).
+runs/run_010_v2-full-tasklevel/models/
+runs/run_012_v2-full-segment/models/
+runs/run_013_v3-tasklevel/models/
 # Frozen fold matrices and stored predictions used by the tuning shards
 *.npz
 
@@ -20,13 +24,3 @@ logs/
 
 # Personal notes and unsent drafts stay out of the shared repo
 ~$*
-
-# The SOP detector's fitted rankers sit at the run root, not under models/
-runs/*/*.joblib
-
-# Except the four fitted models the bare-video SOP detector needs to run (about 14 MB),
-# so that a checkout can run bare_sop_v1.py without retraining
-!runs/run_037_sop-detector/sop_detector.joblib
-!runs/run_029_appid70/models/ocr_native+ui+visual+cnn__mlp.joblib
-!cache/pointer_templates_v1.pkl
-!cache/bare_sop_v1_reaction.pkl
