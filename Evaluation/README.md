@@ -69,15 +69,80 @@ its settings were fixed before scoring, not tuned on the test folds.
 Stage 1 is 94.49% correct once application labels are normalised; the dataset
 spells 70 applications 107 ways (`ATOM`/`Atom`, `krtia`), which costs 6.87 points
 when scored on raw strings. 90.1% of typed strings are present among the
-candidates, so the ranker, not extraction, is where recall is lost. Only typing is
-recovered: it is 4.3% of logged actions, and clicks (41.3%) are not detected, so a
-task done entirely by clicking yields an empty SOP.
+candidates, so the ranker, not extraction, is where recall is lost. Typing is 4.3%
+of logged actions and clicks 41.3%; clicks are recovered separately, from the mouse
+pointer (next section).
+
+These keyframes were taken at the moments the action log records. On 12 recordings
+re-extracted as an upload would be (one frame per second, no log,
+`bare_vs_cached_v1.py`) recall held (50% on both) while about three times as many
+steps were emitted; retraining the ranker on upload-style frames is the open fix.
+
+### Clicks, from the mouse pointer
+
+The pointer is drawn in the recordings, so a click can be read from the pixels: the
+pointer moves to a control, stops, and the screen answers. Nothing is read from the
+log at run time.
+
+1. **Pointer seen moving** (5 frames per second). Small changed regions between
+   frames are matched against pointer templates harvested from the training
+   recordings (`pointer_tracker_v1.py`), and, for shapes the templates lack (a hand
+   over a link, an I-beam over text), against themselves: a moving sprite shows the
+   same picture at its new place as at its old one (`pointer_selfmatch_v2.py`).
+2. **Stops.** A move with no move in the next frame is a candidate click at that point.
+3. **Screen reaction.** A logistic model on 8 features - how long the pointer rests,
+   how much of the screen changes 1-3 s after (anywhere, and within 200 px), how much
+   changed in the second before - keeps the stops that look like clicks
+   (`pointer_reaction_v1.py`; threshold 0.16, chosen on the training recordings).
+4. **Name.** OCR on a crop around the stop; the text under the pointer, or the nearest
+   within 70 px - the rule `v2k/sop.py` uses on the log - gives "Click 'Save'". Stops
+   with no text are dropped, and the same name twice within 2 s is one click.
+
+Templates and the reaction model are fitted on a 70% split of the 215 recordings of
+Bash, VSCode, Eclipse, KDevelop and NetBeans (by task id); everything below is the
+other 59, against every step `v2k/sop.py` writes from their logs (204 clicks, 18 typed
+strings, 17 other), from `click_sop_v3.py`:
+
+| | |
+|---|---|
+| steps emitted | 213 |
+| ... that are a real click or typed string | 50.7% |
+| click and typing steps recovered | 48.6% (32.4% with the click's name matching too) |
+| all logged steps recovered, keys and drags included | 45.2% (typing alone: 2.1%) |
+| a found click's position / time | median 8 px, 0.4 s before the press |
+
+Where the other clicks go (`missed_steps_v1.py`, on the same stops): about 32% have
+no pointer seen near them at all, about 10% are dropped by the reaction filter, about
+8% have no text under the pointer. Keeping unnamed stops as "Click (icon)" recovers 55.9% at 42.0%
+precision. Not detected: Enter and other keys, shortcuts, drags.
+
+An earlier probe scored AUC 0.927 for "the logged pointer moved" against clicks
+(`cursor_click_probe_v1.py`). That figure is withdrawn: the log records a MOVE_TO at
+the click itself (median gap 0.00 s), so it measured the log restating the click.
+
+### The whole detector on one video
+
+```
+python bare_sop_v1.py path/to/recording.mp4 --out steps.json   # typing + clicks
+python demo_server_v1.py                                        # then npm run dev in SourceCode/frontend
+```
+
+`demo_server_v1.py` answers the endpoints `SourceCode/frontend` calls with the shapes
+of `app/routers/knowledge.py`, so the frontend runs unmodified on the detector's
+output (upload, progress, SOP, runbook). It is a local demo, not a backend change.
+
+The scripts in order of the investigation: `cursor_probe_v1.py` (is the pointer in
+the recordings), `cursor_click_probe_v1.py` (withdrawn oracle), `pointer_tracker_v1.py`
+(templates, per-frame tracking), `pointer_motion_v1.py` (moves inside changed
+regions), `pointer_reaction_v1.py`, `click_labels_v1.py`, `combined_sop_v1.py` /
+`_v2.py` (typing + clicks merged), `missed_steps_v1.py`, `pointer_miss_diag_v1.py`,
+`pointer_selfmatch_v1.py` / `_v2.py`, `click_sop_v3.py`.
 
 "As delivered" means repeated reads are merged and scoring is one-to-one, so a
 duplicate is a false positive and a string typed twice needs two steps. Crediting
 every copy instead gives 69.3% / 27.6%; `runs/run_037_sop-detector/report.md` has
-both. A picture of the mechanism and every result: `viz/sop_detector_viz_v3.html`
-(`_v1` and `_v2` are the earlier rankers, kept for comparison).
+both. A picture of the mechanism and every result: `viz/sop_detector_viz_v4.html`
+(`_v1` to `_v3` are earlier versions, kept for comparison).
 
 ```
 python -m v2k.sop_detector train                      # cache, evaluate out of fold, fit, save
@@ -86,7 +151,7 @@ python -m v2k.sop_detector detect --bundle runs/<run>/sop_detector.joblib \
 python -m v2k.sop_detector detect --bundle runs/<run>/sop_detector.joblib --cached Bash 111478
 python sop_ranker_experiments_v1.py                   # the feature comparison above
 python sop_ranker_experiments_v2.py                   # the training comparison above
-python viz/build_sop_viz_v3.py runs/<detector run> runs/<experiments run> \
+python viz/build_sop_viz_v4.py runs/<detector run> runs/<experiments run> \
     runs/<experiments-2 run> viz/<page>.html
 ```
 
