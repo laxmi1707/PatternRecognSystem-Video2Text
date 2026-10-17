@@ -15,6 +15,9 @@ as it stands. Nothing under `SourceCode/` is modified by anything here.
 
 ## Bare-video SOP detector
 
+**Report: [report/sop_evaluation_report_v8.md](report/sop_evaluation_report_v8.md)**, two
+pages (`.docx` beside it); every number and its method in `sop_evaluation_report_v7`.
+
 `v2k/sop.py` writes an SOP by reading `action_log.json`, which a user uploading a
 recording does not have. `v2k/sop_detector.py` reads only the frames:
 
@@ -127,6 +130,10 @@ python bare_sop_v1.py path/to/recording.mp4 --out steps.json   # typing + clicks
 python demo_server_v1.py                                        # then npm run dev in SourceCode/frontend
 ```
 
+The four fitted models these need are committed (below), so a fresh checkout runs
+them once the backend snapshot is importable (see "Reproducing a number"); the YOLO and
+ResNet weights and easyocr's models download on first use.
+
 `demo_server_v1.py` answers the endpoints `SourceCode/frontend` calls with the shapes
 of `app/routers/knowledge.py`, so the frontend runs unmodified on the detector's
 output (upload, progress, SOP, runbook). It is a local demo, not a backend change.
@@ -158,20 +165,23 @@ python viz/build_sop_viz_v4.py runs/<detector run> runs/<experiments run> \
 Bundles from run_032 (frame features only) still load: `detect` adds the text and
 context features only when the bundle carries a text model.
 
-`train` needs the frame cache and run_029's saved stage-1 bundle, neither of which
-is committed. The fitted rankers (`sop_detector.joblib`, 15 MB) and out-of-fold
-scores (`oof_scores.npz`) stay local; the scores the numbers above come from are
-in `results.json`.
+`train` needs the frame cache, which is not committed. The models that `detect` and
+`bare_sop_v1.py` load are: run_029's stage-1 bundle, run_037's rankers
+(`sop_detector.joblib`, 13 MB) and the click branch's pointer templates and reaction
+filter (`cache/pointer_templates_v1.pkl`, `cache/bare_sop_v1_reaction.pkl`). The
+out-of-fold scores (`oof_scores.npz`) stay local; the scores the numbers above come
+from are in `results.json`.
 
 ## What is committed and what is not
 
 Committed: the harness code, the label sets, the run configurations, and every
 score (`runs/*/config.json`, `results.csv`, `tuning.csv`, `predictions.csv`,
-`confusion/`). About 38 MB.
+`confusion/`). About 38 MB. Plus the four fitted models the bare-video SOP detector
+runs on, about 14 MB (listed above).
 
 Not committed, because it is large and regenerable (see `.gitignore`): the 26 GB
-dataset, the frame-vector cache, the model weights, and the fitted model bundles
-(150-270 MB per run).
+dataset, the frame-vector cache, the model weights, and the other fitted model
+bundles (150-270 MB per run).
 
 ## Reproducing a number
 

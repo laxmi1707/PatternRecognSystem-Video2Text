@@ -639,7 +639,8 @@ def fit(data: dict, min_len: int) -> dict:
     imp = sorted(zip(ALL_FEATURES, pooled.feature_importances_.tolist()), key=lambda t: -t[1])
     return {"per_app": per_app, "pooled": pooled, "text_model": fit_text_model(texts, label, everything),
             "features": FEATURES, "all_features": ALL_FEATURES, "min_len": min_len,
-            "threshold": THRESHOLD, "alias": ALIAS, "stage1_bundle": str(STAGE1_BUNDLE),
+            "threshold": THRESHOLD, "alias": ALIAS,
+            "stage1_bundle": STAGE1_BUNDLE.relative_to(RUNS.parent).as_posix(),
             "trained": time.strftime("%Y-%m-%d %H:%M"), "n_rows": int(len(X)),
             "importance": imp}
 
@@ -692,6 +693,17 @@ def _fmt(t: float) -> str:
     return f"{int(t // 60):02d}:{int(t % 60):02d}"
 
 
+def stage1_path(bundle: dict) -> Path:
+    """The stage-1 classifier a detector bundle names, relative to the harness root.
+
+    Bundles saved before 17 Oct 2026 hold an absolute path on the machine that
+    trained them; when that path does not exist here, this checkout's copy is used."""
+    p = Path(bundle["stage1_bundle"])
+    if not p.is_absolute():
+        p = RUNS.parent / p
+    return p if p.exists() else STAGE1_BUNDLE
+
+
 def detect(bundle: dict, arrays: dict, record: dict, threshold: float | None = None,
            app_bundle: dict | None = None) -> dict:
     """Both stages on one recording's frames. Returns the application and the steps."""
@@ -699,7 +711,7 @@ def detect(bundle: dict, arrays: dict, record: dict, threshold: float | None = N
     from v2k.segments import build_table, pool_to_tasks
 
     threshold = bundle["threshold"] if threshold is None else threshold
-    app_bundle = app_bundle or __import__("joblib").load(bundle["stage1_bundle"])
+    app_bundle = app_bundle or __import__("joblib").load(stage1_path(bundle))
     table = build_table([(arrays, record)])
     if app_bundle.get("level") == "task":
         # run_029 was trained on one row per recording, its segments averaged;
@@ -780,7 +792,7 @@ def _cmd_detect(args) -> None:
     import joblib
 
     bundle = joblib.load(args.bundle)
-    app_bundle = joblib.load(bundle["stage1_bundle"])
+    app_bundle = joblib.load(stage1_path(bundle))
     if args.cached:
         from v2k.frames import cache_paths
 
