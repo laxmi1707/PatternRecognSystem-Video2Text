@@ -36,6 +36,7 @@ class MLService:
         self._synth_data: tuple[np.ndarray, np.ndarray] | None = None
         self._real_data: tuple[np.ndarray, np.ndarray] | None = None
         self._register_all()
+        self._sync_models_from_s3()
         self._try_load_models()
 
     def _register_all(self, num_classes: int | None = None) -> None:
@@ -137,6 +138,18 @@ class MLService:
                 except Exception as e:
                     logger.warning(f"Failed to load {clf.name}: {e}")
         return loaded
+
+    def _sync_models_from_s3(self) -> None:
+        from app.config import settings
+        from app.ml.model_sync import sync_models_from_s3
+
+        sync_models_from_s3(
+            bucket=settings.model_s3_bucket,
+            prefix=settings.model_s3_prefix,
+            local_dir=self._config.model_dir,
+            region=settings.model_s3_region,
+            require_checksum=settings.model_s3_require_checksum,
+        )
 
     def _try_load_models(self) -> None:
         n = self.load_models()

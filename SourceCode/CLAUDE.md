@@ -52,6 +52,7 @@ Use `skill-scout` before authoring anything new; use `skill-comply` to validate 
 - Backend: Python (FastAPI), package manager per `pyproject.toml` once created.
 - Frontend: React (+ TypeScript — `rules/typescript/` is carried as a dependency of `rules/react/*.md`).
 - ML/retrieval: PyTorch for the pattern-recognition model, `skills/iterative-retrieval` + `skills/mle-workflow` for the retrieval/serving pipeline discipline.
+- Model artifacts: trained models live in `s3://video2knowledge-dev-model-artifacts-984263476980/models/v1/` (`ap-southeast-1`). The backend syncs them into `./models` at startup and falls back to the local files on any S3 failure; defaults are in `backend/app/config.py` (`MODEL_S3_BUCKET` / `MODEL_S3_PREFIX` / `MODEL_S3_REGION`). See `../Architecture/MODEL_ARTIFACTS.md`.
 - Cloud: AWS. No AWS-specific skill exists upstream in ECC — add project AWS conventions to `rules/aws/` (see `rules/README.md` → "Adding a New Language or Domain") as they solidify.
 - Agent format: Markdown with YAML frontmatter (name, description, tools, model).
 - Skill format: Markdown with clear sections (When to Use, How It Works, Examples) and `metadata.origin: ECC | project`.

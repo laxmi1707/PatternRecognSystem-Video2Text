@@ -17,7 +17,7 @@ COPY app ./app
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --timeout=1200 --retries=10 \
     torch --index-url https://download.pytorch.org/whl/cu124 && \
-    pip install --timeout=1200 --retries=10 ".[ml]"
+    pip install --timeout=1200 --retries=10 ".[ml,aws]"
 
 RUN useradd --create-home --uid 1000 appuser
 COPY models ./models

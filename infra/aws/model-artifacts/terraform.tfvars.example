@@ -1,0 +1,9 @@
+aws_region    = "ap-southeast-1"
+aws_profile   = "default"
+project_name  = "video2knowledge"
+environment   = "dev"
+models_prefix = "models"
+# bucket_name = "video2knowledge-dev-model-artifacts-123456789012"  # optional override
+noncurrent_version_retention_days = 90
+force_destroy                     = false
+create_read_policy                = false # true needs iam:CreatePolicy
