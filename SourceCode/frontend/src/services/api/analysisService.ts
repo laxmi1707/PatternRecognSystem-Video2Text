@@ -3,6 +3,7 @@ import type { VideoUploadResponse, VideoResponse, JobResultsResponse, Classifica
 import { apiPost, apiPostFile, apiGet } from './client';
 import { mapResultsToSteps } from './labelMap';
 import { formatSeconds } from '../../utils/formatTime';
+import { startDetection } from './sopDetector';
 
 export const SCREEN_RECORDING_STEPS: WorkflowStep[] = [
   { n: 1, time: '0:00-0:07', title: 'Opened the code editor', description: 'The project folder loads in the editor with the file tree visible in the sidebar.' },
@@ -100,6 +101,9 @@ export function analyzeVideo(
   const videoUrl = URL.createObjectURL(file);
   let pollTimer: ReturnType<typeof setInterval> | null = null;
 
+  // The SOP detector reads the same video in parallel; its steps appear on the results page.
+  const detection = startDetection(file);
+
   (async () => {
     try {
       onProgress(2, 'uploading video');
@@ -175,6 +179,7 @@ export function analyzeVideo(
         modelComparison,
         bestModel,
         allResults,
+        detectorJobId: await detection,
       });
     } catch (err) {
       if (pollTimer) clearInterval(pollTimer);
@@ -195,6 +200,7 @@ export function analyzeVideo(
         modelComparison: [],
         bestModel: null,
         allResults: {},
+        detectorJobId: await detection,
       });
     }
   })();

@@ -3,6 +3,8 @@ import type { AnalysisResult } from '../../types/analysis';
 import { WorkflowSteps } from './WorkflowSteps';
 import { KnowledgePanel } from './KnowledgePanel';
 import { ModelComparison } from './ModelComparison';
+import { DetectedSteps } from './DetectedSteps';
+import { useDetection } from '../../hooks/useDetection';
 
 interface VideoResultsProps {
   result: AnalysisResult;
@@ -12,6 +14,7 @@ interface VideoResultsProps {
 export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
   const [selectedModel, setSelectedModel] = useState<string | null>(result.bestModel);
   const [showComparison, setShowComparison] = useState(false);
+  const detection = useDetection(result.detectorJobId);
 
   const displaySteps =
     selectedModel && result.allResults[selectedModel]
@@ -82,7 +85,9 @@ export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
         <WorkflowSteps steps={displaySteps} />
       </div>
 
-      <KnowledgePanel jobId={result.jobId || result.id} />
+      <DetectedSteps jobId={result.detectorJobId} job={detection.job} error={detection.error} />
+
+      <KnowledgePanel jobId={result.jobId || result.id} detectedSteps={detection.job?.result?.steps} />
     </div>
   );
 }

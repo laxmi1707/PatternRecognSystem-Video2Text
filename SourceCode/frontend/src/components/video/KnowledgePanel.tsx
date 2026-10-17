@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiPost } from '../../services/api/client';
+import { describeStep, stepsInRange } from '../../services/api/sopDetector';
+import type { DetectedStep } from '../../types/detection';
 
 interface SOPStep {
   number: number;
@@ -36,9 +38,11 @@ interface RunbookResponse {
 
 interface KnowledgePanelProps {
   jobId: string;
+  /** clicks and typing the SOP detector read from the video, listed under the SOP step they fall in */
+  detectedSteps?: DetectedStep[];
 }
 
-export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
+export function KnowledgePanel({ jobId, detectedSteps }: KnowledgePanelProps) {
   const [sop, setSop] = useState<SOPResponse | null>(null);
   const [runbook, setRunbook] = useState<RunbookResponse | null>(null);
   const [loading, setLoading] = useState<'sop' | 'runbook' | null>(null);
@@ -153,14 +157,22 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
           <ul>{sop.prerequisites.map((p, i) => <li key={i}>{p}</li>)}</ul>
           <p><strong>Procedure:</strong></p>
           <ol>
-            {sop.steps.map((step) => (
-              <li key={step.number} style={{ marginBottom: 8 }}>
-                <strong>{step.title}</strong>
-                {step.time_range && <span className="text-muted" style={{ fontSize: 12, marginLeft: 8 }}>[{step.time_range}]</span>}
-                <br />
-                <span style={{ fontSize: 14 }}>{step.description}</span>
-              </li>
-            ))}
+            {sop.steps.map((step, i) => {
+              const actions = detectedSteps ? stepsInRange(detectedSteps, step.time_range, i === sop.steps.length - 1) : [];
+              return (
+                <li key={step.number} style={{ marginBottom: 8 }}>
+                  <strong>{step.title}</strong>
+                  {step.time_range && <span className="text-muted" style={{ fontSize: 12, marginLeft: 8 }}>[{step.time_range}]</span>}
+                  <br />
+                  <span style={{ fontSize: 14 }}>{step.description}</span>
+                  {actions.length > 0 && (
+                    <ul data-testid="sop-step-actions" style={{ margin: '4px 0 0', paddingLeft: 18, fontSize: 13, color: '#374151' }}>
+                      {actions.map((a, k) => <li key={k}>{describeStep(a)}</li>)}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
           </ol>
           <p><strong>Expected Outcome:</strong> {sop.expected_outcome}</p>
           {sop.troubleshooting.length > 0 && (

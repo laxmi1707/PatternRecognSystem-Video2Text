@@ -9,6 +9,11 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      // the SOP detector service (Evaluation/sop_detector_service.py)
+      '/sop-detector': {
+        target: 'http://localhost:8100',
+        changeOrigin: true,
+      },
       '/health': {
         target: 'http://localhost:8000',
         changeOrigin: true,

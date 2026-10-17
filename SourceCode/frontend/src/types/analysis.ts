@@ -26,6 +26,8 @@ export interface AnalysisResult {
   modelComparison: ModelSummary[];
   bestModel: string | null;
   allResults: Record<string, WorkflowStep[]>;
+  /** SOP detector job for this video; null if the detector was not reachable, absent for history */
+  detectorJobId?: string | null;
 }
 
 export type Screen = 'upload' | 'analyzing' | 'results' | 'history';

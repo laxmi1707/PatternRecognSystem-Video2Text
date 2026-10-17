@@ -127,8 +127,26 @@ the click itself (median gap 0.00 s), so it measured the log restating the click
 
 ```
 python bare_sop_v1.py path/to/recording.mp4 --out steps.json   # typing + clicks
-python demo_server_v1.py                                        # then npm run dev in SourceCode/frontend
 ```
+
+### In the frontend
+
+The frontend (`SourceCode/frontend`, Eshwaran's from `main`) sends each uploaded video to
+the detector as well as to the backend. The results page then shows **Steps detected from
+the video**, and in the SOP each phase lists the clicks and typing that fall in its time
+range. The detector runs as its own small service, so the backend is not changed:
+
+```
+python sop_detector_service.py      # port 8100; the dev server proxies /sop-detector to it
+python demo_server_v2.py            # port 8000, only if the team backend is not running
+npm run dev                         # in SourceCode/frontend, port 5173
+```
+
+`demo_server_v2.py` stands in for the team backend when PostgreSQL and its models are not
+set up: it answers the same endpoints, with an SOP of phases (stretches of activity
+between pauses of 8 s or more). With the team backend running, its own SOP phases are
+used instead. If the detector service is not running, the results page says so and
+everything else works as before.
 
 The four fitted models these need are committed (below), so a fresh checkout runs
 them once the backend snapshot is importable (see "Reproducing a number"); the YOLO and
