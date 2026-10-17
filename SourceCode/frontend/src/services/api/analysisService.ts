@@ -1,10 +1,5 @@
-import type { AnalysisResult, WorkflowStep } from '../../types/analysis';
-import type {
-  VideoUploadResponse,
-  VideoResponse,
-  JobResultsResponse,
-  ClassificationResultDTO,
-} from '../../types/api';
+import type { AnalysisResult, WorkflowStep, ModelSummary } from '../../types/analysis';
+import type { VideoUploadResponse, VideoResponse, JobResultsResponse, ClassificationResultDTO } from '../../types/api';
 import { apiPost, apiPostFile, apiGet } from './client';
 import { mapResultsToSteps } from './labelMap';
 import { formatSeconds } from '../../utils/formatTime';
@@ -31,6 +26,9 @@ export function getMockHistory(): AnalysisResult[] {
         { n: 3, time: '0:52-1:40', title: 'Configured environment variables', description: 'A .env file is created and filled in with local credentials.' },
         { n: 4, time: '1:40-2:14', title: 'Started the dev server', description: '"npm run dev" starts the app, opened and reviewed in the browser.' },
       ],
+      modelComparison: [],
+      bestModel: null,
+      allResults: {},
     },
     {
       id: 'h2', name: 'bug-repro.mp4', date: 'Aug 3, 2026', duration: '0:58', stepCount: 4,
@@ -42,6 +40,9 @@ export function getMockHistory(): AnalysisResult[] {
         { n: 3, time: '0:27-0:44', title: 'Triggered the failing action', description: 'Clicking "Save" produces an error toast.' },
         { n: 4, time: '0:44-0:58', title: 'Opened developer tools', description: 'The console is opened to inspect the error.' },
       ],
+      modelComparison: [],
+      bestModel: null,
+      allResults: {},
     },
     {
       id: 'h3', name: 'deploy-walkthrough.webm', date: 'Jul 29, 2026', duration: '3:02', stepCount: 5,
@@ -54,6 +55,9 @@ export function getMockHistory(): AnalysisResult[] {
         { n: 4, time: '2:05-2:40', title: 'Opened the production URL', description: 'The live site loads in a new browser tab.' },
         { n: 5, time: '2:40-3:02', title: 'Verified the change', description: 'The updated feature is checked on the live site.' },
       ],
+      modelComparison: [],
+      bestModel: null,
+      allResults: {},
     },
   ];
 }
@@ -61,10 +65,6 @@ export function getMockHistory(): AnalysisResult[] {
 export interface AnalyzeHandle {
   cancel: () => void;
 }
-
-/** Upload and classification are separate waits, and they fail differently,
- *  so the progress screen tells the user which one it is on. */
-export type AnalysisPhase = 'uploading' | 'processing';
 
 function buildSummary(labels: string[]): string {
   const uniqueLabels = [...new Set(labels)];
@@ -75,86 +75,95 @@ function buildSummary(labels: string[]): string {
   return `The recording shows activities including ${readable.join(', ')} and ${last}.`;
 }
 
-/** The backend classifies one segment at a time. Averaging the per-segment
- *  probability vectors gives a single dominant activity for the recording,
- *  which is what the results and dashboard views show. */
-export function aggregateClassification(results: ClassificationResultDTO[]): {
-  label?: string;
-  confidence?: number;
-  probabilities?: Record<string, number>;
-} {
-  if (results.length === 0) return {};
-
-  const totals: Record<string, number> = {};
-  for (const result of results) {
-    for (const [label, probability] of Object.entries(result.probabilities ?? {})) {
-      totals[label] = (totals[label] ?? 0) + probability;
-    }
+function groupResultsByModel(results: ClassificationResultDTO[]): Record<string, ClassificationResultDTO[]> {
+  const grouped: Record<string, ClassificationResultDTO[]> = {};
+  for (const r of results) {
+    (grouped[r.model_name] ??= []).push(r);
   }
+  return grouped;
+}
 
-  if (Object.keys(totals).length === 0) {
-    const counts = new Map<string, number>();
-    for (const result of results) counts.set(result.label, (counts.get(result.label) ?? 0) + 1);
-    const [label, hits] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
-    return { label, confidence: hits / results.length };
-  }
-
-  const probabilities: Record<string, number> = {};
-  for (const [label, sum] of Object.entries(totals)) {
-    probabilities[label] = sum / results.length;
-  }
-  const [label, confidence] = Object.entries(probabilities).sort((a, b) => b[1] - a[1])[0];
-  return { label, confidence, probabilities };
+interface JobStatusResponse {
+  id: number;
+  status: string;
+  progress_pct: number;
+  progress_stage: string;
 }
 
 export function analyzeVideo(
   file: File,
-  durationSeconds: number,
-  onProgress: (pct: number) => void,
+  _durationSeconds: number,
+  onProgress: (pct: number, stage: string) => void,
   onComplete: (result: AnalysisResult) => void,
-  modelName?: string,
-  onPhaseChange?: (phase: AnalysisPhase) => void,
 ): AnalyzeHandle {
   const controller = new AbortController();
   const videoUrl = URL.createObjectURL(file);
-  onPhaseChange?.('uploading');
-
-  let progress = 0;
-  const tickMs = 180;
-  const maxSyntheticPct = 90;
-  const stepPct = maxSyntheticPct / ((durationSeconds * 1000) / tickMs);
-  const timer = setInterval(() => {
-    if (controller.signal.aborted) {
-      clearInterval(timer);
-      return;
-    }
-    progress = Math.min(maxSyntheticPct, progress + stepPct);
-    onProgress(Math.round(progress));
-  }, tickMs);
+  let pollTimer: ReturnType<typeof setInterval> | null = null;
 
   (async () => {
     try {
-      const upload = await apiPostFile<VideoUploadResponse>(
-        '/videos/upload', file,
-        modelName ? { model_name: modelName } : undefined,
-      );
-      if (controller.signal.aborted) return;
-      onPhaseChange?.('processing');
-
-      const jobResults = await apiPost<JobResultsResponse>(`/jobs/${upload.job_id}/run`);
+      onProgress(2, 'uploading video');
+      const upload = await apiPostFile<VideoUploadResponse>('/videos/upload', file);
       if (controller.signal.aborted) return;
 
-      const steps = mapResultsToSteps(jobResults.results);
+      onProgress(5, 'starting analysis');
+      await apiPost<{ job_id: number; status: string }>(`/jobs/${upload.job_id}/run`, {});
+      if (controller.signal.aborted) return;
 
-      clearInterval(timer);
-      onProgress(100);
+      await new Promise<void>((resolve, reject) => {
+        pollTimer = setInterval(async () => {
+          if (controller.signal.aborted) {
+            if (pollTimer) clearInterval(pollTimer);
+            reject(new Error('Aborted'));
+            return;
+          }
+          try {
+            const status = await apiGet<JobStatusResponse>(`/jobs/${upload.job_id}`);
+            onProgress(Math.round(status.progress_pct), status.progress_stage || 'processing');
+
+            if (status.status === 'completed') {
+              if (pollTimer) clearInterval(pollTimer);
+              resolve();
+            } else if (status.status === 'failed') {
+              if (pollTimer) clearInterval(pollTimer);
+              reject(new Error('Job failed'));
+            }
+          } catch {
+            // ignore polling errors, keep trying
+          }
+        }, 1000);
+      });
+
+      if (controller.signal.aborted) return;
+
+      const jobResults = await apiGet<JobResultsResponse>(`/jobs/${upload.job_id}/results`);
+
+      const bestModel = jobResults.best_model;
+      const grouped = groupResultsByModel(jobResults.results);
+
+      const bestResults = bestModel && grouped[bestModel] ? grouped[bestModel] : Object.values(grouped)[0] ?? [];
+      const steps = mapResultsToSteps(bestResults);
+
+      const allResults: Record<string, WorkflowStep[]> = {};
+      for (const [model, modelResults] of Object.entries(grouped)) {
+        allResults[model] = mapResultsToSteps(modelResults);
+      }
+
+      const modelComparison: ModelSummary[] = (jobResults.model_comparison ?? []).map((m) => ({
+        model_name: m.model_name,
+        tier: m.tier,
+        avg_confidence: m.avg_confidence,
+        latency_ms: m.latency_ms,
+      }));
+
+      onProgress(100, 'analysis complete');
 
       const lastStep = steps[steps.length - 1];
-      const summary = buildSummary(jobResults.results.map((r) => r.label));
+      const summary = buildSummary(bestResults.map((r) => r.label));
 
       onComplete({
         id: String(upload.id),
-        jobId: upload.job_id,
+        jobId: String(upload.job_id),
         name: file.name,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         duration: lastStep ? lastStep.time.split('-')[1] : '0:00',
@@ -163,13 +172,16 @@ export function analyzeVideo(
         videoUrl,
         summary,
         steps,
-        ...aggregateClassification(jobResults.results),
+        modelComparison,
+        bestModel,
+        allResults,
       });
     } catch (err) {
-      clearInterval(timer);
+      if (pollTimer) clearInterval(pollTimer);
       if (controller.signal.aborted) return;
-      console.error('Analysis API failed, falling back to mock:', err);
-      onProgress(100);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error('Analysis API failed:', errMsg, err);
+      onProgress(100, 'offline fallback');
       onComplete({
         id: String(Date.now()),
         name: file.name,
@@ -178,9 +190,11 @@ export function analyzeVideo(
         stepCount: SCREEN_RECORDING_STEPS.length,
         status: 'Complete',
         videoUrl,
-        summary:
-          'The recording shows a developer pulling the latest changes, installing dependencies, and verifying the app in the browser. (Offline fallback — backend unavailable)',
+        summary: `Backend error — ${errMsg}. Check that the backend is running at ${import.meta.env.VITE_API_BASE_URL ?? '/api/v1'}.`,
         steps: SCREEN_RECORDING_STEPS,
+        modelComparison: [],
+        bestModel: null,
+        allResults: {},
       });
     }
   })();
@@ -188,7 +202,7 @@ export function analyzeVideo(
   return {
     cancel: () => {
       controller.abort();
-      clearInterval(timer);
+      if (pollTimer) clearInterval(pollTimer);
     },
   };
 }
@@ -206,6 +220,9 @@ export async function fetchHistory(): Promise<AnalysisResult[]> {
       videoUrl: null,
       summary: '',
       steps: [],
+      modelComparison: [],
+      bestModel: null,
+      allResults: {},
     }));
   } catch {
     return [];

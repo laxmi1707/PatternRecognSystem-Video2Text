@@ -49,17 +49,25 @@ class LateFusionClassifier(BaseClassifier):
         return splits
 
     def _branch_predict(self, X: np.ndarray) -> np.ndarray:
-        probas = []
+        predictions = []
         for branch, (start, end) in zip(self._branches, self._split_indices):
-            result = branch.predict(X[:, start:end])
-            probas.append(result.probabilities)
-        return np.hstack(probas)
+            predictions.append(branch.predict(X[:, start:end]))
+        max_classes = max(p.probabilities.shape[1] for p in predictions)
+        padded = []
+        for p in predictions:
+            proba = p.probabilities
+            if proba.shape[1] < max_classes:
+                pad = np.zeros((proba.shape[0], max_classes - proba.shape[1]))
+                proba = np.concatenate([proba, pad], axis=1)
+            padded.append(proba)
+        return np.hstack(padded)
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         self._split_indices = self._compute_splits(X.shape[1])
 
         for branch, (start, end) in zip(self._branches, self._split_indices):
-            branch.fit(X[:, start:end], y)
+            if not getattr(branch, "_is_fitted", False):
+                branch.fit(X[:, start:end], y)
 
         meta_X = self._branch_predict(X)
         self._meta_learner = LogisticRegression(
@@ -83,6 +91,7 @@ class LateFusionClassifier(BaseClassifier):
             pickle.dump({
                 "meta_learner": self._meta_learner,
                 "split_indices": self._split_indices,
+                "branches": self._branches,
             }, f)
 
     def load(self, path: str) -> None:
@@ -90,6 +99,7 @@ class LateFusionClassifier(BaseClassifier):
             data = pickle.load(f)
         self._meta_learner = data["meta_learner"]
         self._split_indices = data["split_indices"]
+        self._branches = data["branches"]
 
     def get_params(self) -> dict:
         return {

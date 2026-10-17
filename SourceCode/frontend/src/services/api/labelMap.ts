@@ -48,6 +48,21 @@ const LABEL_META: Record<string, { title: string; descriptionTemplate: string }>
     descriptionTemplate:
       'Documentation files were created or edited. Classified as documentation with {confidence}% confidence by {model}.',
   },
+  terminal_ops: {
+    title: 'Ran terminal commands',
+    descriptionTemplate:
+      'Commands were executed in a terminal or shell session. Classified as terminal_ops with {confidence}% confidence by {model}.',
+  },
+  system_config: {
+    title: 'Configured system settings',
+    descriptionTemplate:
+      'System or application settings were modified. Classified as system_config with {confidence}% confidence by {model}.',
+  },
+  web_browsing: {
+    title: 'Browsed the web',
+    descriptionTemplate:
+      'A web browser was used to navigate pages or search. Classified as web_browsing with {confidence}% confidence by {model}.',
+  },
   other: {
     title: 'Performed an unclassified action',
     descriptionTemplate:
@@ -55,15 +70,12 @@ const LABEL_META: Record<string, { title: string; descriptionTemplate: string }>
   },
 };
 
-export function mapResultsToSteps(
-  results: ClassificationResultDTO[],
-  segmentDurationSec = 5,
-): WorkflowStep[] {
+export function mapResultsToSteps(results: ClassificationResultDTO[]): WorkflowStep[] {
   return results.map((r, i) => {
     const meta = LABEL_META[r.label] ?? LABEL_META['other'];
-    const startSec = i * segmentDurationSec;
-    const endSec = (i + 1) * segmentDurationSec;
     const confidencePct = Math.round(r.confidence * 100);
+    const startSec = r.start_time ?? i * 5;
+    const endSec = r.end_time ?? (i + 1) * 5;
 
     return {
       n: i + 1,

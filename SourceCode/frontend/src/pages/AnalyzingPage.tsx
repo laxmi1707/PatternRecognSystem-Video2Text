@@ -4,19 +4,21 @@ interface AnalyzingPageProps {
   fileName: string;
   videoUrl: string | null;
   progress: number;
-  phase?: 'uploading' | 'processing';
-  onCancel?: () => void;
+  stage?: string;
+  analysisReady?: boolean;
+  onAnimationDone?: () => void;
 }
 
-export function AnalyzingPage({ fileName, videoUrl, progress, phase, onCancel }: AnalyzingPageProps) {
+export function AnalyzingPage({ fileName, videoUrl, progress, stage, analysisReady, onAnimationDone }: AnalyzingPageProps) {
   return (
     <div className="page page-center">
       <AnalyzingProgress
         fileName={fileName}
         videoUrl={videoUrl}
         progress={progress}
-        phase={phase}
-        onCancel={onCancel}
+        stage={stage}
+        analysisReady={analysisReady}
+        onAnimationDone={onAnimationDone}
       />
     </div>
   );

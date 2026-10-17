@@ -67,9 +67,9 @@ class WorkflowTransformerClassifier(BaseClassifier):
 
     def __init__(
         self,
-        feature_dim: int = 150,
+        feature_dim: int = 151,
         max_segments: int = 20,
-        num_heads: int = 6,
+        num_heads: int = 1,
         num_layers: int = 2,
         num_classes: int = 10,
         dropout: float = 0.2,
@@ -111,6 +111,9 @@ class WorkflowTransformerClassifier(BaseClassifier):
         torch.manual_seed(self._seed)
         np.random.seed(self._seed)
 
+        # Sync num_classes from data — stale pkl may carry wrong self._num_classes.
+        self._num_classes = int(np.max(y)) + 1
+
         self._model = _WorkflowTransformerNet(
             self._feature_dim, self._num_heads, self._num_layers,
             self._num_classes, self._dropout,
@@ -123,8 +126,13 @@ class WorkflowTransformerClassifier(BaseClassifier):
             TensorDataset(X_t, y_t), batch_size=self._batch_size, shuffle=True,
         )
 
+        classes, counts = torch.unique(y_t, return_counts=True)
+        weights = torch.ones(self._num_classes, device=self._device)
+        for c, cnt in zip(classes.tolist(), counts.tolist()):
+            weights[c] = len(y_t) / (self._num_classes * cnt)
+
         optimizer = torch.optim.Adam(self._model.parameters(), lr=self._lr)
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.CrossEntropyLoss(weight=weights)
 
         self._model.train()
         for _ in range(self._epochs):

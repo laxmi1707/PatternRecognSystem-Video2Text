@@ -35,9 +35,10 @@ class UIDetectionResult:
 
 
 class UIDetector:
-    def __init__(self, model_name: str = "yolov8n.pt", conf_threshold: float = 0.25):
+    def __init__(self, model_name: str = "yolov8n.pt", conf_threshold: float = 0.25, use_gpu: bool = False):
         self._model_name = model_name
         self._conf_threshold = conf_threshold
+        self._use_gpu = use_gpu
         self._model = None
         self._coco_to_ui = self._build_coco_mapping()
 
@@ -58,6 +59,8 @@ class UIDetector:
             try:
                 from ultralytics import YOLO
                 self._model = YOLO(self._model_name)
+                if self._use_gpu:
+                    self._model.to("cuda")
             except ImportError:
                 logger.warning("ultralytics not installed, UI detection will return empty results")
             except Exception as e:

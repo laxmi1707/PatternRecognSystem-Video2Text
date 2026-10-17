@@ -1,78 +1,27 @@
 import { useEffect, useRef } from 'react';
 
-type Icon = 'film' | 'play' | 'frame' | 'reel';
-
-interface FloatingIcon {
+interface Neuron {
   x: number;
   y: number;
-  size: number;
-  rotation: number;
-  rotSpeed: number;
+  r: number;
   vx: number;
   vy: number;
+  pulse: number;       // 0..1 glow phase
+  pulseSpeed: number;
+  layer: number;       // visual depth (0=back, 1=mid, 2=front)
+}
+
+interface Signal {
+  fromIdx: number;
+  toIdx: number;
+  t: number;    // 0..1 progress along the edge
+  speed: number;
   opacity: number;
-  icon: Icon;
 }
 
-function drawFilmStrip(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-  const w = size;
-  const h = size * 1.4;
-  ctx.strokeRect(x - w / 2, y - h / 2, w, h);
-  const holeSize = size * 0.1;
-  const gap = h / 5;
-  for (let i = 0; i < 4; i++) {
-    const hy = y - h / 2 + gap * (i + 0.7);
-    ctx.fillRect(x - w / 2 + 2, hy, holeSize, holeSize);
-    ctx.fillRect(x + w / 2 - 2 - holeSize, hy, holeSize, holeSize);
-  }
-  ctx.strokeRect(x - w * 0.3, y - h * 0.25, w * 0.6, h * 0.45);
-}
-
-function drawPlayButton(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-  ctx.beginPath();
-  ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
-  ctx.stroke();
-  const s = size * 0.22;
-  ctx.beginPath();
-  ctx.moveTo(x - s * 0.4, y - s);
-  ctx.lineTo(x - s * 0.4, y + s);
-  ctx.lineTo(x + s * 0.8, y);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function drawVideoFrame(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-  const w = size * 1.2;
-  const h = size * 0.75;
-  const r = size * 0.06;
-  ctx.beginPath();
-  ctx.roundRect(x - w / 2, y - h / 2, w, h, r);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x - w * 0.35, y - h / 2);
-  ctx.lineTo(x - w * 0.35, y + h / 2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x + w * 0.35, y - h / 2);
-  ctx.lineTo(x + w * 0.35, y + h / 2);
-  ctx.stroke();
-}
-
-function drawReel(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-  const r = size * 0.5;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(x, y, r * 0.2, 0, Math.PI * 2);
-  ctx.stroke();
-  for (let i = 0; i < 3; i++) {
-    const angle = (i * Math.PI * 2) / 3;
-    ctx.beginPath();
-    ctx.arc(x + Math.cos(angle) * r * 0.55, y + Math.sin(angle) * r * 0.55, r * 0.18, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-}
+const ORANGE      = '239,124,0';
+const ORANGE_LITE = '255,180,80';
+const NAVY_GLOW   = '0,61,124';
 
 export function CircuitBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -84,12 +33,11 @@ export function CircuitBackground() {
     if (!ctx) return;
 
     let animId: number;
-    const nodes: { x: number; y: number; r: number; vx: number; vy: number }[] = [];
-    const icons: FloatingIcon[] = [];
-    const iconTypes: Icon[] = ['film', 'play', 'frame', 'reel'];
+    const neurons: Neuron[] = [];
+    const signals: Signal[] = [];
 
     function resize() {
-      canvas!.width = canvas!.offsetWidth;
+      canvas!.width  = canvas!.offsetWidth;
       canvas!.height = canvas!.offsetHeight;
     }
 
@@ -98,31 +46,46 @@ export function CircuitBackground() {
       const w = canvas!.width;
       const h = canvas!.height;
 
-      nodes.length = 0;
-      const count = Math.floor((w * h) / 14000);
+      neurons.length = 0;
+      signals.length = 0;
+
+      // Spread neurons across the canvas in loose layers
+      const count = Math.max(30, Math.floor((w * h) / 11000));
       for (let i = 0; i < count; i++) {
-        nodes.push({
+        const layer = i % 3;
+        neurons.push({
           x: Math.random() * w,
           y: Math.random() * h,
-          r: Math.random() * 2 + 1,
-          vx: (Math.random() - 0.5) * 0.3,
-          vy: (Math.random() - 0.5) * 0.3,
+          r: layer === 2 ? 3.5 : layer === 1 ? 2.5 : 1.8,
+          vx: (Math.random() - 0.5) * (layer === 2 ? 0.18 : 0.28),
+          vy: (Math.random() - 0.5) * (layer === 2 ? 0.18 : 0.28),
+          pulse: Math.random(),
+          pulseSpeed: 0.004 + Math.random() * 0.008,
+          layer,
         });
       }
+    }
 
-      icons.length = 0;
-      const iconCount = Math.floor((w * h) / 80000);
-      for (let i = 0; i < iconCount; i++) {
-        icons.push({
-          x: Math.random() * w,
-          y: Math.random() * h,
-          size: 28 + Math.random() * 32,
-          rotation: Math.random() * Math.PI * 2,
-          rotSpeed: (Math.random() - 0.5) * 0.003,
-          vx: (Math.random() - 0.5) * 0.15,
-          vy: (Math.random() - 0.5) * 0.15,
-          opacity: 0.06 + Math.random() * 0.08,
-          icon: iconTypes[i % iconTypes.length],
+    // Seed a few signals each frame
+    function maybeSpawnSignal() {
+      if (signals.length > 40) return;
+      if (Math.random() > 0.04) return;
+      const fromIdx = Math.floor(Math.random() * neurons.length);
+      const a = neurons[fromIdx];
+      let bestIdx = -1;
+      let bestDist = Infinity;
+      for (let j = 0; j < neurons.length; j++) {
+        if (j === fromIdx) continue;
+        const d = Math.hypot(neurons[j].x - a.x, neurons[j].y - a.y);
+        if (d < 160 && d < bestDist) { bestDist = d; bestIdx = j; }
+      }
+      if (bestIdx !== -1) {
+        signals.push({
+          fromIdx,
+          toIdx: bestIdx,
+          t: 0,
+          speed: 0.006 + Math.random() * 0.009,
+          opacity: 0.5 + Math.random() * 0.4,
         });
       }
     }
@@ -132,56 +95,96 @@ export function CircuitBackground() {
       const h = canvas!.height;
       ctx!.clearRect(0, 0, w, h);
 
-      // circuit nodes + edges
-      for (let i = 0; i < nodes.length; i++) {
-        const a = nodes[i];
-        a.x += a.vx;
-        a.y += a.vy;
-        if (a.x < 0 || a.x > w) a.vx *= -1;
-        if (a.y < 0 || a.y > h) a.vy *= -1;
+      // — update neurons —
+      for (const n of neurons) {
+        n.x += n.vx;
+        n.y += n.vy;
+        if (n.x < 0 || n.x > w) n.vx *= -1;
+        if (n.y < 0 || n.y > h) n.vy *= -1;
+        n.pulse = (n.pulse + n.pulseSpeed) % 1;
+      }
 
-        for (let j = i + 1; j < nodes.length; j++) {
-          const b = nodes[j];
+      // — draw synaptic edges —
+      for (let i = 0; i < neurons.length; i++) {
+        const a = neurons[i];
+        for (let j = i + 1; j < neurons.length; j++) {
+          const b = neurons[j];
           const dist = Math.hypot(a.x - b.x, a.y - b.y);
-          if (dist < 150) {
-            ctx!.beginPath();
-            ctx!.moveTo(a.x, a.y);
-            ctx!.lineTo(b.x, b.y);
-            ctx!.strokeStyle = `rgba(99,102,241,${0.25 * (1 - dist / 150)})`;
-            ctx!.lineWidth = 0.8;
-            ctx!.stroke();
-          }
+          const maxDist = 155;
+          if (dist > maxDist) continue;
+          const alpha = 0.18 * (1 - dist / maxDist);
+          ctx!.beginPath();
+          ctx!.moveTo(a.x, a.y);
+          ctx!.lineTo(b.x, b.y);
+          ctx!.strokeStyle = `rgba(${ORANGE},${alpha})`;
+          ctx!.lineWidth = 0.7;
+          ctx!.stroke();
         }
+      }
 
+      // — draw signal pulses travelling along edges —
+      maybeSpawnSignal();
+      for (let s = signals.length - 1; s >= 0; s--) {
+        const sig = signals[s];
+        sig.t += sig.speed;
+        if (sig.t >= 1) { signals.splice(s, 1); continue; }
+
+        const a = neurons[sig.fromIdx];
+        const b = neurons[sig.toIdx];
+        const px = a.x + (b.x - a.x) * sig.t;
+        const py = a.y + (b.y - a.y) * sig.t;
+
+        // Glow halo
+        const grd = ctx!.createRadialGradient(px, py, 0, px, py, 7);
+        grd.addColorStop(0, `rgba(${ORANGE_LITE},${sig.opacity * 0.9})`);
+        grd.addColorStop(0.5, `rgba(${ORANGE},${sig.opacity * 0.4})`);
+        grd.addColorStop(1, `rgba(${ORANGE},0)`);
         ctx!.beginPath();
-        ctx!.arc(a.x, a.y, a.r, 0, Math.PI * 2);
-        ctx!.fillStyle = 'rgba(129,140,248,0.6)';
+        ctx!.arc(px, py, 7, 0, Math.PI * 2);
+        ctx!.fillStyle = grd;
+        ctx!.fill();
+
+        // Core dot
+        ctx!.beginPath();
+        ctx!.arc(px, py, 2.2, 0, Math.PI * 2);
+        ctx!.fillStyle = `rgba(${ORANGE_LITE},${sig.opacity})`;
         ctx!.fill();
       }
 
-      // floating film/video icons
-      for (const ic of icons) {
-        ic.x += ic.vx;
-        ic.y += ic.vy;
-        ic.rotation += ic.rotSpeed;
-        if (ic.x < -60 || ic.x > w + 60) ic.vx *= -1;
-        if (ic.y < -60 || ic.y > h + 60) ic.vy *= -1;
+      // — draw neuron bodies —
+      for (const n of neurons) {
+        const glowAlpha = 0.15 + Math.sin(n.pulse * Math.PI * 2) * 0.12;
+        const coreAlpha = 0.55 + Math.sin(n.pulse * Math.PI * 2) * 0.2;
 
-        ctx!.save();
-        ctx!.translate(ic.x, ic.y);
-        ctx!.rotate(ic.rotation);
-        ctx!.strokeStyle = `rgba(129,140,248,${ic.opacity})`;
-        ctx!.fillStyle = `rgba(129,140,248,${ic.opacity})`;
-        ctx!.lineWidth = 1.2;
+        // Soft glow
+        const grd = ctx!.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 4);
+        grd.addColorStop(0, `rgba(${ORANGE},${glowAlpha})`);
+        grd.addColorStop(0.5, `rgba(${NAVY_GLOW},${glowAlpha * 0.3})`);
+        grd.addColorStop(1, `rgba(${NAVY_GLOW},0)`);
+        ctx!.beginPath();
+        ctx!.arc(n.x, n.y, n.r * 4, 0, Math.PI * 2);
+        ctx!.fillStyle = grd;
+        ctx!.fill();
 
-        switch (ic.icon) {
-          case 'film': drawFilmStrip(ctx!, 0, 0, ic.size); break;
-          case 'play': drawPlayButton(ctx!, 0, 0, ic.size); break;
-          case 'frame': drawVideoFrame(ctx!, 0, 0, ic.size); break;
-          case 'reel': drawReel(ctx!, 0, 0, ic.size); break;
+        // Core
+        ctx!.beginPath();
+        ctx!.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+        ctx!.fillStyle = `rgba(${ORANGE},${coreAlpha})`;
+        ctx!.fill();
+
+        // Dendrite spikes on front-layer neurons
+        if (n.layer === 2) {
+          ctx!.strokeStyle = `rgba(${ORANGE},${glowAlpha * 1.5})`;
+          ctx!.lineWidth = 0.6;
+          for (let k = 0; k < 6; k++) {
+            const angle = (k / 6) * Math.PI * 2 + n.pulse * Math.PI;
+            const len = n.r * (2.5 + Math.sin(n.pulse * Math.PI * 2 + k) * 1.2);
+            ctx!.beginPath();
+            ctx!.moveTo(n.x + Math.cos(angle) * n.r, n.y + Math.sin(angle) * n.r);
+            ctx!.lineTo(n.x + Math.cos(angle) * len, n.y + Math.sin(angle) * len);
+            ctx!.stroke();
+          }
         }
-
-        ctx!.restore();
       }
 
       animId = requestAnimationFrame(draw);

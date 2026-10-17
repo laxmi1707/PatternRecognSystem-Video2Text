@@ -51,6 +51,9 @@ class TorchBaseClassifier(BaseClassifier):
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         self._seed_everything()
         self._input_dim = X.shape[1]
+        # Sync num_classes from data so both the model head and the weight tensor
+        # are consistent — stale pkls may carry a different self._num_classes.
+        self._num_classes = int(np.max(y)) + 1
         self._model = self._build_model(self._input_dim)
         self._model.to(self._device)
         self._model.train()
@@ -63,8 +66,14 @@ class TorchBaseClassifier(BaseClassifier):
             shuffle=True,
         )
 
+        classes, counts = torch.unique(y_t, return_counts=True)
+        n_classes = self._num_classes
+        weights = torch.ones(n_classes, device=self._device)
+        for c, cnt in zip(classes.tolist(), counts.tolist()):
+            weights[c] = len(y_t) / (n_classes * cnt)
+
         optimizer = torch.optim.Adam(self._model.parameters(), lr=self._learning_rate)
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.CrossEntropyLoss(weight=weights)
 
         for _ in range(self._epochs):
             for X_batch, y_batch in loader:
@@ -105,6 +114,13 @@ class TorchBaseClassifier(BaseClassifier):
         self._model.load_state_dict(checkpoint["state_dict"])
         self._model.to(self._device)
         self._model.eval()
+
+    def __setstate__(self, state: dict) -> None:
+        self.__dict__.update(state)
+        # Remap device to whatever is available on this machine (handles CUDA→CPU).
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if self._model is not None:
+            self._model.to(self._device)
 
     def get_params(self) -> dict:
         return {

@@ -1,3 +1,5 @@
+import asyncio
+
 import numpy as np
 from fastapi import APIRouter, HTTPException
 
@@ -19,7 +21,7 @@ def _get_ml_service():
 async def classify_single(req: ClassifyRequest):
     try:
         features = np.array([req.features])
-        result = _get_ml_service().classify(features, model_name=req.model_name)
+        result = await asyncio.to_thread(_get_ml_service().classify, features, req.model_name)
         return result["results"][0]
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -31,7 +33,7 @@ async def classify_batch(req: ClassifyBatchRequest):
         raise HTTPException(status_code=400, detail="Features list cannot be empty")
     try:
         features = np.array(req.features)
-        result = _get_ml_service().classify(features, model_name=req.model_name)
+        result = await asyncio.to_thread(_get_ml_service().classify, features, req.model_name)
         return result
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))

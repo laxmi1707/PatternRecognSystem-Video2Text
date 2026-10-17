@@ -20,6 +20,8 @@ class NaiveBayesClassifier(BaseClassifier):
         return "tier1"
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
+        n = len(np.unique(y))
+        self._model.set_params(priors=[1.0 / n] * n)
         self._model.fit(X, y)
 
     def predict(self, X: np.ndarray) -> PredictionResult:

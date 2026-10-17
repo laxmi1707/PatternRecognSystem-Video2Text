@@ -24,6 +24,7 @@ async def update_job_status(
     job_id: int,
     status: str,
     progress_pct: float = 0.0,
+    progress_stage: str = "",
     error_message: str | None = None,
 ) -> AnalysisJob | None:
     job = await get_job(db, job_id)
@@ -31,6 +32,7 @@ async def update_job_status(
         return None
     job.status = status
     job.progress_pct = progress_pct
+    job.progress_stage = progress_stage
     if error_message is not None:
         job.error_message = error_message
     await db.commit()

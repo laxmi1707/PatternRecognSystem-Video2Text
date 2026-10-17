@@ -4,10 +4,14 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+logger = logging.getLogger(__name__)
 
 from app.config import settings
 from app.database import engine
@@ -37,6 +41,12 @@ app.add_middleware(
     allow_methods=settings.allowed_methods,
     allow_headers=settings.allowed_headers,
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled error on {request.method} {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
 
 app.include_router(classification.router)
 app.include_router(evaluation.router)

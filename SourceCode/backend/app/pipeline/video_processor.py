@@ -116,16 +116,30 @@ class VideoProcessor:
         fps = meta["fps"]
 
         if not actions:
-            keyframes = self.extract_frames(video_path)
-            return [
-                SegmentData(
-                    segment_index=0,
-                    start_time=0.0,
-                    end_time=duration,
-                    keyframes=keyframes,
-                    actions=[],
-                )
-            ]
+            # No action log: split video into fixed-length segments (~5 s each, min 3 segments)
+            segment_duration = 5.0
+            n_segments = max(3, int(duration / segment_duration))
+            seg_len = duration / n_segments
+            segments = []
+            cap = cv2.VideoCapture(str(video_path))
+            try:
+                for i in range(n_segments):
+                    start = i * seg_len
+                    end = min(duration, (i + 1) * seg_len)
+                    # Sample 3 keyframes per segment (25%, 50%, 75%) to capture transient UI events
+                    keyframes = []
+                    for frac in (0.25, 0.5, 0.75):
+                        ts = start + (end - start) * frac
+                        cap.set(cv2.CAP_PROP_POS_MSEC, ts * 1000)
+                        ret, frame = cap.read()
+                        if ret:
+                            frame = cv2.resize(frame, self._target_size)
+                            frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+                            keyframes.append(FrameData(frame_index=frame_idx, timestamp=ts, image=frame))
+                    segments.append(SegmentData(segment_index=i, start_time=start, end_time=end, keyframes=keyframes, actions=[]))
+            finally:
+                cap.release()
+            return segments
 
         clusters = self._cluster_actions(actions)
         segments: list[SegmentData] = []

@@ -17,7 +17,35 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        working-directory: SourceCode/backend
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        working-directory: SourceCode/backend
+        run: ruff check app/
+
+      - name: Type check
+        working-directory: SourceCode/backend
+        run: mypy app/ --ignore-missing-imports
+
+      - name: Run tests
+        working-directory: SourceCode/backend
+        run: pytest tests/ -x -q
+
   build-and-deploy:
+    needs: test
     runs-on: ubuntu-latest
     environment: dev
     steps:

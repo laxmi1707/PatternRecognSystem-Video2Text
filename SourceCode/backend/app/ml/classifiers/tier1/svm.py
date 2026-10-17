@@ -15,6 +15,7 @@ class SVMClassifier(BaseClassifier):
             kernel=kernel,
             C=C,
             probability=True,
+            class_weight="balanced",
             random_state=42,
         )
 

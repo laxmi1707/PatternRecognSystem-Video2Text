@@ -1,21 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AnalysisResult, Screen } from '../types/analysis';
-import {
-  analyzeVideo,
-  getMockHistory,
-  fetchHistory,
-  AnalyzeHandle,
-  AnalysisPhase,
-} from '../services/api/analysisService';
+import { analyzeVideo, getMockHistory, fetchHistory, AnalyzeHandle } from '../services/api/analysisService';
 
 export function useVideoAnalysis(analysisSeconds = 3) {
   const [screen, setScreen] = useState<Screen>('upload');
   const [fileName, setFileName] = useState('');
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
-  const [phase, setPhase] = useState<AnalysisPhase>('processing');
+  const [stage, setStage] = useState('');
   const [current, setCurrent] = useState<AnalysisResult | null>(null);
-  const [reportTarget, setReportTarget] = useState<AnalysisResult | null>(null);
   const [history, setHistory] = useState<AnalysisResult[]>(() => getMockHistory());
   const handleRef = useRef<AnalyzeHandle | null>(null);
 
@@ -35,22 +28,35 @@ export function useVideoAnalysis(analysisSeconds = 3) {
     };
   }, []);
 
-  const startAnalysis = useCallback((file: File, modelName?: string) => {
+  const pendingResultRef = useRef<AnalysisResult | null>(null);
+  const [analysisReady, setAnalysisReady] = useState(false);
+
+  // Called by AnalyzingProgress after its task animation finishes
+  const onAnimationDone = useCallback(() => {
+    if (pendingResultRef.current) {
+      setCurrent(pendingResultRef.current);
+      setHistory((h: AnalysisResult[]) => [pendingResultRef.current!, ...h]);
+      setScreen('results');
+      pendingResultRef.current = null;
+      setAnalysisReady(false);
+    }
+  }, []);
+
+  const startAnalysis = useCallback((file: File) => {
     handleRef.current?.cancel();
     setFileName(file.name);
     setProgress(0);
-    setPhase('uploading');
+    setAnalysisReady(false);
     setScreen('analyzing');
     const url = URL.createObjectURL(file);
     setVideoUrl(url);
-    handleRef.current = analyzeVideo(file, analysisSeconds, setProgress, (result) => {
-      setCurrent(result);
-      setHistory((h: AnalysisResult[]) => [result, ...h]);
-      setScreen('results');
-    }, modelName, setPhase);
+    handleRef.current = analyzeVideo(file, analysisSeconds, (pct, stg) => { setProgress(pct); setStage(stg); }, (result) => {
+      // Store result but let the animation finish before switching screen
+      pendingResultRef.current = result;
+      setAnalysisReady(true);
+    });
   }, [analysisSeconds]);
 
-  /** Also the cancel path: aborts the in-flight analysis before navigating. */
   const goUpload = useCallback(() => {
     handleRef.current?.cancel();
     setScreen('upload');
@@ -58,24 +64,11 @@ export function useVideoAnalysis(analysisSeconds = 3) {
   }, []);
 
   const goHistory = useCallback(() => setScreen('history'), []);
-  const goDashboard = useCallback(() => setScreen('dashboard'), []);
-  const goSearch = useCallback(() => setScreen('search'), []);
 
   const viewHistory = useCallback((item: AnalysisResult) => {
     setCurrent(item);
     setScreen('results');
   }, []);
 
-  const viewReport = useCallback((item: AnalysisResult) => {
-    setReportTarget(item);
-    setScreen('report');
-  }, []);
-
-  const backToResults = useCallback(() => setScreen('results'), []);
-
-  return {
-    screen, fileName, videoUrl, progress, phase, current, history, reportTarget,
-    startAnalysis, goUpload, goHistory, goDashboard, goSearch,
-    viewHistory, viewReport, backToResults,
-  };
+  return { screen, fileName, videoUrl, progress, stage, analysisReady, onAnimationDone, current, history, startAnalysis, goUpload, goHistory, viewHistory };
 }

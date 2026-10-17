@@ -30,32 +30,162 @@ class TaskMetadata:
     workflow: str
 
 
+# Platform → label mapping (checked first; most reliable signal)
+# Order matters: longer/more-specific keys should appear before shorter ones that
+# are substrings of them (e.g. "mozilla firefox" before "firefox").
+_PLATFORM_LABELS: dict[str, str] = {
+    # ── Code editors / IDEs ────────────────────────────────────────────────
+    "visual studio code": "coding_editing",
+    "vscode": "coding_editing",
+    "vs code": "coding_editing",
+    "android studio": "coding_editing",
+    "intellij idea": "coding_editing",
+    "intellij": "coding_editing",
+    "pycharm": "coding_editing",
+    "eclipse": "coding_editing",
+    "netbeans": "coding_editing",
+    "xcode": "coding_editing",
+    "sublime text": "coding_editing",
+    "sublime": "coding_editing",
+    "atom editor": "coding_editing",
+    "atom": "coding_editing",
+    "brackets": "coding_editing",
+    "notepad++": "coding_editing",
+    "notepad": "coding_editing",
+    "gedit": "coding_editing",
+    "kate": "coding_editing",
+    "geany": "coding_editing",
+    "mousepad": "coding_editing",
+    "bluefish": "coding_editing",
+    "neovim": "coding_editing",
+    "vim": "coding_editing",
+    "nano": "coding_editing",
+    "emacs": "coding_editing",
+    "onlyoffice": "coding_editing",
+    "libreoffice": "coding_editing",
+    "openoffice": "coding_editing",
+    # ── Browsers ───────────────────────────────────────────────────────────
+    "mozilla firefox": "web_browsing",
+    "google chrome": "web_browsing",
+    "chromium": "web_browsing",
+    "firefox": "web_browsing",
+    "chrome": "web_browsing",
+    "safari": "web_browsing",
+    "opera": "web_browsing",
+    "brave": "web_browsing",
+    "edge": "web_browsing",
+    "jitsi": "web_browsing",
+    "wekan": "web_browsing",
+    "signal": "web_browsing",
+    "zoom": "web_browsing",
+    "slack": "web_browsing",
+    "teams": "web_browsing",
+    "discord": "web_browsing",
+    "telegram": "web_browsing",
+    "thunderbird": "web_browsing",
+    "evolution": "web_browsing",
+    # ── Terminals / shells ─────────────────────────────────────────────────
+    "terminal": "terminal_ops",
+    "bash": "terminal_ops",
+    "zsh": "terminal_ops",
+    "powershell": "terminal_ops",
+    "cmd": "terminal_ops",
+    "iterm": "terminal_ops",
+    "konsole": "terminal_ops",
+    "gnome terminal": "terminal_ops",
+    "xterm": "terminal_ops",
+    "parallels": "terminal_ops",
+    # ── System config / utilities ──────────────────────────────────────────
+    "bitwarden": "system_config",
+    "keepass": "system_config",
+    "cryptomator": "system_config",
+    "7-zip": "system_config",
+    "7zip": "system_config",
+    "gnome settings": "system_config",
+    "system settings": "system_config",
+    "control panel": "system_config",
+    # ── Explicitly other (prevent false-positive substring matches) ────────
+    "darktable": "other",
+    "inkscape": "other",
+    "gimp": "other",
+    "gnucash": "other",
+    "scribus": "other",
+    "musescore": "other",
+    "audacity": "other",
+    "vlc": "other",
+    "kdenlive": "other",
+    "handbrake": "other",
+    "blender": "other",
+    "krita": "other",
+}
+
+# Instruction keyword rules — ordered most-specific first
 _LABEL_KEYWORDS: list[tuple[list[str], str]] = [
-    (["git", "clone", "commit", "push", "pull", "branch", "merge", "checkout"], "git_operations"),
-    (["docker", "container", "image", "compose", "dockerfile"], "docker_workflow"),
-    (["kubernetes", "kubectl", "helm", "k8s", "pod", "deployment"], "kubernetes_ops"),
-    (["terraform", "tf plan", "tf apply", "infrastructure as code"], "terraform_iac"),
-    (["aws", "s3 ", "ec2", "lambda", "console", "cloudwatch"], "aws_console"),
-    (["jenkins", "pipeline", "ci/cd", "ci cd", "build pipeline"], "jenkins_ci_cd"),
-    (
-        [
-            "code", "edit", "write", "extension", "install", "project",
-            "new file", "open file", "save", "font", "theme", "shortcut",
-            "ide", "plugin", "customize", "setting", "preference",
-        ],
-        "coding_editing",
-    ),
-    (["debug", "breakpoint", "inspect", "step into", "step over", "watch"], "debugging"),
-    (["doc", "readme", "wiki", "comment", "annotation", "markdown", "note"], "documentation"),
+    # DevOps / infra (highly specific terms, check before generic coding)
+    (["kubectl", "helm", "k8s", "kubernetes", "daemonset", "namespace", "ingress", "kube"], "kubernetes_ops"),
+    (["terraform", "tf plan", "tf apply", "tfstate", "infrastructure as code", "hcl"], "terraform_iac"),
+    (["docker", "container", "image build", "docker-compose", "dockerfile", "docker run"], "docker_workflow"),
+    (["jenkins", "ci/cd", "ci cd", "build pipeline", "github actions", "gitlab ci", "circleci"], "jenkins_ci_cd"),
+    (["aws", "s3 bucket", "ec2 instance", "lambda function", "cloudwatch", "iam role", "cloudformation"], "aws_console"),
+    # Git (specific verbs — avoid matching "git" in "digital")
+    ([" git ", "git clone", "git commit", "git push", "git pull", "git branch",
+      "git merge", "git checkout", "git stash", "git rebase", "git log"], "git_operations"),
+    # Debugging
+    (["debug", "breakpoint", "step into", "step over", "step out", "watch expression",
+      "call stack", "inspect variable", "attach debugger"], "debugging"),
+    # Documentation
+    (["readme", "wiki", "docstring", "jsdoc", "sphinx", "mkdocs", "swagger",
+      "api doc", "changelog", "annotate"], "documentation"),
+    # Terminal / shell operations
+    (["run command", "execute command", "terminal", "shell", "bash script", "chmod",
+      "chown", "sudo", "apt install", "apt-get", "yum install", "pip install",
+      "npm install", "brew install", "systemctl", "crontab", "ssh ", "scp ",
+      "curl ", "wget ", "grep ", "awk ", "sed ", "kill process", "ps aux",
+      "top command", "htop", "df -", "du -", "tar ", "zip ", "unzip ",
+      "find command", "locate ", "ln -", "mount ", "umount",
+      "environment variable", "export ", "alias ", "history"], "terminal_ops"),
+    # System / app configuration
+    (["setting", "preference", "configure", "theme", "dark mode", "light mode",
+      "font size", "keyboard shortcut", "workspace", "layout", "perspective",
+      "permission", "timezone", "hostname", "package manager", "update package",
+      "upgrade package", "install software", "uninstall", "enable feature",
+      "disable feature", "system info", "system uptime", "change password"], "system_config"),
+    # Web browsing (use "new tab"/"open tab" not bare "tab" to avoid substring hits)
+    (["browse", "navigate to", "open website", "open url", "bookmark", "new tab",
+      "open tab", "browser extension", "download file", "search on", "google search",
+      "web browser", "incognito", "private window"], "web_browsing"),
+    # Coding / IDE (broad — after all specifics above)
+    (["vscode", "vs code", "visual studio", "eclipse", "intellij", "pycharm",
+      "netbeans", "bluefish", "onlyoffice", "libreoffice",
+      "write code", "edit code", "create file", "new file", "open file",
+      "refactor", "autocomplete", "snippet", "linter", "formatter",
+      "install plugin", "install extension", "language extension",
+      "syntax highlight", "code review", "pull request", "open project",
+      "import module", "compile", "build project", "run test", "unit test",
+      "code folding", "line numbers", "error highlighting", "code completion",
+      "enable line", "disable line", "split editor", "split vertically",
+      "split horizontally", "editor window", "editor panel",
+      "maven project", "gradle project", "java project",
+      "enable word wrap", "word wrap", "line wrap"], "coding_editing"),
 ]
 
 
 def derive_activity_label(instruction: str, platform: str = "") -> str:
-    text = f"{instruction} {platform}".lower()
+    plat_lower = platform.lower().strip()
+    instr_lower = instruction.lower().strip()
+
+    # 1. Exact platform match — most reliable
+    for plat_key, label in _PLATFORM_LABELS.items():
+        if plat_key in plat_lower:
+            return label
+
+    # 2. Keyword match on instruction + platform combined
+    text = f"{instr_lower} {plat_lower}"
     for keywords, label in _LABEL_KEYWORDS:
         for kw in keywords:
             if kw in text:
                 return label
+
     return "other"
 
 
@@ -127,54 +257,62 @@ def _build_task_from_jsonl(task_id: int, entries: list[dict]) -> TaskMetadata:
 
 def discover_tasks(dataset_root: Path) -> list[TaskMetadata]:
     tasks: list[TaskMetadata] = []
-
-    for task_dir in sorted(dataset_root.iterdir()):
-        if not task_dir.is_dir():
-            if task_dir.suffix == ".zip":
-                tasks.extend(_discover_from_zip(task_dir))
-            continue
-
-        action_log = task_dir / "action_log.json"
-        if not action_log.exists():
-            continue
-
-        actions, instruction, platform, task_id = _parse_action_log(action_log)
-        if task_id == 0:
-            task_id = int(task_dir.name) if task_dir.name.isdigit() else hash(task_dir.name)
-
-        label_file = task_dir / "label.txt"
-        if label_file.exists():
-            instruction = label_file.read_text().strip() or instruction
-
-        video_path = task_dir / "video" / "video.mp4"
-        video_meta = None
-        if video_path.exists():
-            meta_file = task_dir / "video" / "video_metadata.json"
-            if meta_file.exists():
-                with open(meta_file) as f:
-                    video_meta = json.load(f)
-
-        tasks.append(
-            TaskMetadata(
-                task_id=task_id,
-                instruction=instruction,
-                platform=platform,
-                video_path=video_path if video_path.exists() else None,
-                actions=actions,
-                video_meta=video_meta,
-                activity_label=derive_activity_label(instruction, platform),
-                workflow=instruction,
-            )
-        )
-
+    _scan_directory(dataset_root, tasks)
     return tasks
+
+
+def _scan_directory(directory: Path, tasks: list[TaskMetadata]) -> None:
+    for entry in sorted(directory.iterdir()):
+        if not entry.is_dir():
+            if entry.suffix == ".zip":
+                tasks.extend(_discover_from_zip(entry))
+            continue
+
+        action_log = entry / "action_log.json"
+        if action_log.exists():
+            _load_task(entry, action_log, tasks)
+        else:
+            _scan_directory(entry, tasks)
+
+
+def _load_task(task_dir: Path, action_log: Path, tasks: list[TaskMetadata]) -> None:
+    actions, instruction, platform, task_id = _parse_action_log(action_log)
+    if task_id == 0:
+        task_id = int(task_dir.name) if task_dir.name.isdigit() else hash(task_dir.name)
+
+    label_file = task_dir / "label.txt"
+    if label_file.exists():
+        instruction = label_file.read_text().strip() or instruction
+
+    video_path = task_dir / "video" / "video.mp4"
+    video_meta = None
+    if video_path.exists():
+        meta_file = task_dir / "video" / "video_metadata.json"
+        if meta_file.exists():
+            with open(meta_file) as f:
+                video_meta = json.load(f)
+
+    tasks.append(
+        TaskMetadata(
+            task_id=task_id,
+            instruction=instruction,
+            platform=platform,
+            video_path=video_path if video_path.exists() else None,
+            actions=actions,
+            video_meta=video_meta,
+            activity_label=derive_activity_label(instruction, platform),
+            workflow=instruction,
+        )
+    )
 
 
 def _discover_from_zip(zip_path: Path) -> list[TaskMetadata]:
     tasks: list[TaskMetadata] = []
     try:
         with zipfile.ZipFile(zip_path) as zf:
-            jsonl_files = [n for n in zf.namelist() if n.endswith(".jsonl")]
+            names = zf.namelist()
+
+            jsonl_files = [n for n in names if n.endswith(".jsonl")]
             for jf in jsonl_files:
                 content = zf.read(jf).decode("utf-8")
                 by_task: dict[int, list[dict]] = {}
@@ -189,6 +327,41 @@ def _discover_from_zip(zip_path: Path) -> list[TaskMetadata]:
 
                 for tid, entries in by_task.items():
                     tasks.append(_build_task_from_jsonl(tid, entries))
+
+            if not jsonl_files:
+                action_logs = [n for n in names if n.endswith("action_log.json")]
+                for al in action_logs:
+                    content = zf.read(al).decode("utf-8")
+                    data = json.loads(content)
+                    actions: list[ActionRecord] = []
+                    for entry in data.get("action_log", []):
+                        actions.append(
+                            ActionRecord(
+                                action_type=entry.get("action_type", "UNKNOWN").upper(),
+                                timestamp=float(entry.get("timestamp", 0)),
+                                params=entry.get("action_params", {}),
+                                groundcua_id=entry.get("groundcua_id"),
+                            )
+                        )
+                    instruction = data.get("task_instruction", "")
+                    platform = data.get("platform", zip_path.stem)
+                    task_id = int(data.get("task_id", 0))
+                    if task_id == 0:
+                        task_dir = str(Path(al).parent)
+                        task_id = int(task_dir) if task_dir.isdigit() else hash(task_dir)
+
+                    tasks.append(
+                        TaskMetadata(
+                            task_id=task_id,
+                            instruction=instruction,
+                            platform=platform,
+                            video_path=None,
+                            actions=actions,
+                            video_meta=None,
+                            activity_label=derive_activity_label(instruction, platform),
+                            workflow=instruction,
+                        )
+                    )
     except (zipfile.BadZipFile, KeyError):
         pass
     return tasks

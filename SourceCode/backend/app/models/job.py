@@ -13,6 +13,7 @@ class AnalysisJob(Base, TimestampMixin):
     job_type: Mapped[str] = mapped_column(String(50), default="classification")
     model_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     progress_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    progress_stage: Mapped[str] = mapped_column(String(200), default="")
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     video: Mapped["Video"] = relationship(back_populates="jobs")

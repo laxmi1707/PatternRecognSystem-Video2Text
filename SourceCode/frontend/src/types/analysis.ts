@@ -5,10 +5,16 @@ export interface WorkflowStep {
   description: string;
 }
 
+export interface ModelSummary {
+  model_name: string;
+  tier: string;
+  avg_confidence: number;
+  latency_ms: number;
+}
+
 export interface AnalysisResult {
   id: string;
-  /** Backend job behind this analysis. Needed to generate an SOP report. */
-  jobId?: number;
+  jobId?: string;
   name: string;
   date: string;
   duration: string;
@@ -17,17 +23,9 @@ export interface AnalysisResult {
   videoUrl: string | null;
   summary: string;
   steps: WorkflowStep[];
-  /** Dominant activity across the classified segments, when the backend returned one. */
-  label?: string;
-  confidence?: number;
-  probabilities?: Record<string, number>;
+  modelComparison: ModelSummary[];
+  bestModel: string | null;
+  allResults: Record<string, WorkflowStep[]>;
 }
 
-export type Screen =
-  | 'upload'
-  | 'analyzing'
-  | 'results'
-  | 'history'
-  | 'dashboard'
-  | 'search'
-  | 'report';
+export type Screen = 'upload' | 'analyzing' | 'results' | 'history';

@@ -34,6 +34,15 @@ class CVReportResponse(BaseModel):
     results: list[CVResultRow]
 
 
+class RecommendedModel(BaseModel):
+    model_name: str
+    reason: str
+    f1_macro: float
+    accuracy: float
+    latency_ms: float
+
+
 class AvailableModelsResponse(BaseModel):
     models: list[str]
     tiers: dict[str, list[str]]
+    recommended: RecommendedModel | None = None
