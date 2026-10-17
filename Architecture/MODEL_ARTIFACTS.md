@@ -88,12 +88,14 @@ Also verified against the real bucket: `models/v1` downloads 7/7 with checksums 
 
 ## Still open
 
-1. **Deployed backend needs read access:** the bucket/prefix/region are code defaults, so no env vars are
+1. **Deployed backend read access:** the bucket/prefix/region are code defaults, so no env vars are
    required on App Runner. Models are **not baked into the image** (Dockerfile no longer copies `models/`,
-   `.dockerignore` excludes it), so S3 is the only source. Grant the App Runner instance role read access via
-   the bucket policy: set `reader_role_arns = ["<instance role ARN>"]` in `terraform.tfvars` and
-   `terraform apply` (needs only S3 permissions). Until then the sync logs `AccessDenied`, no models load,
-   and `_ensure_trained()` fits models on the fly per request.
+   `.dockerignore` excludes it), so S3 is the only source. The App Runner instance role
+   `arn:aws:iam::984263476980:role/video2knowledge-apprunner-instance` (trusts `tasks.apprunner.amazonaws.com`,
+   created by an IAM admin) is granted read access via the bucket policy (`reader_role_arns` in the local
+   `terraform.tfvars`, applied 2026-10-17). The role must also be set as the service's instance role
+   (`aws apprunner update-service --instance-configuration InstanceRoleArn=...`). Without that the sync logs
+   `AccessDenied`, no models load, and `_ensure_trained()` fits models on the fly per request.
    Local dev with AWS credentials will also overwrite `./models/*.pkl` with `models/v1` at startup; set
    `MODEL_S3_BUCKET=` in `.env` to keep locally trained models.
 2. **Missing models are trained silently:** `MLService.classify()` → `_ensure_trained()` fits any model without
