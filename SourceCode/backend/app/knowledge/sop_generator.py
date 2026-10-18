@@ -280,7 +280,6 @@ class SOPGenerator:
             ))
 
         # 4. Prerequisites driven by OCR content (more reliable than model labels on F1=0.29)
-        activity_labels = {s.get("predicted_label", "") for s in segments}
         prerequisites = [f"Access to {detected_platform}"]
         # Only add tool-specific prerequisites when OCR actually shows those tools
         if any(kw in all_raw_ocr for kw in ["terminal", "bash", "shell", "wcrkepacc"]):

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from app.ml.base import BaseClassifier
-from app.ml.evaluation.metrics import ModelMetrics, compute_metrics
+from app.ml.evaluation.metrics import compute_metrics
 
 
 @dataclass(frozen=True)

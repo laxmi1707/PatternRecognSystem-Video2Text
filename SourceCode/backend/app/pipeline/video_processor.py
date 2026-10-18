@@ -113,7 +113,6 @@ class VideoProcessor:
     ) -> list[SegmentData]:
         meta = self.get_metadata(video_path)
         duration = meta["duration_seconds"]
-        fps = meta["fps"]
 
         if not actions:
             # No action log: split video into fixed-length segments (~5 s each, min 3 segments)

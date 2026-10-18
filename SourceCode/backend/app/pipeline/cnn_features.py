@@ -28,7 +28,6 @@ class CNNFeatureExtractor:
         try:
             import torch
             import torchvision.models as models
-            from torchvision.transforms import v2 as T
 
             weights = models.EfficientNet_B0_Weights.IMAGENET1K_V1
             model = models.efficientnet_b0(weights=weights)

@@ -47,7 +47,6 @@ def _best_segments(results) -> list[dict]:
             if rp < ep or (rp == ep and r.confidence > existing.confidence):
                 by_segment[idx] = r
     segs = []
-    seen_ocr: set[int] = set()
     for r in [by_segment[k] for k in sorted(by_segment)]:
         probs = r.probabilities or {}
         # OCR text is stored in probs['_ocr'] — use any result row for this segment

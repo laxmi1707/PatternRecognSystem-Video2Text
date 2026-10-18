@@ -37,7 +37,7 @@ warnings.filterwarnings("ignore", message=".*torch.quantize_per_tensor.*")
 
 import numpy as np
 
-from app.ml.config import MLConfig, ACTIVITY_LABELS
+from app.ml.config import ACTIVITY_LABELS
 from app.ml.dataset_loader import discover_tasks, task_level_split
 from app.ml.tracking import tracker
 
@@ -272,8 +272,8 @@ def main() -> None:
         )
 
     print(f"\nTraining complete. {len(results)} models trained and saved.")
-    print(f"Start the backend to use pre-trained models:")
-    print(f"  uvicorn app.main:app --host 0.0.0.0 --port 8000")
+    print("Start the backend to use pre-trained models:")
+    print("  uvicorn app.main:app --host 0.0.0.0 --port 8000")
 
 
 if __name__ == "__main__":

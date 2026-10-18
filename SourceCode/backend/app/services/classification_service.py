@@ -7,7 +7,6 @@ from pathlib import Path
 import numpy as np
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ml.config import ACTIVITY_LABELS
 from app.ml.dataset import generate_synthetic_dataset
 from app.models.job import AnalysisJob
 from app.models.result import ClassificationResult
@@ -146,7 +145,7 @@ async def run_classification_job(
 def _extract_real_features(
     video_path: Path, action_log_path: Path | None = None
 ) -> tuple[np.ndarray, list[dict]]:
-    from app.pipeline.feature_assembler import FeatureAssembler, get_default_assembler
+    from app.pipeline.feature_assembler import get_default_assembler
     from app.pipeline.video_processor import VideoProcessor
 
     actions: list[dict] = []

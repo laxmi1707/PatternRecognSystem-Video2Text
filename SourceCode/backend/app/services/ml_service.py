@@ -180,7 +180,7 @@ class MLService:
         result = clf.predict(features)
 
         n_classes = result.probabilities.shape[1] if result.probabilities.ndim > 1 else len(ACTIVITY_LABELS)
-        labels_for_model = [l for l in ACTIVITY_LABELS if l != "terraform_iac"][:n_classes] if n_classes < len(ACTIVITY_LABELS) else ACTIVITY_LABELS
+        labels_for_model = [lbl for lbl in ACTIVITY_LABELS if lbl != "terraform_iac"][:n_classes] if n_classes < len(ACTIVITY_LABELS) else ACTIVITY_LABELS
 
         predictions = []
         for i in range(len(result.labels)):
