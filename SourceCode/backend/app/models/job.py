@@ -1,4 +1,4 @@
-from sqlalchemy import String, Integer, Float, ForeignKey, Text
+from sqlalchemy import String, Integer, BigInteger, Float, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -7,8 +7,8 @@ from app.models.base import Base, TimestampMixin
 class AnalysisJob(Base, TimestampMixin):
     __tablename__ = "analysis_jobs"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    video_id: Mapped[int] = mapped_column(ForeignKey("videos.id"))
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    video_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("videos.id"))
     status: Mapped[str] = mapped_column(String(50), default="queued")
     job_type: Mapped[str] = mapped_column(String(50), default="classification")
     model_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
