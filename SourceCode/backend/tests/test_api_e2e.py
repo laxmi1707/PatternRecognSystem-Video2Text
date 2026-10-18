@@ -8,7 +8,7 @@ from app.database import get_db
 
 
 @pytest.fixture
-async def client():
+async def client(monkeypatch):
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -20,6 +20,9 @@ async def client():
             yield session
 
     app.dependency_overrides[get_db] = override_get_db
+    # /jobs/{id}/run runs the pipeline in a background task that opens its own
+    # session instead of using get_db, so point that at the test database too.
+    monkeypatch.setattr("app.routers.jobs.async_session", test_session)
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -72,20 +75,20 @@ async def test_upload_and_classify_flow(client: AsyncClient):
     assert r.status_code == 200
     assert r.json()["status"] == "queued"
 
+    # The pipeline runs as a background task; with ASGITransport it finishes
+    # before this request returns, so the job is done when we query it next.
     r = await client.post(f"/api/v1/jobs/{job_id}/run")
     assert r.status_code == 200
-    run_data = r.json()
-    assert run_data["status"] == "completed"
-    assert len(run_data["results"]) >= 1
-
-    for result in run_data["results"]:
-        assert "label" in result
-        assert "confidence" in result
-        assert result["confidence"] > 0.0
+    assert r.json() == {"job_id": job_id, "status": "processing"}
 
     r = await client.get(f"/api/v1/jobs/{job_id}/results")
     assert r.status_code == 200
-    assert len(r.json()["results"]) >= 1
+    results = r.json()["results"]
+    assert len(results) >= 1
+    for result in results:
+        assert "label" in result
+        assert "confidence" in result
+        assert result["confidence"] > 0.0
 
     r = await client.get(f"/api/v1/jobs/{job_id}")
     assert r.status_code == 200

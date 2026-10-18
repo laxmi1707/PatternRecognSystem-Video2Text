@@ -25,7 +25,8 @@ SAMPLE_VIDEO = DATASET_ROOT / "91097" / "video" / "video.mp4"
 class TestDeriveActivityLabel:
     def test_git_keywords(self):
         assert derive_activity_label("git clone the repository") == "git_operations"
-        assert derive_activity_label("push changes to branch") == "git_operations"
+        # Bare "push" is no longer a git keyword (too many false matches); "git push" is.
+        assert derive_activity_label("git push changes to branch") == "git_operations"
 
     def test_coding_keywords(self):
         assert derive_activity_label("Install language Extension python") == "coding_editing"
@@ -223,11 +224,13 @@ class TestModalityMap:
         assert ranges[-1][1] == TOTAL_FEATURES
 
     def test_total_features(self):
-        assert TOTAL_FEATURES == 150
+        # 150 multimodal features + 1 has_action_log flag (hog backend).
+        assert TOTAL_FEATURES == 151
 
-    def test_four_modalities(self):
-        assert len(MODALITY_MAP) == 4
+    def test_modalities(self):
+        assert len(MODALITY_MAP) == 5
         assert "ocr_text" in MODALITY_MAP
         assert "ui_elements" in MODALITY_MAP
         assert "visual" in MODALITY_MAP
         assert "interaction" in MODALITY_MAP
+        assert "has_action_log" in MODALITY_MAP
