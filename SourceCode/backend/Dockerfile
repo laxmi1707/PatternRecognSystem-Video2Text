@@ -1,23 +1,22 @@
-FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04 AS base
+# CPU-only image for serving (ECS Fargate has no GPU). Training on a GPU
+# machine uses Dockerfile.gpu (docker-compose.yml).
+FROM python:3.11-slim-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3.11 python3.11-venv python3-pip \
-    build-essential \
     libgl1 \
     libglib2.0-0 \
     tesseract-ocr \
     tesseract-ocr-eng \
-    && rm -rf /var/lib/apt/lists/* \
-    && ln -sf /usr/bin/python3.11 /usr/bin/python3 \
-    && ln -sf /usr/bin/python3.11 /usr/bin/python
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY pyproject.toml ./
 COPY app ./app
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --timeout=1200 --retries=10 \
-    torch --index-url https://download.pytorch.org/whl/cu124 && \
-    pip install --timeout=1200 --retries=10 ".[ml,aws]"
+# torch and torchvision come from the CPU wheel index first, so easyocr and
+# ultralytics don't pull the multi-GB CUDA builds from PyPI.
+RUN pip install --no-cache-dir --timeout=1200 --retries=10 \
+    torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir --timeout=1200 --retries=10 ".[ml,aws]"
 
 RUN useradd --create-home --uid 1000 appuser
 
@@ -26,5 +25,5 @@ RUN useradd --create-home --uid 1000 appuser
 RUN mkdir -p /app/uploads /app/models && chown -R appuser:appuser /app
 USER appuser
 EXPOSE 8000
-ENV PYTHONUNBUFFERED=1 NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+ENV PYTHONUNBUFFERED=1
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
