@@ -46,3 +46,7 @@ mlartifacts/
 .vscode/
 *.swp
 SourceCode/backend/models/*.pkl
+
+# IAM boundary snapshots (account-specific)
+infra/aws/iam/current-boundary.json
+infra/aws/iam/merged-boundary.json
