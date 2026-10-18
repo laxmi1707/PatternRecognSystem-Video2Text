@@ -36,6 +36,9 @@ cat > claude-user-fargate.json <<'EOF_V2T'
         "ec2:AuthorizeSecurityGroupEgress",
         "ec2:RevokeSecurityGroupIngress",
         "ec2:RevokeSecurityGroupEgress",
+        "ec2:DeleteSecurityGroup",
+        "ec2:GetSecurityGroupsForVpc",
+        "ec2:GetManagedPrefixListEntries",
         "ec2:CreateTags"
       ],
       "Resource": "*"
