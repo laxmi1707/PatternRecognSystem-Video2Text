@@ -188,6 +188,8 @@ resource "aws_ecs_task_definition" "backend" {
         # SQLite inside the container: no database server, but data resets on redeploy.
         { name = "DATABASE_URL", value = "sqlite+aiosqlite:////app/video2text.db" },
         { name = "ALLOWED_ORIGINS", value = jsonencode(var.allowed_origins) },
+        # Model version downloaded from S3 at startup (app/ml/model_sync.py).
+        { name = "MODEL_S3_PREFIX", value = var.model_s3_prefix },
       ]
       logConfiguration = {
         logDriver = "awslogs"

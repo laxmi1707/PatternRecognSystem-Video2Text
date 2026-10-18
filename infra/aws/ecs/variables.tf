@@ -88,6 +88,12 @@ variable "allowed_origins" {
   default     = ["https://main.d2tjfo3h4t5uox.amplifyapp.com"]
 }
 
+variable "model_s3_prefix" {
+  description = "S3 prefix of the model version to load (models/v1 = Tier 1 only, models/v2 = all tiers)"
+  type        = string
+  default     = "models/v2"
+}
+
 variable "log_retention_days" {
   description = "CloudWatch Logs retention for the container logs"
   type        = number
