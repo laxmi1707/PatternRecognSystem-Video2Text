@@ -86,14 +86,17 @@ class TorchBaseClassifier(BaseClassifier):
 
         self._model.eval()
 
-    def predict(self, X: np.ndarray) -> PredictionResult:
+    def predict(self, X: np.ndarray, batch_size: int = 256) -> PredictionResult:
         def _predict(X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-            X_t = torch.tensor(X, dtype=torch.float32, device=self._device)
-            X_t = self._reshape_input(X_t)
+            all_probas = []
             with torch.no_grad():
-                logits = self._model(X_t)
-                probas = F.softmax(logits, dim=1).cpu().numpy()
-                labels = np.argmax(probas, axis=1)
+                for i in range(0, len(X), batch_size):
+                    batch = torch.tensor(X[i:i + batch_size], dtype=torch.float32, device=self._device)
+                    batch = self._reshape_input(batch)
+                    logits = self._model(batch)
+                    all_probas.append(F.softmax(logits, dim=1).cpu().numpy())
+            probas = np.concatenate(all_probas, axis=0)
+            labels = np.argmax(probas, axis=1)
             return labels, probas
 
         return self._timed_predict(_predict, X)
