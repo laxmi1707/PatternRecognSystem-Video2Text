@@ -26,7 +26,7 @@ class MLConfig:
     seed: int = 42
     test_size: float = 0.2
     cv_folds: int = 5
-    model_dir: str = os.environ.get("MODEL_DIR", "./models/v2" if os.environ.get("FEATURE_BACKEND") == "cnn" else "./models")
+    model_dir: str = os.environ.get("MODEL_DIR", "./models/v2")
     num_classes: int = NUM_CLASSES
     # n_features is dynamic: 151 for hog backend, 1391 for cnn backend
     # Actual value resolved at runtime from TOTAL_FEATURES in feature_assembler

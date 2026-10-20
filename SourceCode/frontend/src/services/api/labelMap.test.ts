@@ -2,13 +2,29 @@ import { describe, it, expect } from 'vitest';
 import { mapResultsToSteps } from './labelMap';
 import type { ClassificationResultDTO } from '../../types/api';
 
-function makeResult(label: string, confidence = 0.9): ClassificationResultDTO {
-  return { label, confidence, probabilities: {}, model_name: 'svm', latency_ms: 5 };
+function makeResult(
+  label: string,
+  confidence = 0.9,
+  start_time = 0,
+  end_time = 5,
+): ClassificationResultDTO {
+  return {
+    label,
+    confidence,
+    probabilities: {},
+    model_name: 'svm',
+    latency_ms: 5,
+    start_time,
+    end_time,
+  };
 }
 
 describe('mapResultsToSteps', () => {
   it('maps classification results to WorkflowSteps with correct time ranges', () => {
-    const results = [makeResult('git_operations', 0.92), makeResult('coding_editing', 0.87)];
+    const results = [
+      makeResult('git_operations', 0.92, 0, 5),
+      makeResult('coding_editing', 0.87, 5, 10),
+    ];
     const steps = mapResultsToSteps(results);
 
     expect(steps).toHaveLength(2);
@@ -23,9 +39,9 @@ describe('mapResultsToSteps', () => {
     expect(steps[1].title).toBe('Edited code in the editor');
   });
 
-  it('uses custom segment duration', () => {
-    const steps = mapResultsToSteps([makeResult('debugging', 0.75)], 10);
-    expect(steps[0].time).toBe('0:00-0:10');
+  it('uses the segment timestamps from the result', () => {
+    const steps = mapResultsToSteps([makeResult('debugging', 0.75, 62, 75)]);
+    expect(steps[0].time).toBe('1:02-1:15');
   });
 
   it('falls back to "other" for unknown labels', () => {

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import threading
 from pathlib import Path
 
 import numpy as np
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ml.config import ACTIVITY_LABELS
 from app.ml.dataset import generate_synthetic_dataset
 from app.models.job import AnalysisJob
 from app.models.result import ClassificationResult
@@ -61,13 +62,24 @@ ALL_MODELS = [
     "voting", "stacking", "late_fusion",
 ]
 
+# Feature extraction and classification are CPU-bound and synchronous, so they run in a
+# worker thread (asyncio.to_thread) to keep the event loop free for /health and job-status
+# polling. ml_service is a shared singleton that may train a missing model on first use,
+# so classify calls from concurrent jobs are serialized.
+_MODEL_LOCK = threading.Lock()
+
+
+def _classify_locked(X: np.ndarray, model_name: str) -> dict:
+    from app.services.ml_service import ml_service
+
+    with _MODEL_LOCK:
+        return ml_service.classify(X, model_name=model_name)
+
 
 async def _classify_all_models(
     X: np.ndarray,
     db=None, job_id: int | None = None,
 ) -> dict[str, list[dict]]:
-    from app.services.ml_service import ml_service
-
     all_results: dict[str, list[dict]] = {}
     models = list(ALL_MODELS)
     total = len(models)
@@ -76,7 +88,7 @@ async def _classify_all_models(
             pct = 70 + int((idx / total) * 25)
             await update_job_status(db, job_id, "processing", pct, f"classifying with {model_name} ({idx+1}/{total})")
         try:
-            result = ml_service.classify(X, model_name=model_name)
+            result = await asyncio.to_thread(_classify_locked, X, model_name)
             all_results[model_name] = result["results"]
         except Exception as e:
             logger.warning(f"Model {model_name} failed: {e}")
@@ -95,7 +107,9 @@ async def run_classification_job(
     try:
         await update_job_status(db, job.id, "processing", 10.0, "extracting video segments and keyframes")
 
-        X, segments, used_yolo = _extract_features(video_path, action_log_path)
+        X, segments, used_yolo = await asyncio.to_thread(
+            _extract_features, video_path, action_log_path
+        )
         n_segments = X.shape[0]
         n_features = X.shape[1]
 
@@ -146,7 +160,7 @@ async def run_classification_job(
 def _extract_real_features(
     video_path: Path, action_log_path: Path | None = None
 ) -> tuple[np.ndarray, list[dict]]:
-    from app.pipeline.feature_assembler import FeatureAssembler, get_default_assembler
+    from app.pipeline.feature_assembler import get_default_assembler
     from app.pipeline.video_processor import VideoProcessor
 
     actions: list[dict] = []

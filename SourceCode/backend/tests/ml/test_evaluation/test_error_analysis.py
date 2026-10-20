@@ -18,7 +18,7 @@ def test_error_analysis():
     assert result.total_samples == len(y_test)
     assert result.total_errors >= 0
     assert 0.0 <= result.error_rate <= 1.0
-    assert len(result.per_class_error_rate) == 10
+    assert len(result.per_class_error_rate) == len(ACTIVITY_LABELS)
 
     for m in result.worst_misclassifications:
         assert m.true_label != m.predicted_label

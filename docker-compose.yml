@@ -18,7 +18,7 @@ services:
   backend:
     build:
       context: ./SourceCode/backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.gpu
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-video2knowledge}
       UPLOAD_DIR: /app/uploads

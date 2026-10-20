@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import json
-import re
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from app.ml.config import ACTIVITY_LABELS
 
 
 @dataclass

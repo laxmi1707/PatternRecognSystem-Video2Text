@@ -22,7 +22,6 @@ from pathlib import Path
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-import numpy as np
 from sklearn.metrics import f1_score
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")

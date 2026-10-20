@@ -108,19 +108,19 @@ def print_error_analysis(result: ErrorAnalysisResult) -> None:
     print(f"  Total: {result.total_samples}  Errors: {result.total_errors}  Rate: {result.error_rate:.1%}")
 
     if result.most_confused_pairs:
-        print(f"\n  Most confused class pairs:")
+        print("\n  Most confused class pairs:")
         for p in result.most_confused_pairs:
             print(f"    {p.class_a} <-> {p.class_b}: {p.total} errors ({p.a_as_b} + {p.b_as_a})")
 
     if result.worst_misclassifications:
-        print(f"\n  Highest-confidence misclassifications:")
+        print("\n  Highest-confidence misclassifications:")
         for m in result.worst_misclassifications[:5]:
             print(
                 f"    Sample {m.sample_index}: {m.true_name} -> {m.predicted_name} "
                 f"(conf={m.confidence:.2f}, true_prob={m.true_class_prob:.2f})"
             )
 
-    print(f"\n  Per-class error rate:")
+    print("\n  Per-class error rate:")
     for name, rate in sorted(result.per_class_error_rate.items(), key=lambda x: x[1], reverse=True):
         bar = "#" * int(rate * 50)
         print(f"    {name:<20} {rate:.1%} {bar}")

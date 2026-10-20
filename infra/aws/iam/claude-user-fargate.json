@@ -1,0 +1,55 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Sid": "FargateEcs", "Effect": "Allow", "Action": "ecs:*", "Resource": "*" },
+    { "Sid": "FargateLoadBalancer", "Effect": "Allow", "Action": "elasticloadbalancing:*", "Resource": "*" },
+    { "Sid": "FargateCloudFront", "Effect": "Allow", "Action": "cloudfront:*", "Resource": "*" },
+    { "Sid": "FargateEc2Describe", "Effect": "Allow", "Action": "ec2:Describe*", "Resource": "*" },
+    {
+      "Sid": "FargateSecurityGroups",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateSecurityGroup",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress",
+        "ec2:DeleteSecurityGroup",
+        "ec2:GetSecurityGroupsForVpc",
+        "ec2:GetManagedPrefixListEntries",
+        "ec2:CreateTags"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "FargateReadTaskRoles",
+      "Effect": "Allow",
+      "Action": "iam:GetRole",
+      "Resource": [
+        "arn:aws:iam::984263476980:role/video2text-ecs-task-execution",
+        "arn:aws:iam::984263476980:role/video2text-ecs-task"
+      ]
+    },
+    {
+      "Sid": "FargatePassTaskRoles",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": [
+        "arn:aws:iam::984263476980:role/video2text-ecs-task-execution",
+        "arn:aws:iam::984263476980:role/video2text-ecs-task"
+      ],
+      "Condition": { "StringEquals": { "iam:PassedToService": "ecs-tasks.amazonaws.com" } }
+    },
+    {
+      "Sid": "FargateServiceLinkedRoles",
+      "Effect": "Allow",
+      "Action": "iam:CreateServiceLinkedRole",
+      "Resource": "arn:aws:iam::984263476980:role/aws-service-role/*",
+      "Condition": {
+        "StringEquals": {
+          "iam:AWSServiceName": ["ecs.amazonaws.com", "elasticloadbalancing.amazonaws.com"]
+        }
+      }
+    }
+  ]
+}

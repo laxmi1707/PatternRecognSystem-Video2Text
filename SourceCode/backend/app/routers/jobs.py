@@ -1,7 +1,6 @@
 from collections import defaultdict
 from pathlib import Path
 
-import asyncio
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession

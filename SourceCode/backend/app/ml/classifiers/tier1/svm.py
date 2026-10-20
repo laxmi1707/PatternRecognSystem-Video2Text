@@ -6,6 +6,11 @@ from sklearn.svm import SVC
 from app.ml.base import BaseClassifier, PredictionResult
 
 
+def _softmax(x: np.ndarray) -> np.ndarray:
+    e = np.exp(x - x.max(axis=1, keepdims=True))
+    return e / e.sum(axis=1, keepdims=True)
+
+
 class SVMClassifier(BaseClassifier):
 
     def __init__(self, kernel: str = "rbf", C: float = 1.0) -> None:
@@ -14,7 +19,7 @@ class SVMClassifier(BaseClassifier):
         self._model = SVC(
             kernel=kernel,
             C=C,
-            probability=True,
+            probability=False,
             class_weight="balanced",
             random_state=42,
         )
@@ -33,7 +38,10 @@ class SVMClassifier(BaseClassifier):
     def predict(self, X: np.ndarray) -> PredictionResult:
         def _predict(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
             labels = self._model.predict(x)
-            probas = self._model.predict_proba(x)
+            scores = self._model.decision_function(x)
+            if scores.ndim == 1:
+                scores = np.column_stack([-scores, scores])
+            probas = _softmax(scores)
             return labels, probas
 
         return self._timed_predict(_predict, X)

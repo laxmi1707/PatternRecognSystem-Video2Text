@@ -10,8 +10,9 @@ def test_tsne():
     result = compute_tsne(X, y, label_names=ACTIVITY_LABELS)
 
     assert result.method == "t-SNE"
-    assert result.coordinates.shape == (200, 2)
-    assert len(result.labels) == 200
-    assert len(result.label_names) == 10
+    # 200 samples split evenly across the classes, so the count is a multiple of NUM_CLASSES.
+    assert result.coordinates.shape == (len(y), 2)
+    assert len(result.labels) == len(y)
+    assert len(result.label_names) == len(ACTIVITY_LABELS)
 
     print_embedding_stats(result)

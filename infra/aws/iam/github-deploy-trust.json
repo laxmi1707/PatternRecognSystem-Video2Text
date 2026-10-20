@@ -1,0 +1,21 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::984263476980:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+          "token.actions.githubusercontent.com:sub": [
+            "repo:laxmi1707@47939362/PatternRecognSystem-Video2Text@1334808953:environment:dev",
+            "repo:laxmi1707/PatternRecognSystem-Video2Text:environment:dev"
+          ]
+        }
+      }
+    }
+  ]
+}
