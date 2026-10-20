@@ -106,6 +106,7 @@ class TorchBaseClassifier(BaseClassifier):
             {
                 "state_dict": self._model.state_dict(),
                 "input_dim": self._input_dim,
+                "num_classes": self._num_classes,
             },
             path,
         )
@@ -113,6 +114,8 @@ class TorchBaseClassifier(BaseClassifier):
     def load(self, path: str) -> None:
         checkpoint = torch.load(path, map_location=self._device, weights_only=False)
         self._input_dim = checkpoint["input_dim"]
+        if "num_classes" in checkpoint:
+            self._num_classes = checkpoint["num_classes"]
         self._model = self._build_model(self._input_dim)
         self._model.load_state_dict(checkpoint["state_dict"])
         self._model.to(self._device)
