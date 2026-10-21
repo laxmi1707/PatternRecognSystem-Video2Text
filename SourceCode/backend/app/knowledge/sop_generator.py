@@ -150,18 +150,37 @@ def _extract_terminal_command(text: str) -> str:
     """Extract shell commands from OCR text of terminal segments."""
     if not text:
         return ""
-    # Look for shell prompt pattern: $ command or # command
-    prompt_match = re.search(r"[$#]\s+([^\n$#]{3,80})", text)
+    # Strip shell prompts (user@host:~$ or similar) — keep only what comes after $
+    # Handles repeated prompts from multiple keyframes in one segment
+    clean = re.sub(r"\S+@\S+[:\s]+[-~\w/]*\s*[$#]\s*", "\n", text)
+    # Also handle patterns like ":-$" or ": -$" directly
+    clean = re.sub(r":-?\s*[$#]\s*", "\n", clean)
+
+    # Search each line for known commands
+    best_cmd = ""
+    for line in clean.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        tokens = line.split()
+        if not tokens:
+            continue
+        first = tokens[0].lower().lstrip("'\"")
+        if first in _TERMINAL_COMMANDS and len(line) > len(first):
+            # Pick the longest matching command (most complete)
+            if len(line) > len(best_cmd):
+                best_cmd = line[:120]
+
+    if best_cmd:
+        return best_cmd
+
+    # Fallback: look for $ followed by a command anywhere in original text
+    prompt_match = re.search(r"[$#]\s+([a-z]{2,10}\s+[^\n$#]{2,80})", text)
     if prompt_match:
         cmd = prompt_match.group(1).strip()
-        if len(cmd) > 3:
+        first = cmd.split()[0].lower() if cmd.split() else ""
+        if first in _TERMINAL_COMMANDS:
             return cmd[:120]
-    # Fall back: look for known command words followed by arguments
-    for line in text.split("\n"):
-        line = line.strip()
-        first_word = line.split()[0].lower() if line.split() else ""
-        if first_word in _TERMINAL_COMMANDS and len(line) > len(first_word):
-            return line[:120]
     return ""
 
 
