@@ -75,12 +75,8 @@ class OCRExtractor:
             return self._tesseract_fallback(image)
 
     def extract_with_fallback(self, image: np.ndarray) -> OCRResult:
-        result = self.extract_text(image)
-        if result.mean_confidence < 0.3 and result.regions:
-            fallback = self._tesseract_fallback(image)
-            if fallback.mean_confidence > result.mean_confidence:
-                return fallback
-        return result
+        # Always use EasyOCR — Tesseract fallback produces worse results for terminal text
+        return self.extract_text(image)
 
     def _tesseract_fallback(self, image: np.ndarray) -> OCRResult:
         try:
