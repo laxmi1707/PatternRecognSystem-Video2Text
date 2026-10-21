@@ -150,42 +150,27 @@ def _extract_terminal_command(text: str) -> str:
     """Extract shell commands from OCR text of terminal segments."""
     if not text:
         return ""
-    # Strip shell prompts (user@host:~$ or similar) — keep only what comes after $
-    # Handles repeated prompts from multiple keyframes in one segment
-    clean = re.sub(r"\S+@\S+[:\s]+[-~\w/]*\s*[$#]\s*", "\n", text)
-    # Also handle patterns like ":-$" or ": -$" directly
-    clean = re.sub(r":-?\s*[$#]\s*", "\n", clean)
+    # Split on shell prompt markers ($ or #) to isolate commands
+    # Works for: "user@host:~$ cmd", ":-$ cmd", "$ cmd"
+    candidates = re.split(r"[$#]\s+", text)
 
-    # Search each line for known commands
     best_cmd = ""
-    for line in clean.split("\n"):
-        line = line.strip()
-        # Truncate at next shell prompt artifact (user@host, with possible spaces)
-        user_at = re.search(r"\s+\w+\s*@\s*\w+", line)
+    for candidate in candidates[1:]:  # skip text before first prompt
+        # Take only up to the next prompt artifact or newline
+        candidate = re.split(r"\n|\s{3,}", candidate)[0].strip()
+        # Truncate at user@host pattern
+        user_at = re.search(r"\s+\S+@\S+", candidate)
         if user_at:
-            line = line[:user_at.start()].strip()
-        if not line:
+            candidate = candidate[:user_at.start()].strip()
+        if not candidate:
             continue
-        tokens = line.split()
-        if not tokens:
-            continue
-        first = tokens[0].lower().lstrip("'\"")
-        if first in _TERMINAL_COMMANDS and len(line) > len(first):
-            # Pick the longest matching command (most complete)
-            if len(line) > len(best_cmd):
-                best_cmd = line[:120]
+        tokens = candidate.split()
+        first = tokens[0].lower().lstrip("'\"") if tokens else ""
+        if first in _TERMINAL_COMMANDS and len(candidate) > len(first):
+            if len(candidate) > len(best_cmd):
+                best_cmd = candidate[:120]
 
-    if best_cmd:
-        return best_cmd
-
-    # Fallback: look for $ followed by a command anywhere in original text
-    prompt_match = re.search(r"[$#]\s+([a-z]{2,10}\s+[^\n$#]{2,80})", text)
-    if prompt_match:
-        cmd = prompt_match.group(1).strip()
-        first = cmd.split()[0].lower() if cmd.split() else ""
-        if first in _TERMINAL_COMMANDS:
-            return cmd[:120]
-    return ""
+    return best_cmd
 
 
 def _clean_ocr(text: str) -> str:
