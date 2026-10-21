@@ -160,6 +160,10 @@ def _extract_terminal_command(text: str) -> str:
     best_cmd = ""
     for line in clean.split("\n"):
         line = line.strip()
+        # Truncate at next shell prompt artifact (user@host)
+        user_at = re.search(r"\s+\w+@\w+", line)
+        if user_at:
+            line = line[:user_at.start()].strip()
         if not line:
             continue
         tokens = line.split()
