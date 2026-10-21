@@ -1,3 +1,4 @@
+import os
 import pickle
 
 import numpy as np
@@ -14,6 +15,7 @@ def _softmax(x: np.ndarray) -> np.ndarray:
 class SVMClassifier(BaseClassifier):
 
     def __init__(self, kernel: str = "rbf", C: float = 1.0) -> None:
+        kernel = os.environ.get("SVM_KERNEL", kernel)
         self._kernel = kernel
         self._C = C
         self._model = SVC(
@@ -22,6 +24,8 @@ class SVMClassifier(BaseClassifier):
             probability=False,
             class_weight="balanced",
             random_state=42,
+            verbose=True,
+            max_iter=5000,
         )
 
     @property

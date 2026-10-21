@@ -137,14 +137,22 @@ class WorkflowLSTMClassifier(BaseClassifier):
         return self._timed_predict(_predict, X)
 
     def save(self, path: str) -> None:
-        torch.save({"state_dict": self._model.state_dict()}, path)
+        torch.save({
+            "state_dict": self._model.state_dict(),
+            "feature_dim": self._feature_dim,
+            "num_classes": self._num_classes,
+        }, path)
 
     def load(self, path: str) -> None:
+        checkpoint = torch.load(path, map_location=self._device, weights_only=False)
+        if "feature_dim" in checkpoint:
+            self._feature_dim = checkpoint["feature_dim"]
+        if "num_classes" in checkpoint:
+            self._num_classes = checkpoint["num_classes"]
         self._model = _WorkflowLSTMNet(
             self._feature_dim, self._hidden_dim, self._num_layers,
             self._num_classes, self._dropout,
         ).to(self._device)
-        checkpoint = torch.load(path, map_location=self._device, weights_only=False)
         self._model.load_state_dict(checkpoint["state_dict"])
         self._model.eval()
 
