@@ -72,6 +72,8 @@ const LABEL_META: Record<string, { title: string; descriptionTemplate: string }>
 
 const TERMINAL_LABELS = new Set(['terminal_ops', 'debugging', 'git_operations', 'docker_workflow']);
 
+const UI_NOISE = /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Activities|Terminal|Applications|Places|System|Files|Settings)\b/;
+
 function extractCommand(ocrText: string): string {
   if (!ocrText) return '';
   const parts = ocrText.split(/[$#]\s+/);
@@ -79,7 +81,8 @@ function extractCommand(ocrText: string): string {
     const cmd = parts[i].split(/\n|\s{3,}/)[0]
       .replace(/\s+\S+\s*@\s*\S+.*/, '')
       .trim();
-    if (cmd.length > 3) return cmd.slice(0, 80);
+    if (cmd.length > 3 && cmd.split(' ').length <= 10 && !UI_NOISE.test(cmd))
+      return cmd.slice(0, 80);
   }
   return '';
 }

@@ -146,25 +146,34 @@ _TERMINAL_COMMANDS: set[str] = {
 }
 
 
+_UI_NOISE_PATTERN = re.compile(
+    r"\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Activities|Terminal|"
+    r"Applications|Places|System|Files|Settings|Monday|Tuesday|Wednesday|Thursday|"
+    r"Friday|Saturday|Sunday)\b"
+)
+
+
 def _extract_terminal_command(text: str) -> str:
     """Extract shell commands from OCR text of terminal segments."""
     if not text:
         return ""
-    # Split on shell prompt markers ($ or #) to isolate commands
-    # Works for: "user@host:~$ cmd", ":-$ cmd", "$ cmd"
     candidates = re.split(r"[$#]\s+", text)
 
     best_cmd = ""
-    for candidate in candidates[1:]:  # skip text before first prompt
-        # Take only up to the next prompt artifact or newline
+    for candidate in candidates[1:]:
         candidate = re.split(r"\n|\s{3,}", candidate)[0].strip()
-        # Truncate at user@host pattern (allow spaces around @ from OCR errors)
         user_at = re.search(r"\s+\S+\s*@\s*\S+", candidate)
         if user_at:
             candidate = candidate[:user_at.start()].strip()
         if not candidate:
             continue
+        # Reject if the candidate contains UI chrome words (taskbar, title bar)
+        if _UI_NOISE_PATTERN.search(candidate):
+            continue
+        # Reject if too many tokens — real commands are typically short
         tokens = candidate.split()
+        if len(tokens) > 10:
+            continue
         first = tokens[0].lower().lstrip("'\"") if tokens else ""
         if first in _TERMINAL_COMMANDS and len(candidate) > len(first):
             if len(candidate) > len(best_cmd):
