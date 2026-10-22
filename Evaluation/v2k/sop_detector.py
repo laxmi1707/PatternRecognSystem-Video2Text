@@ -719,7 +719,10 @@ def detect(bundle: dict, arrays: dict, record: dict, threshold: float | None = N
         table = pool_to_tasks(table)
     s1 = _rows(app_bundle, table)
     best = max(s1, key=lambda r: r["confidence"] or 0)
-    app = app_dirs().get(canon_app(best["label"]), best["label"])
+    # The frame cache's directory names give each application's canonical spelling; a
+    # deployed detector has no frame cache, and the rankers are keyed by the same names.
+    dirs = app_dirs() if frame_cache_dir().is_dir() else {canon_app(a): a for a in bundle["per_app"]}
+    app = dirs.get(canon_app(best["label"]), best["label"])
 
     ranker = bundle["per_app"].get(app)
     steps = []

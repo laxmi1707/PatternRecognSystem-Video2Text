@@ -24,3 +24,9 @@ logs/
 
 # Personal notes and unsent drafts stay out of the shared repo
 ~$*
+
+# SOP detector deployment: the assembled build context and Terraform state
+deploy/sop-detector/build/
+deploy/sop-detector/terraform/.terraform/
+deploy/sop-detector/terraform/*.tfstate*
+deploy/sop-detector/terraform/*.tfvars

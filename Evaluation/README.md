@@ -176,6 +176,11 @@ between pauses of 8 s or more). With the team backend running, its own SOP phase
 used instead. If the detector service is not running, the results page says so and
 everything else works as before.
 
+To run the detector on AWS beside the backend, see `deploy/sop-detector/README.md`. It
+covers the Docker image, a separate Terraform stack that adds `/sop-detector/*` to the
+backend's load balancer without changing the backend stack, and running this frontend
+locally against the AWS deployment.
+
 The fitted models these need are committed (below), so a fresh checkout runs
 them once the backend snapshot is importable (see "Reproducing a number"); the YOLO and
 ResNet weights and easyocr's models download on first use.

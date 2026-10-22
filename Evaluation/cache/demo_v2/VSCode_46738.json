@@ -1,0 +1,100 @@
+{
+  "video": "video.mp4",
+  "app": "VSCode",
+  "app_confidence": 1.0,
+  "duration": 43.96666666666667,
+  "seconds_taken": 266.2,
+  "seconds_clicks": 19.2,
+  "steps": [
+    {
+      "t": 6.0,
+      "action": "Type",
+      "text": "Add Folder to Workspace_.",
+      "score": 0.531
+    },
+    {
+      "t": 6.2,
+      "action": "Click",
+      "text": "Edit",
+      "x": 59,
+      "y": 27,
+      "score": 0.341
+    },
+    {
+      "t": 14.8,
+      "action": "Click",
+      "text": "Select Folder",
+      "x": 785,
+      "y": 517,
+      "score": 0.459
+    },
+    {
+      "t": 19.6,
+      "action": "Click",
+      "text": "testtpyl",
+      "x": 127,
+      "y": 160,
+      "score": 0.303
+    },
+    {
+      "t": 26.0,
+      "action": "Click",
+      "text": "testtpy",
+      "x": 293,
+      "y": 98,
+      "score": 0.402
+    },
+    {
+      "t": 26.8,
+      "action": "Click",
+      "text": "print",
+      "x": 328,
+      "y": 98,
+      "score": 0.242
+    },
+    {
+      "t": 28.0,
+      "action": "Type",
+      "text": "file-like obiect (streaml: defaults to the current",
+      "score": 0.723
+    },
+    {
+      "t": 30.0,
+      "action": "Type",
+      "text": "printldhellbq]",
+      "score": 0.719
+    },
+    {
+      "t": 30.6,
+      "action": "Click",
+      "text": "printldhellbl]",
+      "x": 364,
+      "y": 95,
+      "score": 0.247
+    },
+    {
+      "t": 31.6,
+      "action": "Click",
+      "text": "testt2 Pliv",
+      "x": 130,
+      "y": 201,
+      "score": 0.287
+    },
+    {
+      "t": 35.4,
+      "action": "Click",
+      "text": "testtz py",
+      "x": 286,
+      "y": 101,
+      "score": 0.277
+    },
+    {
+      "t": 38.2,
+      "action": "Click",
+      "text": "end:",
+      "x": 662,
+      "y": 116,
+      "score": 0.255
+    }
+  ]
+}

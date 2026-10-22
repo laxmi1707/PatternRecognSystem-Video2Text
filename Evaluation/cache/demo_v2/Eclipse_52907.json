@@ -1,0 +1,58 @@
+{
+  "video": "video.mp4",
+  "app": "Eclipse",
+  "app_confidence": 1.0,
+  "duration": 44.05,
+  "seconds_taken": 199.1,
+  "seconds_clicks": 11.1,
+  "steps": [
+    {
+      "t": 6.0,
+      "action": "Click",
+      "text": "Preferences.",
+      "x": 111,
+      "y": 82,
+      "score": 0.272
+    },
+    {
+      "t": 21.8,
+      "action": "Click",
+      "text": "Browso.",
+      "x": 519,
+      "y": 403,
+      "score": 0.598
+    },
+    {
+      "t": 36.0,
+      "action": "Click",
+      "text": "EPFD",
+      "x": 251,
+      "y": 209,
+      "score": 0.265
+    },
+    {
+      "t": 36.4,
+      "action": "Click",
+      "text": "EPFI",
+      "x": 242,
+      "y": 209,
+      "score": 0.296
+    },
+    {
+      "t": 38.0,
+      "action": "Click",
+      "text": "Save",
+      "x": 403,
+      "y": 380,
+      "score": 0.511
+    },
+    {
+      "t": 39.8,
+      "action": "Click",
+      "text": "pish",
+      "x": 521,
+      "y": 544,
+      "score": 0.377
+    }
+  ]
+}

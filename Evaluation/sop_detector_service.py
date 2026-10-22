@@ -18,11 +18,19 @@ pointer CNN (pointer_cnn_v1); bare_sop_v1 is the template + self-match version.
 
     python sop_detector_service.py            port 8100; the frontend's dev server
                                               proxies /sop-detector to it
+    python sop_detector_service.py index      write cache/demo_v2/index.json (video
+                                              hash -> stored run), so stored runs are
+                                              found without the videos (the container)
+
+Settings from the environment, for the container (deploy/sop-detector):
+SOP_DETECTOR_HOST (127.0.0.1), SOP_DETECTOR_PORT (8100), SOP_DETECTOR_THREADS (12),
+SOP_DETECTOR_UPLOADS, ALLOWED_ORIGINS (JSON list; the local dev server by default).
 """
 from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sys
 import threading
 import uuid
@@ -34,15 +42,21 @@ sys.path.insert(0, str(ROOT))
 from v2k.env import CACHE, limit_cpu  # noqa: E402
 
 if __name__ == "__main__":
-    limit_cpu(12)
+    limit_cpu(int(os.environ.get("SOP_DETECTOR_THREADS", "12")))
 
 from fastapi import FastAPI, File, HTTPException, UploadFile  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 STORED = CACHE / "demo_v2"
-UPLOADS = CACHE / "sop_service" / "uploads"
-PORT = 8100
+INDEX = STORED / "index.json"
+UPLOADS = Path(os.environ.get("SOP_DETECTOR_UPLOADS", str(CACHE / "sop_service" / "uploads")))
+HOST = os.environ.get("SOP_DETECTOR_HOST", "127.0.0.1")
+PORT = int(os.environ.get("SOP_DETECTOR_PORT", "8100"))
+ORIGINS = json.loads(os.environ.get("ALLOWED_ORIGINS", '["http://localhost:5173", "http://127.0.0.1:5173"]'))
 
 app = FastAPI(title="SOP detector")
+app.add_middleware(CORSMiddleware, allow_origins=ORIGINS, allow_methods=["GET", "POST", "OPTIONS"],
+                   allow_headers=["*"])
 jobs: dict[str, dict] = {}
 one_at_a_time = threading.Lock()
 
@@ -55,9 +69,25 @@ def sha1(path: Path) -> str:
     return h.hexdigest()
 
 
+def write_index() -> None:
+    """index.json: {video sha1: stored run file}, from the videos on this machine."""
+    index = {}
+    for js in sorted(STORED.glob("*_*.json")):
+        app_, tid = js.stem.rsplit("_", 1)
+        video = ROOT / "data" / "VideoCUA" / app_ / tid / "video" / "video.mp4"
+        if video.exists():
+            index[sha1(video)] = js.name
+    INDEX.write_text(json.dumps(index, indent=1), encoding="utf-8")
+    print(f"{len(index)} stored runs -> {INDEX}")
+
+
 def stored_run(digest: str) -> dict | None:
     """A stored bare_sop_v2 run of the same video, if there is one."""
-    for js in STORED.glob("*.json"):
+    if INDEX.exists():
+        name = json.loads(INDEX.read_text(encoding="utf-8")).get(digest)
+        if name and (STORED / name).exists():
+            return json.loads((STORED / name).read_text(encoding="utf-8"))
+    for js in STORED.glob("*_*.json"):
         app_, tid = js.stem.rsplit("_", 1)
         video = ROOT / "data" / "VideoCUA" / app_ / tid / "video" / "video.mp4"
         if video.exists() and sha1(video) == digest:
@@ -85,6 +115,11 @@ def _work(job: dict) -> None:
         job.update(status="failed", stage="failed", error=str(e))
 
 
+@app.get("/sop-detector/health")
+def health():
+    return {"status": "ok", "busy": one_at_a_time.locked()}
+
+
 @app.post("/sop-detector/jobs")
 async def submit(file: UploadFile = File(...)):
     UPLOADS.mkdir(parents=True, exist_ok=True)
@@ -107,5 +142,8 @@ def status(job_id: str):
 
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=PORT)
+    if sys.argv[1:] == ["index"]:
+        write_index()
+    else:
+        import uvicorn
+        uvicorn.run(app, host=HOST, port=PORT)

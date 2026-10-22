@@ -1,0 +1,98 @@
+{
+  "video": "video.mp4",
+  "app": "Eclipse",
+  "app_confidence": 0.997,
+  "duration": 37.81666666666667,
+  "seconds_taken": 277.1,
+  "seconds_clicks": 39.5,
+  "steps": [
+    {
+      "t": 1.8,
+      "action": "Click",
+      "text": "Package Explorer",
+      "x": 50,
+      "y": 61,
+      "score": 0.322
+    },
+    {
+      "t": 9.6,
+      "action": "Click",
+      "text": "Modulepath",
+      "x": 497,
+      "y": 237,
+      "score": 0.332
+    },
+    {
+      "t": 13.6,
+      "action": "Click",
+      "text": "Add JARS ",
+      "x": 1065,
+      "y": 268,
+      "score": 0.606
+    },
+    {
+      "t": 14.6,
+      "action": "Click",
+      "text": "Add External",
+      "x": 1063,
+      "y": 270,
+      "score": 0.73
+    },
+    {
+      "t": 20.4,
+      "action": "Click",
+      "text": "Open",
+      "x": 1069,
+      "y": 581,
+      "score": 0.464
+    },
+    {
+      "t": 21.2,
+      "action": "Click",
+      "text": "Onen",
+      "x": 1065,
+      "y": 572,
+      "score": 0.605
+    },
+    {
+      "t": 24.2,
+      "action": "Click",
+      "text": "Module Dependencies",
+      "x": 792,
+      "y": 233,
+      "score": 0.313
+    },
+    {
+      "t": 27.0,
+      "action": "Click",
+      "text": "ARs:",
+      "x": 1132,
+      "y": 269,
+      "score": 0.574
+    },
+    {
+      "t": 27.8,
+      "action": "Click",
+      "text": "Add Variablo ..",
+      "x": 1130,
+      "y": 272,
+      "score": 0.646
+    },
+    {
+      "t": 30.4,
+      "action": "Click",
+      "text": "facebook-messenger-1.0.0.jar",
+      "x": 604,
+      "y": 327,
+      "score": 0.259
+    },
+    {
+      "t": 35.8,
+      "action": "Click",
+      "text": "Apply and Close",
+      "x": 1156,
+      "y": 618,
+      "score": 0.576
+    }
+  ]
+}
