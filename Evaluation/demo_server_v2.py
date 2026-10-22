@@ -14,14 +14,14 @@ shapes (app/routers/knowledge.py SOPResponse / RunbookResponse), so his UI runs
 as it is. Nothing here touches the team repo or its backend.
 
     POST /api/v1/videos/upload         save the file, open a job
-    POST /api/v1/jobs/{id}/run         run bare_sop_v2 on it (one at a time)
+    POST /api/v1/jobs/{id}/run         run the detector on it (one at a time)
     GET  /api/v1/jobs/{id}             progress for his analyzing page
     GET  /api/v1/jobs/{id}/results     one classification row: stage 1's application
     POST /api/v1/knowledge/sop/{id}    the detector's Click / Type steps as his SOP
     POST /api/v1/knowledge/runbook/{id}
     GET  /api/v1/videos/ , /api/v1/evaluation/models , /health
 
-A video that bare_sop_v2 has already processed (cache/demo_v2/<App>_<task>.json,
+A video that the detector has already processed (cache/demo_v2/<App>_<task>.json,
 matched by file hash) is answered from that run, its progress replayed in a few
 seconds; any other video is processed live, which takes a few minutes on CPU.
 
@@ -100,8 +100,8 @@ def _work(job: dict) -> None:
         else:
             job.update(progress_pct=1, progress_stage="waiting for the previous video to finish")
             with live_lock:
-                import bare_sop_v2
-                job["result"] = bare_sop_v2.run(
+                import detector
+                job["result"] = detector.run(
                     job["path"], lambda pct, stage: job.update(progress_pct=pct, progress_stage=stage))
             job["source"] = "processed live"
         job.update(status="completed", progress_pct=100, progress_stage="analysis complete")

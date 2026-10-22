@@ -153,9 +153,20 @@ VLC find over 60% of clicks, while OBS Studio, Zulip and Kodi find under 20%.
 ### The whole detector on one video
 
 ```
-python bare_sop_v2.py path/to/recording.mp4 --out steps.json   # typing + clicks (pointer CNN)
-python bare_sop_v1.py path/to/recording.mp4 --out steps.json   # the template version
+python -m detector path/to/recording.mp4 --out steps.json      # typing + clicks (pointer CNN)
 ```
+
+**The detector itself is the `detector/` package**, three short files:
+
+- `typed_text.py` names the application and finds the typing steps;
+- `clicks.py` finds the pointer, its stops and the click steps;
+- `pipeline.py` merges both.
+
+The service, the stand-in backend and the container use only this package (with the
+`v2k` harness under it). The numbered scripts around it are the research that built and
+scored it, kept as they were run. `bare_sop_v2.py` is the same detector written against
+those scripts; on three test videos the package gives identical steps. `bare_sop_v1.py`
+is the template-pointer version.
 
 ### In the frontend
 

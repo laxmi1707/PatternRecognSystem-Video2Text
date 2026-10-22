@@ -3,7 +3,7 @@
 #
 #   bash Evaluation/deploy/sop-detector/build.sh [tag]        (default tag: latest)
 #
-# The context holds only what the service needs: the Evaluation code, the backend
+# The context holds only what the service needs: the detector package, the backend
 # code the models were trained against (commit d866716, NOT the current main: its
 # video, UI and OCR modules have changed since), the fitted models and the stored
 # demo runs. It is rebuilt from the repository each time, into build/ next to this file.
@@ -25,9 +25,12 @@ mkdir -p "$CTX/vendor/main-$SNAPSHOT" "$CTX/runs/run_037_sop-detector" \
 
 git -C "$REPO" archive "$SNAPSHOT" SourceCode/backend | tar -x -C "$CTX/vendor/main-$SNAPSHOT"
 
-cp "$EVAL"/*.py "$CTX/"
+# The service, the detector package and the v2k harness it builds on - not the
+# research scripts.
+cp "$EVAL/sop_detector_service.py" "$CTX/"
+cp -r "$EVAL/detector" "$CTX/detector"
 cp -r "$EVAL/v2k" "$CTX/v2k"
-rm -rf "$CTX/v2k/__pycache__"
+rm -rf "$CTX/detector/__pycache__" "$CTX/v2k/__pycache__"
 cp "$EVAL/runs/run_037_sop-detector/sop_detector.joblib" "$CTX/runs/run_037_sop-detector/"
 cp "$EVAL/runs/run_029_appid70/models/ocr_native+ui+visual+cnn__mlp.joblib" "$CTX/runs/run_029_appid70/models/"
 cp "$EVAL/cache/pointer_cnn_v1.pt" "$EVAL/cache/bare_sop_v2_reaction.pkl" "$CTX/cache/"

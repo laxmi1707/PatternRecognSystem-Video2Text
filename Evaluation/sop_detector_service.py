@@ -12,9 +12,9 @@ and typing that fall in its time range). The backend is not changed.
                                                  {"t", "action", "text"}, ...]}}
 
 One video is processed at a time (a few minutes on CPU). A video that
-bare_sop_v2.py has already processed (cache/demo_v2/<App>_<task>.json, matched
-by file hash) is answered from that run at once. v2 finds the pointer with the
-pointer CNN (pointer_cnn_v1); bare_sop_v1 is the template + self-match version.
+the detector has already processed (cache/demo_v2/<App>_<task>.json, matched
+by file hash) is answered from that run at once. The detector is the `detector`
+package (typing + clicks found with the pointer CNN).
 
     python sop_detector_service.py            port 8100; the frontend's dev server
                                               proxies /sop-detector to it
@@ -82,7 +82,7 @@ def write_index() -> None:
 
 
 def stored_run(digest: str) -> dict | None:
-    """A stored bare_sop_v2 run of the same video, if there is one."""
+    """A stored detector run of the same video, if there is one."""
     if INDEX.exists():
         name = json.loads(INDEX.read_text(encoding="utf-8")).get(digest)
         if name and (STORED / name).exists():
@@ -107,8 +107,8 @@ def _work(job: dict) -> None:
         if result is None:
             job.update(progress_pct=1, stage="waiting for the previous video")
             with one_at_a_time:
-                import bare_sop_v2
-                result = bare_sop_v2.run(
+                import detector
+                result = detector.run(
                     job["path"], lambda pct, stage: job.update(progress_pct=pct, stage=stage))
         job.update(status="completed", progress_pct=100, stage="done", result=_public(result))
     except Exception as e:  # shown in the frontend's panel

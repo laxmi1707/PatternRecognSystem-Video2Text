@@ -28,12 +28,12 @@ ex.ocr.extract_text(blank)
 ex.ui.detect(blank)
 ex.cnn.embed([blank])
 
-import bare_sop_v2  # noqa: E402
-import pointer_cnn_v1  # noqa: E402
+import detector  # noqa: E402
+from detector import clicks, typed_text  # noqa: E402
 
-pointer_cnn_v1.load_model()
-bare_sop_v2.reaction_model()
-bundle = joblib.load(ROOT / "runs" / "run_037_sop-detector" / "sop_detector.joblib")
+clicks.load_pointer_model()
+clicks.load_reaction_model()
+bundle = joblib.load(typed_text.RANKERS)
 stage1 = sd.stage1_path(bundle)
 joblib.load(stage1)
 pooled = bundle["pooled"]
@@ -51,6 +51,6 @@ with tempfile.TemporaryDirectory() as tmp:
                     cv2.FONT_HERSHEY_SIMPLEX, 1.4, (235, 235, 235), 3, cv2.LINE_AA)
         out.write(f)
     out.release()
-    res = bare_sop_v2.run(video)
+    res = detector.run(video)
 print(f"warm-up done: every model loaded and predicted; the whole detector ran on a test video "
       f"in {res['seconds_taken']} s (app {res['app']}, {len(res['steps'])} steps)")
