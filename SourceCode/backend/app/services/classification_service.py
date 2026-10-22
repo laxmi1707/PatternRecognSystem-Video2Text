@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import threading
+import time
 from pathlib import Path
 
 import numpy as np
@@ -87,11 +88,16 @@ async def _classify_all_models(
         if db and job_id:
             pct = 70 + int((idx / total) * 25)
             await update_job_status(db, job_id, "processing", pct, f"classifying with {model_name} ({idx+1}/{total})")
+        logger.info(f"[classify] starting {model_name} ({idx+1}/{total})")
+        _t0 = time.perf_counter()
         try:
             result = await asyncio.to_thread(_classify_locked, X, model_name)
             all_results[model_name] = result["results"]
+            _elapsed = time.perf_counter() - _t0
+            logger.info(f"[classify] done {model_name} ({idx+1}/{total}) — {len(result['results'])} segments in {_elapsed:.1f}s")
         except Exception as e:
-            logger.warning(f"Model {model_name} failed: {e}")
+            _elapsed = time.perf_counter() - _t0
+            logger.warning(f"[classify] {model_name} failed after {_elapsed:.1f}s: {e}")
 
     return all_results
 

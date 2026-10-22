@@ -206,6 +206,7 @@ def main() -> None:
     for m_idx, clf_name in enumerate(model_names, 1):
         try:
             clf = ml_service.get_model(clf_name)
+            logger.info(f"  [{m_idx}/{total_models}] {clf_name:20s} | starting fit on {X_train.shape[0]} samples...")
             t0 = time.time()
             clf.fit(X_train, y_train)
             train_time = time.time() - t0

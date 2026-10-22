@@ -135,6 +135,44 @@ _KNOWN_SCREEN_WORDS: set[str] = {
 }
 
 
+_TERMINAL_COMMANDS: set[str] = {
+    "sed", "awk", "grep", "cat", "ls", "cd", "pwd", "echo", "mv", "cp", "rm",
+    "mkdir", "touch", "chmod", "chown", "find", "sort", "uniq", "wc", "head",
+    "tail", "cut", "tr", "xargs", "pipe", "python", "python3", "pip", "npm",
+    "node", "java", "javac", "gcc", "make", "cmake", "git", "docker", "kubectl",
+    "curl", "wget", "ssh", "scp", "tar", "zip", "unzip", "apt", "yum", "brew",
+    "export", "source", "chmod", "sudo", "bash", "sh", "zsh", "vim", "nano",
+    "ps", "kill", "top", "df", "du", "mount", "ping", "ifconfig", "netstat",
+}
+
+
+def _extract_terminal_command(text: str) -> str:
+    """Extract shell commands from OCR text of terminal segments."""
+    if not text:
+        return ""
+    # Split on shell prompt markers ($ or #) to isolate commands
+    # Works for: "user@host:~$ cmd", ":-$ cmd", "$ cmd"
+    candidates = re.split(r"[$#]\s+", text)
+
+    best_cmd = ""
+    for candidate in candidates[1:]:  # skip text before first prompt
+        # Take only up to the next prompt artifact or newline
+        candidate = re.split(r"\n|\s{3,}", candidate)[0].strip()
+        # Truncate at user@host pattern (allow spaces around @ from OCR errors)
+        user_at = re.search(r"\s+\S+\s*@\s*\S+", candidate)
+        if user_at:
+            candidate = candidate[:user_at.start()].strip()
+        if not candidate:
+            continue
+        tokens = candidate.split()
+        first = tokens[0].lower().lstrip("'\"") if tokens else ""
+        if first in _TERMINAL_COMMANDS and len(candidate) > len(first):
+            if len(candidate) > len(best_cmd):
+                best_cmd = candidate[:120]
+
+    return best_cmd
+
+
 def _clean_ocr(text: str) -> str:
     """Extract recognisable screen words from Tesseract output."""
     if not text:
@@ -266,10 +304,17 @@ class SOPGenerator:
             start = seg.get("start_time", 0)
             end = seg.get("end_time", 0)
 
-            # Run keyword matching on RAW ocr (multi-word phrases intact, not split by · )
-            keyword_action = _extract_keywords(raw_ocr)
-            step_title = keyword_action if keyword_action else label.replace("_", " ").title()
-            description = _step_description(label, detected_platform, raw_ocr, keyword_action)
+            # For terminal segments, try to extract actual command from OCR first
+            terminal_cmd = _extract_terminal_command(raw_ocr) if label in ("terminal_ops", "debugging", "git_operations", "docker_workflow") else ""
+            if terminal_cmd:
+                keyword_action = ""
+                step_title = f"Run: `{terminal_cmd}`"
+                description = f"Execute: `{terminal_cmd}`"
+            else:
+                # Run keyword matching on RAW ocr (multi-word phrases intact, not split by · )
+                keyword_action = _extract_keywords(raw_ocr)
+                step_title = keyword_action if keyword_action else label.replace("_", " ").title()
+                description = _step_description(label, detected_platform, raw_ocr, keyword_action)
 
             steps.append(SOPStep(
                 number=i + 1,

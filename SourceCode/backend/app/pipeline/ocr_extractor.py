@@ -25,6 +25,35 @@ class OCRResult:
     mean_confidence: float = 0.0
 
 
+def _similarity(a: str, b: str) -> float:
+    """Token-level Jaccard similarity between two strings."""
+    if not a or not b:
+        return 0.0
+    ta, tb = set(a.lower().split()), set(b.lower().split())
+    if not ta or not tb:
+        return 0.0
+    return len(ta & tb) / len(ta | tb)
+
+
+def _deduplicate_ocr(parts: list[str], threshold: float = 0.6) -> str:
+    """Merge OCR text from multiple keyframes, dropping near-duplicate frames.
+
+    Keyframes within the same segment often show nearly identical content.
+    Keeping all of them concatenated repeats the same text 2-3x, which
+    confuses downstream command extraction and inflates TF-IDF features.
+    Strategy: keep a frame only if it is sufficiently different from all
+    already-kept frames (Jaccard similarity on tokens < threshold).
+    Then join the unique frames with a space.
+    """
+    kept: list[str] = []
+    for part in parts:
+        if not part.strip():
+            continue
+        if all(_similarity(part, k) < threshold for k in kept):
+            kept.append(part)
+    return " ".join(kept)
+
+
 class OCRExtractor:
     def __init__(self, languages: list[str] | None = None, use_gpu: bool = False):
         self._languages = languages or ["en"]
@@ -75,12 +104,8 @@ class OCRExtractor:
             return self._tesseract_fallback(image)
 
     def extract_with_fallback(self, image: np.ndarray) -> OCRResult:
-        result = self.extract_text(image)
-        if result.mean_confidence < 0.3 and result.regions:
-            fallback = self._tesseract_fallback(image)
-            if fallback.mean_confidence > result.mean_confidence:
-                return fallback
-        return result
+        # Always use EasyOCR — Tesseract fallback produces worse results for terminal text
+        return self.extract_text(image)
 
     def _tesseract_fallback(self, image: np.ndarray) -> OCRResult:
         try:
@@ -154,7 +179,7 @@ class OCRExtractor:
                 print(f"[OCR-DEBUG] frame OCR len={len(result.full_text)} conf={result.mean_confidence:.2f} text={repr(result.full_text[:100])}", flush=True)
             all_confidences.extend(r.confidence for r in result.regions)
 
-        combined_text = " ".join(all_text_parts)
+        combined_text = _deduplicate_ocr(all_text_parts)
         features = self.text_to_features(combined_text)
 
         return features, combined_text
