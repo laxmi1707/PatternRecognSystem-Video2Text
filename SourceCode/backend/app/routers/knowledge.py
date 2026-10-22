@@ -399,11 +399,19 @@ async def export_report(job_id: int, db: AsyncSession = Depends(get_db)):
 
     video_path = video.file_path if video else None
 
-    # Run anomaly detection on each segment's OCR text
+    # Run anomaly detection on OCR text + action_log typed commands per segment
     anomalies_by_segment: dict[int, list] = {}
     for i, seg in enumerate(segments):
+        # Combine OCR text with actual typed commands from action_log for this time range
         ocr = seg.get("ocr_text", "")
-        found = anomaly_detector.detect(ocr)
+        action_texts = " ".join(
+            a.get("action_params", {}).get("text", "")
+            for a in action_log.get("action_log", [])
+            if seg["start_time"] <= a.get("timestamp", -1) <= seg["end_time"]
+            and a.get("action_type") in ("TYPING", "TYPE", "PRESS", "HOTKEY", "KEY_DOWN")
+        )
+        combined = f"{ocr} {action_texts}".strip()
+        found = anomaly_detector.detect(combined)
         if found:
             anomalies_by_segment[i] = found
 
