@@ -70,6 +70,20 @@ const LABEL_META: Record<string, { title: string; descriptionTemplate: string }>
   },
 };
 
+const TERMINAL_LABELS = new Set(['terminal_ops', 'debugging', 'git_operations', 'docker_workflow']);
+
+function extractCommand(ocrText: string): string {
+  if (!ocrText) return '';
+  const parts = ocrText.split(/[$#]\s+/);
+  for (let i = parts.length - 1; i >= 1; i--) {
+    const cmd = parts[i].split(/\n|\s{3,}/)[0]
+      .replace(/\s+\S+\s*@\s*\S+.*/, '')
+      .trim();
+    if (cmd.length > 3) return cmd.slice(0, 80);
+  }
+  return '';
+}
+
 export function mapResultsToSteps(results: ClassificationResultDTO[]): WorkflowStep[] {
   return results.map((r, i) => {
     const meta = LABEL_META[r.label] ?? LABEL_META['other'];
@@ -77,13 +91,19 @@ export function mapResultsToSteps(results: ClassificationResultDTO[]): WorkflowS
     const startSec = r.start_time ?? i * 5;
     const endSec = r.end_time ?? (i + 1) * 5;
 
+    const cmd = TERMINAL_LABELS.has(r.label) ? extractCommand(r.ocr_text ?? '') : '';
+    const title = cmd ? `Run: \`${cmd}\`` : meta.title;
+    const description = cmd
+      ? `Execute: \`${cmd}\`. Classified as ${r.label.replace('_', ' ')} with ${confidencePct}% confidence by ${r.model_name}.`
+      : meta.descriptionTemplate
+          .replace('{confidence}', String(confidencePct))
+          .replace('{model}', r.model_name);
+
     return {
       n: i + 1,
       time: `${formatSeconds(startSec)}-${formatSeconds(endSec)}`,
-      title: meta.title,
-      description: meta.descriptionTemplate
-        .replace('{confidence}', String(confidencePct))
-        .replace('{model}', r.model_name),
+      title,
+      description,
     };
   });
 }

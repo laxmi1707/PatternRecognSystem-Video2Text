@@ -23,6 +23,7 @@ export interface ClassificationResultDTO {
   latency_ms: number;
   start_time: number;
   end_time: number;
+  ocr_text?: string;
 }
 
 export interface ModelSummaryDTO {
