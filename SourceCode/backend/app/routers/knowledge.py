@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.knowledge.sop_generator import SOPGenerator
 from app.knowledge.runbook_generator import RunbookGenerator
-from app.knowledge import report_generator
+from app.knowledge import report_generator, anomaly_detector
 from app.models.video import Video
 from app.services import job_service
 
@@ -399,6 +399,14 @@ async def export_report(job_id: int, db: AsyncSession = Depends(get_db)):
 
     video_path = video.file_path if video else None
 
+    # Run anomaly detection on each segment's OCR text
+    anomalies_by_segment: dict[int, list] = {}
+    for i, seg in enumerate(segments):
+        ocr = seg.get("ocr_text", "")
+        found = anomaly_detector.detect(ocr)
+        if found:
+            anomalies_by_segment[i] = found
+
     try:
         docx_bytes = report_generator.generate_report(
             job_id=job_id,
@@ -407,6 +415,7 @@ async def export_report(job_id: int, db: AsyncSession = Depends(get_db)):
             task_instruction=task_instruction,
             platform=detected_platform,
             sop_steps=sop_steps,
+            anomalies_by_segment=anomalies_by_segment if anomalies_by_segment else None,
         )
     except Exception as exc:
         logger.exception("Report generation failed: %s", exc)
