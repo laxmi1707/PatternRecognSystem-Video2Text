@@ -171,6 +171,8 @@ def main() -> None:
     parser.add_argument("--ratios", default="0.7,0.2,0.1", help="train,val,test fractions of recordings")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--models", default=",".join(GRIDS), help="Comma-separated subset of models to train")
+    parser.add_argument("--limit-per-app", type=int, default=0,
+                        help="Use at most N recordings per app (0 = all); for quick trial runs")
     parser.add_argument("--load-features", action="store_true",
                         help="Reuse features.npz in --model-dir instead of re-reading the videos")
     args = parser.parse_args()
@@ -204,6 +206,13 @@ def main() -> None:
             sys.exit(1)
         tasks = [t for t in discover_tasks(dataset_root) if t.video_path is not None]
         logger.info(f"Discovered {len(tasks)} tasks with video under {dataset_root.resolve()}")
+        if args.limit_per_app > 0:
+            per_app: dict[str, list] = {}
+            for t in sorted(tasks, key=lambda t: t.task_id):
+                per_app.setdefault(t.platform.lower().strip(), []).append(t)
+            tasks = [t for group in per_app.values() for t in group[: args.limit_per_app]]
+            logger.info(f"--limit-per-app {args.limit_per_app}: using {len(tasks)} tasks "
+                        f"from {len(per_app)} apps")
         parts = dict(zip(SPLITS, task_level_split_3way(tasks, ratios=ratios, seed=args.seed)))
         (model_dir / "split.json").write_text(json.dumps(
             {s: sorted(int(t.task_id) for t in parts[s]) for s in SPLITS}, indent=1))

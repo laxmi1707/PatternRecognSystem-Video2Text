@@ -183,6 +183,15 @@ def test_train_actions_end_to_end(tmp_path, monkeypatch):
         assert (out / f"{name}.pkl").exists()
     assert "Test results" in (out / "results.md").read_text(encoding="utf-8")
 
+    # --limit-per-app keeps the first N recordings of each app.
+    limited = tmp_path / "limited"
+    monkeypatch.setattr(sys, "argv", ["train_actions", "--dataset-root", str(dataset),
+                                      "--model-dir", str(limited), "--models", "decision_tree",
+                                      "--limit-per-app", "5"])
+    train_actions.main()
+    split = json.loads((limited / "split.json").read_text())
+    assert sum(len(v) for v in split.values()) == 10
+
     # A second run reuses the feature cache and must give the same split sizes.
     monkeypatch.setattr(sys, "argv", ["train_actions", "--model-dir", str(out), "--load-features",
                                       "--models", "naive_bayes"])
