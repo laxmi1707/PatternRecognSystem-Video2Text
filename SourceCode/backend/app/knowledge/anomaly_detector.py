@@ -48,6 +48,7 @@ _RULES: list[tuple[str, str, str, list[str]]] = [
         [
             r"\bsudo\s+su\b",
             r"\bsudo\s+-i\b",
+            r"\bsudo\b",                   # any sudo usage
             r"\bchmod\s+777\b",
             r"\bchmod\s+-R\s+777\b",
             r"\bchown\s+root\b",
