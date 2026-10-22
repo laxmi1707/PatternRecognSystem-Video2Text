@@ -171,15 +171,43 @@ async def generate_sop(job_id: int, db: AsyncSession = Depends(get_db)):
     raw_filename = video.original_filename if video else ""
     # "video.mp4" is the generic CUA dataset name — not useful as a title
     generic_names = {"video.mp4", "video", "recording.mp4", "screen.mp4"}
-    task_instruction = (
-        action_log.get("task_instruction")
-        or (raw_filename if raw_filename and raw_filename.lower() not in generic_names else None)
-        or f"Screen Activity Analysis #{job_id}"
-    )
+
+    # Derive title from classified activity labels when no action_log is available
+    def _title_from_labels(segs: list[dict], plat: str) -> str:
+        label_counts: dict[str, int] = {}
+        for s in segs:
+            lbl = s.get("predicted_label", "other")
+            label_counts[lbl] = label_counts.get(lbl, 0) + 1
+        if not label_counts:
+            return f"Screen Activity Analysis #{job_id}"
+        dominant = max(label_counts, key=label_counts.__getitem__)
+        label_titles = {
+            "coding_editing":  "Code Editing Session",
+            "terminal_ops":    "Terminal Operations",
+            "debugging":       "Debugging Session",
+            "git_operations":  "Git Operations",
+            "docker_workflow": "Docker Workflow",
+            "web_browsing":    "Web Browsing Session",
+            "system_config":   "System Configuration",
+            "aws_console":     "AWS Console Operations",
+            "kubernetes_ops":  "Kubernetes Operations",
+            "terraform_iac":   "Terraform Infrastructure Setup",
+            "jenkins_ci_cd":   "CI/CD Pipeline",
+            "documentation":   "Documentation Session",
+        }
+        activity_title = label_titles.get(dominant, dominant.replace("_", " ").title())
+        return f"{activity_title} on {plat}" if plat and plat != "Screen Recording" else activity_title
+
     platform = action_log.get("platform") or "Screen Recording"
 
     # One best-model row per segment
     segments = _best_segments(results)
+
+    task_instruction = (
+        action_log.get("task_instruction")
+        or (raw_filename if raw_filename and raw_filename.lower() not in generic_names else None)
+        or _title_from_labels(segments, platform)
+    )
 
     # Use OCR text from video frames; fall back to action log events if available
     ocr_texts = []
@@ -241,16 +269,17 @@ async def generate_runbook(job_id: int, db: AsyncSession = Depends(get_db)):
 
     raw_filename = video.original_filename if video else ""
     generic_names = {"video.mp4", "video", "recording.mp4", "screen.mp4"}
-    task_instruction = (
-        action_log.get("task_instruction")
-        or (raw_filename if raw_filename and raw_filename.lower() not in generic_names else None)
-        or f"Screen Activity Analysis #{job_id}"
-    )
     platform = action_log.get("platform") or "Screen Recording"
 
     # One best-model row per segment
     segments = _best_segments(results)
     total_duration = segments[-1]["end_time"] - segments[0]["start_time"] if segments else 0
+
+    task_instruction = (
+        action_log.get("task_instruction")
+        or (raw_filename if raw_filename and raw_filename.lower() not in generic_names else None)
+        or _title_from_labels(segments, platform)
+    )
 
     ocr_texts_rb = [seg.get("ocr_text", "").strip() for seg in segments]
     detected_platform_rb = _detect_platform(ocr_texts_rb, platform)

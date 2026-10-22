@@ -116,6 +116,7 @@ async def get_job_results(job_id: int, db: AsyncSession = Depends(get_db)):
             latency_ms=r.latency_ms,
             start_time=r.start_time,
             end_time=r.end_time,
+            ocr_text=(r.probabilities or {}).get("_ocr", ""),
         )
         for r in results
     ]

@@ -37,6 +37,7 @@ class ClassificationResult(BaseModel):
     latency_ms: float
     start_time: float = 0.0
     end_time: float = 0.0
+    ocr_text: str = ""
 
 
 class ClassifyBatchResponse(BaseModel):
