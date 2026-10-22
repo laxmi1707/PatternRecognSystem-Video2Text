@@ -390,3 +390,49 @@ def task_level_split(
             test.append(label_tasks[i])
 
     return train, test
+
+
+def task_level_split_3way(
+    tasks: list[TaskMetadata],
+    ratios: tuple[float, float, float] = (0.7, 0.2, 0.1),
+    seed: int = 42,
+    stratify_by: str = "platform",
+) -> tuple[list[TaskMetadata], list[TaskMetadata], list[TaskMetadata]]:
+    """Split tasks into train / validation / test, keeping every task whole.
+
+    All segments or events of a recording land in the same split, so nothing from
+    a test recording is seen in training. Tasks are stratified by ``stratify_by``
+    ("platform" or "activity_label"); each stratum is split by ``ratios``. A
+    stratum with at least 3 tasks puts at least one task in validation and test.
+    """
+    import numpy as np
+
+    if len(ratios) != 3 or abs(sum(ratios) - 1.0) > 1e-6 or min(ratios) < 0:
+        raise ValueError(f"ratios must be 3 non-negative values summing to 1, got {ratios}")
+
+    rng = np.random.RandomState(seed)
+
+    strata: dict[str, list[TaskMetadata]] = {}
+    for t in tasks:
+        key = str(getattr(t, stratify_by)).lower().strip()
+        strata.setdefault(key, []).append(t)
+
+    train: list[TaskMetadata] = []
+    val: list[TaskMetadata] = []
+    test: list[TaskMetadata] = []
+
+    for key in sorted(strata):
+        group = strata[key]
+        order = rng.permutation(len(group))
+        n = len(group)
+        n_val = round(n * ratios[1])
+        n_test = round(n * ratios[2])
+        if n >= 3:
+            n_val = max(n_val, 1 if ratios[1] > 0 else 0)
+            n_test = max(n_test, 1 if ratios[2] > 0 else 0)
+        n_train = n - n_val - n_test
+        train.extend(group[i] for i in order[:n_train])
+        val.extend(group[i] for i in order[n_train:n_train + n_val])
+        test.extend(group[i] for i in order[n_train + n_val:])
+
+    return train, val, test
