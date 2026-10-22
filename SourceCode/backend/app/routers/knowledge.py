@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -133,6 +135,10 @@ class SOPResponse(BaseModel):
     steps: list[dict]
     expected_outcome: str
     troubleshooting: list[str]
+    # Set for action-based SOPs (recordings with an action log)
+    platform: str = ""
+    source_recording: str = ""
+    generated_at: str = ""
 
 
 class RunbookResponse(BaseModel):
@@ -217,21 +223,38 @@ async def generate_sop(job_id: int, db: AsyncSession = Depends(get_db)):
         or _title_from_labels(segments, platform, job_id)
     )
 
-    # Use OCR text from video frames; fall back to action log events if available
-    ocr_texts = []
-    for seg in segments:
-        ocr = seg.get("ocr_text", "").strip()
-        if not ocr:
-            actions = _actions_in_range(action_log, seg["start_time"], seg["end_time"])
-            ocr = "; ".join(actions)
-        ocr_texts.append(ocr)
+    video_file = Path(video.file_path) if video and video.file_path else None
+    if action_log.get("action_log") and video_file and video_file.exists():
+        # One step per user action, with what the screen showed afterwards. OCR of the
+        # frames around every action is slow CPU work, so it runs off the event loop.
+        from app.knowledge.screen_effects import capture_screen_effects, user_actions
 
-    sop = sop_gen.generate_from_segments(
-        task_instruction=task_instruction,
-        platform=platform,
-        segments=segments,
-        ocr_texts=ocr_texts,
-    )
+        actions = await asyncio.to_thread(
+            capture_screen_effects, video_file, user_actions(action_log["action_log"])
+        )
+        sop = sop_gen.generate_from_actions(
+            task_instruction=task_instruction,
+            platform=platform,
+            actions=actions,
+            source_recording=raw_filename or video_file.name,
+            generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
+        )
+    else:
+        # No action log: one step per classified activity segment.
+        ocr_texts = []
+        for seg in segments:
+            ocr = seg.get("ocr_text", "").strip()
+            if not ocr:
+                actions_text = _actions_in_range(action_log, seg["start_time"], seg["end_time"])
+                ocr = "; ".join(actions_text)
+            ocr_texts.append(ocr)
+
+        sop = sop_gen.generate_from_segments(
+            task_instruction=task_instruction,
+            platform=platform,
+            segments=segments,
+            ocr_texts=ocr_texts,
+        )
 
     return SOPResponse(
         title=sop.title,
@@ -243,11 +266,17 @@ async def generate_sop(job_id: int, db: AsyncSession = Depends(get_db)):
                 "title": s.title,
                 "description": s.description,
                 "time_range": s.time_range,
+                "delay_s": s.delay_s,
+                "screen_output": s.screen_output,
+                "screen_removed": s.screen_removed,
             }
             for s in sop.steps
         ],
         expected_outcome=sop.expected_outcome,
         troubleshooting=sop.troubleshooting,
+        platform=sop.platform,
+        source_recording=sop.source_recording,
+        generated_at=sop.generated_at,
     )
 
 

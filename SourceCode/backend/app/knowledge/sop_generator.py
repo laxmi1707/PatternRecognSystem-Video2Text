@@ -45,6 +45,10 @@ class SOPDocument:
     expected_outcome: str
     troubleshooting: list[str] = field(default_factory=list)
     raw_text: str = ""
+    # Header fields for action-based SOPs ("Application / platform", "Source recording", ...)
+    platform: str = ""
+    source_recording: str = ""
+    generated_at: str = ""
 
 
 @dataclass
@@ -54,6 +58,10 @@ class SOPStep:
     description: str
     time_range: str = ""
     detected_text: str = ""
+    # Action-based SOPs: what the screen showed after the action
+    delay_s: float | None = None
+    screen_output: list[str] = field(default_factory=list)  # text that appeared
+    screen_removed: list[str] = field(default_factory=list)  # text that disappeared
 
 
 # Keywords that indicate meaningful UI actions — matched against OCR text.
@@ -264,6 +272,53 @@ class SOPGenerator:
         ocr_texts: list[str] | None = None,
     ) -> SOPDocument:
         return self._generate_rule_based(task_instruction, platform, segments, ocr_texts)
+
+    def generate_from_actions(
+        self,
+        task_instruction: str,
+        platform: str,
+        actions: list,
+        source_recording: str = "",
+        generated_at: str = "",
+    ) -> SOPDocument:
+        """One step per user action, each with what the screen showed afterwards.
+
+        ``actions`` are ``screen_effects.UserAction``s with their effects captured.
+        """
+        from app.knowledge.screen_effects import action_sentence, effect_sentence
+
+        steps = [
+            SOPStep(
+                number=i + 1,
+                title=action_sentence(a),
+                description=effect_sentence(a.effect),
+                time_range=f"{a.timestamp:.1f}s",
+                detected_text="\n".join(a.effect.appeared),
+                delay_s=a.effect.delay_s,
+                screen_output=list(a.effect.appeared),
+                screen_removed=list(a.effect.disappeared),
+            )
+            for i, a in enumerate(actions)
+        ]
+        last_output = next((s.screen_output for s in reversed(steps) if s.screen_output), [])
+        expected = (
+            "The screen shows: " + " / ".join(last_output[:3])
+            if last_output else f"Successfully completed: {task_instruction}"
+        )
+        return SOPDocument(
+            title=f"SOP: {task_instruction}",
+            purpose=task_instruction,
+            prerequisites=[f"Access to {platform}"],
+            steps=steps,
+            expected_outcome=expected,
+            troubleshooting=[
+                "If a step shows no visible change, check the application is focused and repeat it",
+                "Compare the screen with the text shown under each step before continuing",
+            ],
+            platform=platform,
+            source_recording=source_recording,
+            generated_at=generated_at,
+        )
 
     def _generate_rule_based(
         self,

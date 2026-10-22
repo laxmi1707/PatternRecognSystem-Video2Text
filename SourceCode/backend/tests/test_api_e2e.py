@@ -151,3 +151,49 @@ def test_title_from_labels_uses_dominant_label():
     assert _title_from_labels(segs, "Bash", 7) == "Terminal Operations on Bash"
     assert _title_from_labels(segs, "Screen Recording", 7) == "Terminal Operations"
     assert _title_from_labels([], "Bash", 7) == "Screen Activity Analysis #7"
+
+
+@pytest.mark.asyncio
+async def test_sop_with_action_log_has_one_step_per_action(client: AsyncClient, tmp_path, monkeypatch):
+    import json
+
+    import cv2
+    import numpy as np
+
+    from app.knowledge import screen_effects
+
+    # A dark screen where output appears 0.8 s after Enter at t=2.0.
+    video = tmp_path / "clip.mp4"
+    writer = cv2.VideoWriter(str(video), cv2.VideoWriter_fourcc(*"mp4v"), 10, (320, 180))
+    for i in range(50):
+        frame = np.full((180, 320, 3), 30, np.uint8)
+        if i >= 28:
+            cv2.rectangle(frame, (10, 60), (200, 80), (255, 255, 255), -1)
+        writer.write(frame)
+    writer.release()
+    log = {"task_instruction": "Check your current directory.", "platform": "Bash",
+           "action_log": [{"action_type": "TYPING", "timestamp": 1.0, "action_params": {"text": "pwd"}},
+                          {"action_type": "PRESS", "timestamp": 2.0, "action_params": {"text": "Enter"}}]}
+    monkeypatch.setattr(screen_effects, "default_ocr",
+                        lambda: lambda img: [((0, 0, img.shape[1], img.shape[0]), "/home/user", 0.9)]
+                        if img.max() > 200 else [])
+
+    r = await client.post(
+        "/api/v1/videos/upload",
+        files={"file": ("clip.mp4", video.read_bytes(), "video/mp4"),
+               "action_log": ("action_log.json", json.dumps(log).encode(), "application/json")},
+        params={"model_name": "svm"},
+    )
+    assert r.status_code == 201, r.text
+    job_id = r.json()["job_id"]
+    await client.post(f"/api/v1/jobs/{job_id}/run")
+
+    r = await client.post(f"/api/v1/knowledge/sop/{job_id}")
+    assert r.status_code == 200, r.text
+    sop = r.json()
+    assert sop["platform"] == "Bash" and sop["source_recording"] == "clip.mp4" and sop["generated_at"]
+    assert sop["purpose"] == "Check your current directory."
+    (step,) = sop["steps"]
+    assert step["title"] == "Typed `pwd` and pressed Enter."
+    assert step["screen_output"] == ["/home/user"]
+    assert 0.6 <= step["delay_s"] <= 1.0
