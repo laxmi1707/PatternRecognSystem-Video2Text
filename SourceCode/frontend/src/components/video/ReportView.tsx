@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BASE_URL } from '../../services/api/client';
 
 interface ReportViewProps {
   jobId: string;
@@ -14,7 +15,7 @@ export function ReportView({ jobId, videoName }: ReportViewProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/v1/knowledge/report/${jobId}`, { method: 'POST' });
+      const res = await fetch(`${BASE_URL}/knowledge/report/${jobId}`, { method: 'POST' });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || `Server error ${res.status}`);
