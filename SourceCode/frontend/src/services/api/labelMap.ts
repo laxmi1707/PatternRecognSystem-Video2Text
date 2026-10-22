@@ -79,7 +79,7 @@ function extractCommand(ocrText: string): string {
   const parts = ocrText.split(/[$#]\s+/);
   for (let i = parts.length - 1; i >= 1; i--) {
     const cmd = parts[i].split(/\n|\s{3,}/)[0]
-      .replace(/\s+\S+\s*@\s*\S+.*/, '')
+      .replace(/[\s;]\S+\s*@\s*\S+.*/, '')
       .trim();
     if (cmd.length > 3 && cmd.split(' ').length <= 10 && !UI_NOISE.test(cmd))
       return cmd.slice(0, 80);

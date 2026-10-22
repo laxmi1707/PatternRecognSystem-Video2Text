@@ -162,7 +162,8 @@ def _extract_terminal_command(text: str) -> str:
     best_cmd = ""
     for candidate in candidates[1:]:
         candidate = re.split(r"\n|\s{3,}", candidate)[0].strip()
-        user_at = re.search(r"\s+\S+\s*@\s*\S+", candidate)
+        # Truncate at user@host pattern (with or without surrounding spaces/semicolons)
+        user_at = re.search(r"[\s;]\S+\s*@\s*\S+", candidate)
         if user_at:
             candidate = candidate[:user_at.start()].strip()
         if not candidate:
