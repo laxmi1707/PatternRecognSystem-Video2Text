@@ -158,8 +158,8 @@ def _extract_terminal_command(text: str) -> str:
     for candidate in candidates[1:]:  # skip text before first prompt
         # Take only up to the next prompt artifact or newline
         candidate = re.split(r"\n|\s{3,}", candidate)[0].strip()
-        # Truncate at user@host pattern
-        user_at = re.search(r"\s+\S+@\S+", candidate)
+        # Truncate at user@host pattern (allow spaces around @ from OCR errors)
+        user_at = re.search(r"\s+\S+\s*@\s*\S+", candidate)
         if user_at:
             candidate = candidate[:user_at.start()].strip()
         if not candidate:
