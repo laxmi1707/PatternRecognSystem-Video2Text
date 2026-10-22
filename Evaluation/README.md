@@ -123,10 +123,38 @@ An earlier probe scored AUC 0.927 for "the logged pointer moved" against clicks
 (`cursor_click_probe_v1.py`). That figure is withdrawn: the log records a MOVE_TO at
 the click itself (median gap 0.00 s), so it measured the log restating the click.
 
+### A pointer CNN, tested on all 87 applications
+
+Most missed clicks had no pointer seen near them, because the templates are nearly all
+arrows, while over a button the pointer is a hand and over text an I-beam. So a small CNN
+now recognises the pointer in any shape (`pointer_cnn_v1.py`): a 32×32 grey crop, with
+every logged click as a free label (the pointer's tip is at the logged point) and crops
+elsewhere, near the tip and at the same place with the pointer gone as negatives. It was
+trained on the training split of all 87 applications (74,729 crops), with held-out crop
+AUC 0.926.
+
+In each frame the CNN scans the small changed regions, and the best spot at p ≥ 0.8 is
+the pointer; stops, the reaction filter (refitted for this rule) and naming are as above.
+Scored on 974 held-out recordings sampled from all 87 applications (3,113 clicks;
+`pointer_cnn_eval_v1.py`, `pointer_cnn_eval_v2.py`), as delivered click steps:
+
+| pointer found by | reaction filter keeps | click steps | real clicks | clicks found | right name |
+|---|---|---|---|---|---|
+| templates + self-match (`bare_sop_v1`) | 90% | 2,070 | 40.8% | 27.1% | 69.5% |
+| pointer CNN | 75% | 2,880 | 39.3% | 36.4% | 75.9% |
+| **pointer CNN (`bare_sop_v2`)** | **60%** | **2,001** | **46.5%** | **29.9%** | **75.1%** |
+
+("Keeps" is the share of training-set clicks the filter's threshold keeps.) The CNN is
+better at either setting; `bare_sop_v2` uses the strict one, which beats v1 on both
+precision and recall. Adding the templates to the CNN changes nothing. The 87
+applications are harder than the five above, and they vary: Lemmy, Geany, Mastodon and
+VLC find over 60% of clicks, while OBS Studio, Zulip and Kodi find under 20%.
+
 ### The whole detector on one video
 
 ```
-python bare_sop_v1.py path/to/recording.mp4 --out steps.json   # typing + clicks
+python bare_sop_v2.py path/to/recording.mp4 --out steps.json   # typing + clicks (pointer CNN)
+python bare_sop_v1.py path/to/recording.mp4 --out steps.json   # the template version
 ```
 
 ### In the frontend
@@ -148,7 +176,7 @@ between pauses of 8 s or more). With the team backend running, its own SOP phase
 used instead. If the detector service is not running, the results page says so and
 everything else works as before.
 
-The four fitted models these need are committed (below), so a fresh checkout runs
+The fitted models these need are committed (below), so a fresh checkout runs
 them once the backend snapshot is importable (see "Reproducing a number"); the YOLO and
 ResNet weights and easyocr's models download on first use.
 
@@ -161,7 +189,8 @@ the recordings), `cursor_click_probe_v1.py` (withdrawn oracle), `pointer_tracker
 (templates, per-frame tracking), `pointer_motion_v1.py` (moves inside changed
 regions), `pointer_reaction_v1.py`, `click_labels_v1.py`, `combined_sop_v1.py` /
 `_v2.py` (typing + clicks merged), `missed_steps_v1.py`, `pointer_miss_diag_v1.py`,
-`pointer_selfmatch_v1.py` / `_v2.py`, `click_sop_v3.py`.
+`pointer_selfmatch_v1.py` / `_v2.py`, `click_sop_v3.py`, `pointer_cnn_v1.py`,
+`pointer_cnn_eval_v1.py` / `_v2.py`.
 
 "As delivered" means repeated reads are merged and scoring is one-to-one, so a
 duplicate is a false positive and a string typed twice needs two steps. Crediting
@@ -184,9 +213,11 @@ Bundles from run_032 (frame features only) still load: `detect` adds the text an
 context features only when the bundle carries a text model.
 
 `train` needs the frame cache, which is not committed. The models that `detect` and
-`bare_sop_v1.py` load are: run_029's stage-1 bundle, run_037's rankers
-(`sop_detector.joblib`, 13 MB) and the click branch's pointer templates and reaction
-filter (`cache/pointer_templates_v1.pkl`, `cache/bare_sop_v1_reaction.pkl`). The
+`bare_sop_v1.py` / `bare_sop_v2.py` load are: run_029's stage-1 bundle, run_037's
+rankers (`sop_detector.joblib`, 13 MB) and the click branch's pointer templates and
+reaction filter (`cache/pointer_templates_v1.pkl`, `cache/bare_sop_v1_reaction.pkl`) or
+pointer CNN and its reaction filter (`cache/pointer_cnn_v1.pt`, 0.6 MB,
+`cache/bare_sop_v2_reaction.pkl`). The
 out-of-fold scores (`oof_scores.npz`) stay local; the scores the numbers above come
 from are in `results.json`.
 
