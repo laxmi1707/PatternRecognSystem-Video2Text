@@ -123,3 +123,31 @@ async def test_list_videos(client: AsyncClient):
     assert r.status_code == 200
     videos = r.json()
     assert len(videos) >= 2
+
+
+@pytest.mark.asyncio
+async def test_sop_and_runbook_titles_from_labels(client: AsyncClient):
+    # "video.mp4" is a generic name and there is no action log, so both endpoints
+    # fall back to a title derived from the predicted labels. The runbook endpoint
+    # used to raise NameError here (_title_from_labels was local to generate_sop).
+    r = await client.post(
+        "/api/v1/videos/upload",
+        files={"file": ("video.mp4", b"\x00" * 1024, "video/mp4")},
+        params={"model_name": "svm"},
+    )
+    job_id = r.json()["job_id"]
+    await client.post(f"/api/v1/jobs/{job_id}/run")
+
+    for kind in ("sop", "runbook"):
+        r = await client.post(f"/api/v1/knowledge/{kind}/{job_id}")
+        assert r.status_code == 200, f"{kind}: {r.text}"
+        assert r.json()["title"]
+
+
+def test_title_from_labels_uses_dominant_label():
+    from app.routers.knowledge import _title_from_labels
+
+    segs = [{"predicted_label": "terminal_ops"}] * 2 + [{"predicted_label": "other"}]
+    assert _title_from_labels(segs, "Bash", 7) == "Terminal Operations on Bash"
+    assert _title_from_labels(segs, "Screen Recording", 7) == "Terminal Operations"
+    assert _title_from_labels([], "Bash", 7) == "Screen Activity Analysis #7"
