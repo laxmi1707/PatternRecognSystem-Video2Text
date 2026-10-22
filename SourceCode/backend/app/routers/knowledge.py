@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.knowledge.sop_generator import SOPGenerator
 from app.knowledge.runbook_generator import RunbookGenerator
+from app.knowledge import report_generator, anomaly_detector
 from app.models.video import Video
 from app.services import job_service
 
@@ -314,4 +316,119 @@ async def generate_runbook(job_id: int, db: AsyncSession = Depends(get_db)):
         ],
         verification=runbook.verification,
         rollback=runbook.rollback,
+    )
+
+
+@router.post("/report/{job_id}")
+async def export_report(job_id: int, db: AsyncSession = Depends(get_db)):
+    job = await job_service.get_job(db, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.status != "completed":
+        raise HTTPException(status_code=400, detail="Job not yet completed")
+
+    results = await job_service.get_job_results(db, job_id)
+    if not results:
+        raise HTTPException(status_code=404, detail="No results found")
+
+    video_result = await db.execute(select(Video).where(Video.id == job.video_id))
+    video = video_result.scalar_one_or_none()
+
+    action_log_path = video.action_log_path if video else None
+    if not action_log_path and video and video.file_path:
+        candidate = Path(video.file_path).parent / "action_log.json"
+        if candidate.exists():
+            action_log_path = str(candidate)
+
+    action_log = _load_action_log(action_log_path)
+    raw_filename = video.original_filename if video else ""
+    generic_names = {"video.mp4", "video", "recording.mp4", "screen.mp4"}
+    platform = action_log.get("platform") or "Screen Recording"
+
+    segments = _best_segments(results)
+
+    # Add model_name to each segment dict for the report table
+    by_segment_model: dict[int, str] = {}
+    for r in results:
+        idx = r.segment_index
+        if idx not in by_segment_model:
+            by_segment_model[idx] = r.model_name
+    for i, seg in enumerate(segments):
+        seg["model_name"] = by_segment_model.get(i, "")
+
+    def _title_from_labels(segs: list[dict], plat: str) -> str:
+        label_counts: dict[str, int] = {}
+        for s in segs:
+            lbl = s.get("predicted_label", "other")
+            label_counts[lbl] = label_counts.get(lbl, 0) + 1
+        if not label_counts:
+            return f"Screen Activity Analysis #{job_id}"
+        dominant = max(label_counts, key=label_counts.__getitem__)
+        label_titles = {
+            "coding_editing": "Code Editing Session",
+            "terminal_ops": "Terminal Operations",
+            "debugging": "Debugging Session",
+            "git_operations": "Git Operations",
+            "docker_workflow": "Docker Workflow",
+            "web_browsing": "Web Browsing Session",
+            "system_config": "System Configuration",
+            "aws_console": "AWS Console Operations",
+            "kubernetes_ops": "Kubernetes Operations",
+            "terraform_iac": "Terraform Infrastructure Setup",
+            "jenkins_ci_cd": "CI/CD Pipeline",
+            "documentation": "Documentation Session",
+        }
+        activity_title = label_titles.get(dominant, dominant.replace("_", " ").title())
+        return f"{activity_title} on {plat}" if plat and plat != "Screen Recording" else activity_title
+
+    task_instruction = (
+        action_log.get("task_instruction")
+        or (raw_filename if raw_filename and raw_filename.lower() not in generic_names else None)
+        or _title_from_labels(segments, platform)
+    )
+
+    ocr_texts = [seg.get("ocr_text", "").strip() for seg in segments]
+    detected_platform = _detect_platform(ocr_texts, platform)
+
+    # Generate SOP steps for the report
+    from app.knowledge.sop_generator import SOPGenerator as _SOPGen
+    _sop = _SOPGen().generate_from_segments(
+        task_instruction=task_instruction,
+        platform=detected_platform,
+        segments=segments,
+        ocr_texts=ocr_texts,
+    )
+    sop_steps = [
+        {"number": s.number, "title": s.title, "description": s.description, "time_range": s.time_range}
+        for s in _sop.steps
+    ]
+
+    video_path = video.file_path if video else None
+
+    # Run anomaly detection on each segment's OCR text
+    anomalies_by_segment: dict[int, list] = {}
+    for i, seg in enumerate(segments):
+        ocr = seg.get("ocr_text", "")
+        found = anomaly_detector.detect(ocr)
+        if found:
+            anomalies_by_segment[i] = found
+
+    try:
+        docx_bytes = report_generator.generate_report(
+            job_id=job_id,
+            video_path=video_path,
+            segments=segments,
+            task_instruction=task_instruction,
+            platform=detected_platform,
+            sop_steps=sop_steps,
+            anomalies_by_segment=anomalies_by_segment if anomalies_by_segment else None,
+        )
+    except Exception as exc:
+        logger.exception("Report generation failed: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Report generation failed: {exc}") from exc
+
+    return Response(
+        content=docx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="report_{job_id}.docx"'},
     )
