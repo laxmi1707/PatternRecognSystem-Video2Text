@@ -1,7 +1,13 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, func
+from sqlalchemy import BigInteger, DateTime, Integer, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+# 64-bit IDs (millisecond-timestamp-sized values overflow a 32-bit INTEGER on
+# Postgres). SQLite only auto-generates IDs for "INTEGER PRIMARY KEY", not BIGINT,
+# and its INTEGER is already 64-bit, so use INTEGER there.
+BigIntId = BigInteger().with_variant(Integer, "sqlite")
 
 
 class Base(DeclarativeBase):
