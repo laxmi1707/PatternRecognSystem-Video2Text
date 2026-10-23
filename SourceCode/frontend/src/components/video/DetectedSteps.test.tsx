@@ -47,6 +47,15 @@ describe('DetectedSteps', () => {
     expect(onSeek).toHaveBeenCalledWith(35.8);
   });
 
+  it('shows a click with no text as a click on an icon', () => {
+    const withIcon: DetectionJob = { ...done, result: { ...done.result!, steps: [
+      ...done.result!.steps, { t: 36.5, action: 'Click', text: '' } ] } };
+    render(<DetectedSteps jobId="abc" job={withIcon} error={null} />);
+    expect(screen.getByText(/3 clicks/)).toBeInTheDocument();
+    expect(screen.getByText(/1 on icons/)).toBeInTheDocument();
+    expect(screen.getByText(/an icon or unlabelled control/)).toBeInTheDocument();
+  });
+
   it('highlights the step shown at the current playback time', () => {
     render(<DetectedSteps jobId="abc" job={done} error={null} currentTime={20} />);
     const rows = screen.getAllByTestId('detected-step');

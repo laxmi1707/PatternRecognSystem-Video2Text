@@ -10,9 +10,11 @@
        how fast it moved before stopping, how long it was tracked, where on the screen
        it stopped, the time since the previous stop.
     5. OCR around each kept stop names it by the text under the pointer, or the nearest
-       text within 70 px; unnamed stops are dropped. Two stops within 2 s are one click
-       when they are within 20 px of each other (the earlier kept: OCR may read one
-       press two ways, "Open" and "Onen") or carry the same name (the later kept).
+       text within 70 px. A stop with no text there (an icon) is kept with an empty name
+       when ICONS is on, and shown as "Click (icon)". Two stops within 2 s are one click
+       when they are within 20 px of each other (the earlier kept, taking the later's
+       name if it had none: OCR may read one press two ways, "Open" and "Onen") or carry
+       the same name (the later kept).
 
 Coordinates are in logical pixels: a frame wider than 2000 px (Retina) is halved.
 The models were fitted by the research scripts pointer_cnn_v1.py (the CNN) and
@@ -46,6 +48,7 @@ NEAR_LABEL = 70            # logical px from the pointer to the text that names 
 HALF_W, HALF_H = 260, 150  # OCR crop around a stop, logical px
 MERGE_S = 2.0
 SAME_PLACE_PX = 20        # logical px: two stops this close within MERGE_S are one click
+ICONS = True              # keep stops with no text under them, as clicks on an icon
 
 
 # --- the pointer CNN ---------------------------------------------------------------------
@@ -245,6 +248,27 @@ def label_at(regions, x: float, y: float, near: float) -> str:
     return best if best_d <= near else ""
 
 
+def merge_clicks(stops_named: list[dict], icons: bool = ICONS) -> list[dict]:
+    """Kept stops in time order, each {t, x, y, text, ...} (text "" when nothing was read),
+    to click steps: unnamed ones dropped unless `icons`; one press read twice merged."""
+    out = []
+    for k in stops_named:
+        if not k["text"] and not icons:
+            continue
+        k = dict(k)
+        if out and k["t"] - out[-1]["t"] <= MERGE_S:
+            prev = out[-1]
+            if np.hypot(k["x"] - prev["x"], k["y"] - prev["y"]) <= SAME_PLACE_PX:
+                if not prev["text"] and k["text"]:
+                    prev["text"] = k["text"]           # the same press; keep the earlier, named
+                continue
+            if k["text"] and prev["text"] and same_name(k["text"], prev["text"]):
+                out[-1] = k
+                continue
+        out.append(k)
+    return out
+
+
 # --- all together -----------------------------------------------------------------------------
 
 def click_steps(video: Path, ocr, progress=lambda pct, stage: None) -> list[dict]:
@@ -272,23 +296,9 @@ def click_steps(video: Path, ocr, progress=lambda pct, stage: None) -> list[dict
         crop = f[y0:int(min(f.shape[0], Y + HALF_H * s)), x0:int(min(f.shape[1], X + HALF_W * s))]
         regions = [[g.text, g.bbox[0] + x0, g.bbox[1] + y0, g.bbox[2] + x0, g.bbox[3] + y0, g.confidence]
                    for g in ocr.extract_text(crop).regions]
-        text = label_at(regions, X, Y, NEAR_LABEL * s)
-        if text:
-            named.append({"t": round(t, 2), "action": "Click", "text": text, "x": round(x), "y": round(y),
-                          "score": round(pj, 3), "_xy": (x, y)})
+        named.append({"t": t, "x": x, "y": y, "text": label_at(regions, X, Y, NEAR_LABEL * s), "score": pj})
         progress(62 + int(18 * (i + 1) / max(len(kept), 1)), "reading the controls under the pointer")
     cap.release()
 
-    merged = []
-    for k in named:
-        if merged and k["t"] - merged[-1]["t"] <= MERGE_S:
-            (x1, y1), (x2, y2) = merged[-1]["_xy"], k["_xy"]
-            if np.hypot(x2 - x1, y2 - y1) <= SAME_PLACE_PX:
-                continue                               # the same press, read again
-            if same_name(k["text"], merged[-1]["text"]):
-                merged[-1] = k
-                continue
-        merged.append(k)
-    for k in merged:
-        del k["_xy"]
-    return merged
+    return [{"t": round(k["t"], 2), "action": "Click", "text": k["text"], "x": round(k["x"]), "y": round(k["y"]),
+             "score": round(k["score"], 3)} for k in merge_clicks(named)]

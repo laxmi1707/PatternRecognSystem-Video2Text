@@ -98,6 +98,7 @@ export function DetectedSteps({ jobId, job, error, onSeek, currentTime }: Detect
   } else {
     const r = job.result!;
     const clicks = r.steps.filter(s => s.action === 'Click').length;
+    const icons = r.steps.filter(s => s.action === 'Click' && !s.text).length;
     const typed = r.steps.length - clicks;
     const active = activeStep(r.steps, currentTime);
     body = (
@@ -107,7 +108,9 @@ export function DetectedSteps({ jobId, job, error, onSeek, currentTime }: Detect
             Application: <strong>{r.app}</strong>
             {r.app_confidence != null && <span style={{ fontWeight: 400 }}>({Math.round(r.app_confidence * 100)}%)</span>}
           </Pill>
-          <Pill fg={ORANGE} bg={ORANGE_TINT}>{ACTION_STYLE.Click.icon} {clicks} clicks</Pill>
+          <Pill fg={ORANGE} bg={ORANGE_TINT}>
+            {ACTION_STYLE.Click.icon} {clicks} clicks{icons > 0 && <span style={{ fontWeight: 400 }}>({icons} on icons)</span>}
+          </Pill>
           <Pill fg={TEAL} bg={TEAL_TINT}>{ACTION_STYLE.Type.icon} {typed} typed</Pill>
           {onSeek && r.steps.length > 0 && (
             <span style={{ color: MUTED, fontSize: 13 }}>Select a time to jump to that moment in the video.</span>
@@ -145,9 +148,15 @@ export function DetectedSteps({ jobId, job, error, onSeek, currentTime }: Detect
                     ▶ {formatClock(s.t)}
                   </button>
                   <Pill fg={st.fg} bg={st.bg}>{st.icon} {st.label}</Pill>
-                  <span style={{ fontSize: 15, fontWeight: on ? 700 : 500, color: '#111827', overflowWrap: 'anywhere' }}>
-                    {s.action === 'Click' ? `'${s.text}'` : `"${s.text}"`}
-                  </span>
+                  {s.action === 'Click' && !s.text ? (
+                    <span style={{ fontSize: 14, fontStyle: 'italic', color: MUTED }}>
+                      an icon or unlabelled control — play the video to see it
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 15, fontWeight: on ? 700 : 500, color: '#111827', overflowWrap: 'anywhere' }}>
+                      {s.action === 'Click' ? `'${s.text}'` : `"${s.text}"`}
+                    </span>
+                  )}
                 </li>
               );
             })}

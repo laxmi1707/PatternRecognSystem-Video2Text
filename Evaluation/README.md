@@ -208,8 +208,16 @@ Both are shipped. Same recordings and rules (`combined_sop_v8.py`):
 | Chance: random time and place | 0.1% | 0.1% |
 | Chance: random picks among the candidates | 28.5% | 11.5% |
 
-Keeping unnamed stops as "Click (icon)" would find 44.8% at 75.8% real. That is not
-switched on.
+**Clicks on icons.** A third of logged clicks land on icons with no text under them.
+These used to be dropped. They are now kept and shown as "Click (icon)"; their time
+links to the video. With them (`combined_sop_v9.py`, shipped):
+
+| | Real steps | Steps found |
+|---|---|---|
+| Whole SOP, 720 recordings of 61 applications | **75.8%** | **44.8%** |
+| Clicks, 974 recordings of 87 applications | 77.0% | 45.3% (named steps: right name 77.6%) |
+| Chance: random time and place | 0.2% | 0.1% |
+| Chance: random picks among the candidates | 28.3% | 16.7% |
 
 ### The whole detector on one video
 

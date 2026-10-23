@@ -12,13 +12,13 @@ and typing that fall in its time range). The backend is not changed.
                                                  {"t", "action", "text"}, ...]}}
 
 One video is processed at a time (a few minutes on CPU). A video that
-the detector has already processed (cache/demo_v4/<App>_<task>.json, matched
+the detector has already processed (cache/demo_v5/<App>_<task>.json, matched
 by file hash) is answered from that run at once. The detector is the `detector`
 package (typing + clicks found with the pointer CNN).
 
     python sop_detector_service.py            port 8100; the frontend's dev server
                                               proxies /sop-detector to it
-    python sop_detector_service.py index      write cache/demo_v4/index.json (video
+    python sop_detector_service.py index      write cache/demo_v5/index.json (video
                                               hash -> stored run), so stored runs are
                                               found without the videos (the container)
 
@@ -47,7 +47,7 @@ if __name__ == "__main__":
 from fastapi import FastAPI, File, HTTPException, UploadFile  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-STORED = CACHE / "demo_v4"
+STORED = CACHE / "demo_v5"
 INDEX = STORED / "index.json"
 UPLOADS = Path(os.environ.get("SOP_DETECTOR_UPLOADS", str(CACHE / "sop_service" / "uploads")))
 HOST = os.environ.get("SOP_DETECTOR_HOST", "127.0.0.1")

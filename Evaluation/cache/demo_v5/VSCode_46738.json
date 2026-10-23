@@ -1,0 +1,68 @@
+{
+  "video": "video.mp4",
+  "app": "VSCode",
+  "app_confidence": 1.0,
+  "duration": 43.96666666666667,
+  "seconds_taken": 559.9,
+  "seconds_clicks": 26.0,
+  "steps": [
+    {
+      "t": 2.0,
+      "action": "Click",
+      "text": "Edit",
+      "x": 56,
+      "y": 27,
+      "score": 0.668
+    },
+    {
+      "t": 6.0,
+      "action": "Type",
+      "text": "Add Folder to Workspace_.",
+      "score": 0.531
+    },
+    {
+      "t": 6.8,
+      "action": "Click",
+      "text": "Open Workspace from File_",
+      "x": 146,
+      "y": 204,
+      "score": 0.894
+    },
+    {
+      "t": 19.6,
+      "action": "Click",
+      "text": "testtpyl",
+      "x": 127,
+      "y": 160,
+      "score": 0.785
+    },
+    {
+      "t": 24.0,
+      "action": "Click",
+      "text": "",
+      "x": 364,
+      "y": 93,
+      "score": 0.731
+    },
+    {
+      "t": 28.0,
+      "action": "Type",
+      "text": "file-like obiect (streaml: defaults to the current",
+      "score": 0.723
+    },
+    {
+      "t": 30.0,
+      "action": "Type",
+      "text": "printldhellbq]",
+      "score": 0.719
+    },
+    {
+      "t": 31.6,
+      "action": "Click",
+      "text": "testt2 Pliv",
+      "x": 130,
+      "y": 201,
+      "score": 0.779
+    }
+  ]
+}

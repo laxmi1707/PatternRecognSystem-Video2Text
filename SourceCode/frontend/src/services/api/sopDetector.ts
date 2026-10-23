@@ -44,5 +44,6 @@ export function formatClock(seconds: number): string {
 }
 
 export function describeStep(step: DetectedStep): string {
-  return step.action === 'Click' ? `Click '${step.text}'` : `Type "${step.text}"`;
+  if (step.action === 'Click') return step.text ? `Click '${step.text}'` : 'Click (icon)';
+  return `Type "${step.text}"`;
 }

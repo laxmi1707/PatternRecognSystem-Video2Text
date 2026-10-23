@@ -31,6 +31,7 @@ describe('formatting', () => {
   it('writes clicks and typing as SOP lines', () => {
     expect(describeStep(steps[0])).toBe("Click 'Package Explorer'");
     expect(describeStep(steps[1])).toBe('Type "sudo adduser priya"');
+    expect(describeStep({ t: 5, action: 'Click', text: '' })).toBe('Click (icon)');
   });
   it('writes seconds as m:ss', () => {
     expect(formatClock(75.4)).toBe('1:15');
