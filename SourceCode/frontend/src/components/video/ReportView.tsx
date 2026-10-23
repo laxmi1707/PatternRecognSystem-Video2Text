@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { BASE_URL } from '../../services/api/client';
 
+const API_KEY = import.meta.env.VITE_API_KEY ?? '';
+
 interface ReportViewProps {
   jobId: string;
   videoName: string;
@@ -15,7 +17,8 @@ export function ReportView({ jobId, videoName }: ReportViewProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${BASE_URL}/knowledge/report/${jobId}`, { method: 'POST' });
+      const headers: Record<string, string> = API_KEY ? { 'X-API-Key': API_KEY } : {};
+      const res = await fetch(`${BASE_URL}/knowledge/report/${jobId}`, { method: 'POST', headers });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || `Server error ${res.status}`);

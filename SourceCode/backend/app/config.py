@@ -20,9 +20,12 @@ class Settings(BaseSettings):
     model_s3_region: str | None = "ap-southeast-1"
     model_s3_require_checksum: bool = False
 
+    # API key authentication (empty string = auth disabled, for local dev)
+    api_key: str = ""
+
     allowed_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
     allowed_methods: list[str] = ["GET", "POST", "PATCH", "DELETE", "OPTIONS"]
-    allowed_headers: list[str] = ["Authorization", "Content-Type"]
+    allowed_headers: list[str] = ["Authorization", "Content-Type", "X-API-Key"]
     allow_credentials: bool = True
 
 

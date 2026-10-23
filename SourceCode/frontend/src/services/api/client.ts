@@ -1,5 +1,11 @@
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
 
+const API_KEY = import.meta.env.VITE_API_KEY ?? '';
+
+function authHeaders(): Record<string, string> {
+  return API_KEY ? { 'X-API-Key': API_KEY } : {};
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -11,7 +17,7 @@ export class ApiError extends Error {
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`);
+  const res = await fetch(`${BASE_URL}${path}`, { headers: authHeaders() });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText }));
     throw new ApiError(res.status, body.detail ?? res.statusText);
@@ -27,7 +33,7 @@ export async function apiPost<T>(
   if (params) {
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
   }
-  const res = await fetch(url.toString(), { method: 'POST' });
+  const res = await fetch(url.toString(), { method: 'POST', headers: authHeaders() });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText }));
     throw new ApiError(res.status, body.detail ?? res.statusText);
@@ -46,7 +52,7 @@ export async function apiPostFile<T>(
   }
   const formData = new FormData();
   formData.append('file', file);
-  const res = await fetch(url.toString(), { method: 'POST', body: formData });
+  const res = await fetch(url.toString(), { method: 'POST', body: formData, headers: authHeaders() });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText }));
     throw new ApiError(res.status, body.detail ?? res.statusText);
