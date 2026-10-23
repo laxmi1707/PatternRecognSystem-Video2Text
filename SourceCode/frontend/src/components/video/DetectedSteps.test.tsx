@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { DetectedSteps } from './DetectedSteps';
 import { KnowledgePanel } from './KnowledgePanel';
 import type { DetectionJob } from '../../types/detection';
@@ -31,11 +31,27 @@ describe('DetectedSteps', () => {
     expect(screen.getByText('45% — tracking the mouse pointer')).toBeInTheDocument();
   });
 
-  it('lists the detected steps with the application', () => {
+  it('lists the detected steps with the application and the counts', () => {
     render(<DetectedSteps jobId="abc" job={done} error={null} />);
     expect(screen.getByText('Eclipse')).toBeInTheDocument();
-    expect(screen.getByText("Click 'Package Explorer'")).toBeInTheDocument();
-    expect(screen.getByText("Click 'Apply and Close'")).toBeInTheDocument();
+    expect(screen.getByText("'Package Explorer'")).toBeInTheDocument();
+    expect(screen.getByText("'Apply and Close'")).toBeInTheDocument();
+    expect(screen.getByText(/2 clicks/)).toBeInTheDocument();
+    expect(screen.getByText(/0 typed/)).toBeInTheDocument();
+  });
+
+  it('jumps the video to a step when its time is selected', () => {
+    const onSeek = vi.fn();
+    render(<DetectedSteps jobId="abc" job={done} error={null} onSeek={onSeek} />);
+    fireEvent.click(screen.getByRole('button', { name: /0:35/ }));
+    expect(onSeek).toHaveBeenCalledWith(35.8);
+  });
+
+  it('highlights the step shown at the current playback time', () => {
+    render(<DetectedSteps jobId="abc" job={done} error={null} currentTime={20} />);
+    const rows = screen.getAllByTestId('detected-step');
+    expect(rows[0]).toHaveAttribute('aria-current', 'step');
+    expect(rows[1]).not.toHaveAttribute('aria-current');
   });
 });
 

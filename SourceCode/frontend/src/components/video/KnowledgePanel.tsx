@@ -166,9 +166,20 @@ export function KnowledgePanel({ jobId, detectedSteps }: KnowledgePanelProps) {
                   <br />
                   <span style={{ fontSize: 14 }}>{step.description}</span>
                   {actions.length > 0 && (
-                    <ul data-testid="sop-step-actions" style={{ margin: '4px 0 0', paddingLeft: 18, fontSize: 13, color: '#374151' }}>
-                      {actions.map((a, k) => <li key={k}>{describeStep(a)}</li>)}
-                    </ul>
+                    <div style={{
+                      margin: '8px 0 4px', padding: '8px 12px', borderRadius: 8,
+                      background: '#fff4e8', border: '1px solid #f6c78f',
+                    }}>
+                      <div style={{
+                        fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                        color: '#b45d00', marginBottom: 4,
+                      }}>
+                        Detected in the video · SOP detector
+                      </div>
+                      <ul data-testid="sop-step-actions" style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: '#1f2937' }}>
+                        {actions.map((a, k) => <li key={k}>{describeStep(a)}</li>)}
+                      </ul>
+                    </div>
                   )}
                 </li>
               );

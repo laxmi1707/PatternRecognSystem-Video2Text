@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { AnalysisResult } from '../../types/analysis';
 import { WorkflowSteps } from './WorkflowSteps';
 import { KnowledgePanel } from './KnowledgePanel';
@@ -15,6 +15,18 @@ export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
   const [selectedModel, setSelectedModel] = useState<string | null>(result.bestModel);
   const [showComparison, setShowComparison] = useState(false);
   const detection = useDetection(result.detectorJobId);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoTime, setVideoTime] = useState<number | undefined>(undefined);
+
+  // a detected step's time: play the recording from there, with the video in view
+  const seek = (t: number) => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.currentTime = t;
+    setVideoTime(t);
+    v.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    void v.play?.()?.catch?.(() => undefined);
+  };
 
   const displaySteps =
     selectedModel && result.allResults[selectedModel]
@@ -73,7 +85,13 @@ export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
       <div className="results-grid">
         <div>
           {result.videoUrl ? (
-            <video src={result.videoUrl} controls className="results-video" />
+            <video
+              ref={videoRef}
+              src={result.videoUrl}
+              controls
+              className="results-video"
+              onTimeUpdate={e => setVideoTime(e.currentTarget.currentTime)}
+            />
           ) : (
             <div className="halftone results-video-placeholder">
               <span className="text-muted" style={{ fontFamily: 'monospace', fontSize: 11 }}>
@@ -85,7 +103,13 @@ export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
         <WorkflowSteps steps={displaySteps} />
       </div>
 
-      <DetectedSteps jobId={result.detectorJobId} job={detection.job} error={detection.error} />
+      <DetectedSteps
+        jobId={result.detectorJobId}
+        job={detection.job}
+        error={detection.error}
+        onSeek={result.videoUrl ? seek : undefined}
+        currentTime={videoTime}
+      />
 
       <KnowledgePanel jobId={result.jobId || result.id} detectedSteps={detection.job?.result?.steps} />
     </div>
