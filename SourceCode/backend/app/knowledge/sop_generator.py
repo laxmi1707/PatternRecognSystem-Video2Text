@@ -160,25 +160,28 @@ def _extract_terminal_command(text: str) -> str:
     candidates = re.split(r"[$#]\s+", text)
 
     best_cmd = ""
+    best_is_known = False
     for candidate in candidates[1:]:
         candidate = re.split(r"\n|\s{3,}", candidate)[0].strip()
-        # Truncate at user@host pattern (with or without surrounding spaces/semicolons)
         user_at = re.search(r"[\s;]\S+\s*@\s*\S+", candidate)
         if user_at:
             candidate = candidate[:user_at.start()].strip()
-        if not candidate:
+        if not candidate or len(candidate) < 3:
             continue
-        # Reject if the candidate contains UI chrome words (taskbar, title bar)
         if _UI_NOISE_PATTERN.search(candidate):
             continue
-        # Reject if too many tokens — real commands are typically short
         tokens = candidate.split()
         if len(tokens) > 10:
             continue
         first = tokens[0].lower().lstrip("'\"") if tokens else ""
-        if first in _TERMINAL_COMMANDS and len(candidate) > len(first):
-            if len(candidate) > len(best_cmd):
-                best_cmd = candidate[:120]
+        is_known = first in _TERMINAL_COMMANDS and len(candidate) > len(first)
+        # Prefer known commands, but accept any text after $ or # prompt
+        if is_known and not best_is_known:
+            best_cmd = candidate[:80]
+            best_is_known = True
+        elif is_known == best_is_known and len(candidate) > len(best_cmd):
+            best_cmd = candidate[:80]
+            best_is_known = is_known
 
     return best_cmd
 
@@ -278,21 +281,9 @@ class SOPGenerator:
         # 1. Collect raw OCR for whole-document keyword/platform detection
         all_raw_ocr = " ".join(ocr_texts).lower()
 
-        # 2. Clean OCR text for each segment (for display only)
-        cleaned_ocr = [_clean_ocr(t) for t in ocr_texts]
-
-        # 3. Merge consecutive same-label segments
-        merged_segs, merged_ocr = _merge_consecutive_segments(segments, cleaned_ocr)
-        # Keep raw OCR per merged segment for keyword matching (cleaned loses multi-word phrases)
-        merged_raw_ocr: list[str] = []
-        n = len(segments)
-        i_raw = 0
-        for seg in merged_segs:
-            parts = []
-            while i_raw < n and segments[i_raw].get("start_time", 0) < seg.get("end_time", 9999):
-                parts.append(ocr_texts[i_raw])
-                i_raw += 1
-            merged_raw_ocr.append(" ".join(parts))
+        # 2. Use each segment as its own step (no merging — preserves time ranges)
+        merged_segs = segments
+        merged_raw_ocr = list(ocr_texts)
 
         # 4. Detect platform from OCR (overrides "Screen Recording" fallback)
         detected_platform = platform
