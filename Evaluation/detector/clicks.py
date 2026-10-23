@@ -4,16 +4,20 @@
     2. The pointer CNN scores 32x32 crops around each small region (any pointer shape:
        arrow, hand, I-beam); the best spot at p >= 0.8 is the pointer in that frame.
     3. A stop is the last frame of a run of frames with the pointer seen.
-    4. The screen-reaction filter keeps the stops after which the screen changed like
-       it does after a click (8 features, LightGBM).
+    4. The click filter (LightGBM) keeps the stops that look like clicks: how the screen
+       changed after the stop, anywhere and near it, and before it; how long the
+       pointer rested; and what the pointer did - the CNN's confidence, how far and
+       how fast it moved before stopping, how long it was tracked, where on the screen
+       it stopped, the time since the previous stop.
     5. OCR around each kept stop names it by the text under the pointer, or the nearest
-       text within 70 px; unnamed stops are dropped, and the same name twice within
-       2 s is one click.
+       text within 70 px; unnamed stops are dropped. Two stops within 2 s are one click
+       when they are within 20 px of each other (the earlier kept: OCR may read one
+       press two ways, "Open" and "Onen") or carry the same name (the later kept).
 
 Coordinates are in logical pixels: a frame wider than 2000 px (Retina) is halved.
 The models were fitted by the research scripts pointer_cnn_v1.py (the CNN) and
-reaction_models_v1.py (the filter, which replaced bare_sop_v2.py's logistic regression);
-see Evaluation/README.md for how they were scored.
+reaction_features_v1.py (the filter; reaction_models_v1.py chose LightGBM over
+bare_sop_v2.py's logistic regression); see Evaluation/README.md for how they were scored.
 """
 from __future__ import annotations
 
@@ -27,7 +31,7 @@ import numpy as np
 from v2k.env import CACHE
 
 POINTER_MODEL = CACHE / "pointer_cnn_v1.pt"
-REACTION_MODEL = CACHE / "reaction_lgbm_v1.pkl"          # {model, threshold, ...}
+REACTION_MODEL = CACHE / "reaction_lgbm_v2.pkl"          # {model, threshold, features, ...}
 
 FPS = 5.0
 DIFF = 25                  # grey-level change counted as changed
@@ -41,6 +45,7 @@ NEAR_REGION = 200          # logical px around a stop for the "near" reaction fe
 NEAR_LABEL = 70            # logical px from the pointer to the text that names it
 HALF_W, HALF_H = 260, 150  # OCR crop around a stop, logical px
 MERGE_S = 2.0
+SAME_PLACE_PX = 20        # logical px: two stops this close within MERGE_S are one click
 
 
 # --- the pointer CNN ---------------------------------------------------------------------
@@ -106,8 +111,9 @@ def read_frames(video: Path, fps: float = FPS):
     cap.release()
 
 
-def track(video: Path, model, progress=lambda pct, stage: None) -> tuple[list, float]:
-    """Per frame (t, pointer (p, x, y) or None, large changed regions); and the scale."""
+def track(video: Path, model, progress=lambda pct, stage: None) -> tuple[list, float, float, float]:
+    """Per frame (t, pointer (p, x, y) or None, large changed regions); the scale; and the
+    screen's logical width and height."""
     import cv2
     cap = cv2.VideoCapture(str(video))
     W, H = cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
@@ -135,7 +141,7 @@ def track(video: Path, model, progress=lambda pct, stage: None) -> tuple[list, f
             if len(out) % 25 == 0:
                 progress(min(60, 30 + int(30 * t / max(duration, 1))), "tracking the mouse pointer")
         prev = g
-    return out, s
+    return out, s, W / s, H / s
 
 
 def stops(frames: list, fps: float = FPS) -> list[tuple[float, float, float, float]]:
@@ -176,15 +182,42 @@ def reaction_features(frames: list, stop) -> list[float]:
     return f
 
 
+def pointer_features(frames: list, st: list, W: float, H: float, fps: float = FPS) -> np.ndarray:
+    """Per stop: the CNN's confidence at it and over the last 3 frames seen, frames tracked
+    without a break, px moved in the last frame and in the last second, the stop's place
+    on the screen, seconds since the previous stop, large changed regions in the next second."""
+    seen = [(t, p) for t, p, _ in frames if p is not None]
+    times = np.array([t for t, _ in seen]) if seen else np.zeros(0)
+    big = [(t, len(large)) for t, _, large in frames]
+    dt = 1.0 / fps
+    out = []
+    for i, (ts, x, y, _) in enumerate(st):
+        k = int(np.searchsorted(times, ts + 1e-6)) - 1
+        p_stop = seen[k][1][0] if k >= 0 else 0.0
+        last = [seen[j][1][0] for j in range(max(0, k - 2), k + 1)] if k >= 0 else [0.0]
+        n, j = 0, k
+        while j > 0 and seen[j][0] - seen[j - 1][0] <= 1.5 * dt:
+            n, j = n + 1, j - 1
+        speed = float(np.hypot(seen[k][1][1] - seen[k - 1][1][1], seen[k][1][2] - seen[k - 1][1][2]))             if k >= 1 and seen[k][0] - seen[k - 1][0] <= 1.5 * dt else 0.0
+        path, j = 0.0, k
+        while j > 0 and seen[j - 1][0] >= ts - 1.0:
+            path += float(np.hypot(seen[j][1][1] - seen[j - 1][1][1], seen[j][1][2] - seen[j - 1][1][2]))
+            j -= 1
+        gap = ts - st[i - 1][0] if i > 0 else 10.0
+        big_n = sum(c for t, c in big if ts < t <= ts + 1.0)
+        out.append([p_stop, float(np.mean(last)), n, speed, path, x / max(W, 1), y / max(H, 1), gap, big_n])
+    return np.array(out, dtype=float).reshape(-1, 9)
+
+
 def load_reaction_model(path: Path = REACTION_MODEL):
-    """(score function on a feature matrix, threshold). Reads the LightGBM file, or the
-    older (scaler, logistic, threshold) tuple of bare_sop_v2."""
+    """(score function on the 17 features, threshold). An older file - the 8-feature
+    LightGBM, or bare_sop_v2's (scaler, logistic, threshold) tuple - scores the first 8."""
     saved = pickle.loads(path.read_bytes())
     if isinstance(saved, dict):
-        model = saved["model"]
-        return (lambda X: model.predict_proba(X)[:, 1]), saved["threshold"]
+        model, n = saved["model"], len(saved.get("features", range(8)))
+        return (lambda X: model.predict_proba(X[:, :n])[:, 1]), saved["threshold"]
     scaler, logistic, threshold = saved
-    return (lambda X: logistic.predict_proba(scaler.transform(X))[:, 1]), threshold
+    return (lambda X: logistic.predict_proba(scaler.transform(X[:, :8]))[:, 1]), threshold
 
 
 # --- naming ---------------------------------------------------------------------------------
@@ -217,12 +250,13 @@ def label_at(regions, x: float, y: float, near: float) -> str:
 def click_steps(video: Path, ocr, progress=lambda pct, stage: None) -> list[dict]:
     """[{t, action: "Click", text, x, y, score}] in time order."""
     import cv2
-    frames, s = track(video, load_pointer_model(), progress)
+    frames, s, W, H = track(video, load_pointer_model(), progress)
     st = stops(frames)
     if not st:
         return []
     score, threshold = load_reaction_model()
-    p = score(np.array([reaction_features(frames, x) for x in st]))
+    X = np.hstack([np.array([reaction_features(frames, x) for x in st]), pointer_features(frames, st, W, H)])
+    p = score(X)
     kept = [(stop, float(pj)) for stop, pj in zip(st, p) if pj >= threshold]
     progress(62, "reading the controls under the pointer")
 
@@ -241,14 +275,20 @@ def click_steps(video: Path, ocr, progress=lambda pct, stage: None) -> list[dict
         text = label_at(regions, X, Y, NEAR_LABEL * s)
         if text:
             named.append({"t": round(t, 2), "action": "Click", "text": text, "x": round(x), "y": round(y),
-                          "score": round(pj, 3)})
+                          "score": round(pj, 3), "_xy": (x, y)})
         progress(62 + int(18 * (i + 1) / max(len(kept), 1)), "reading the controls under the pointer")
     cap.release()
 
     merged = []
     for k in named:
-        if merged and k["t"] - merged[-1]["t"] <= MERGE_S and same_name(k["text"], merged[-1]["text"]):
-            merged[-1] = k
-        else:
-            merged.append(k)
+        if merged and k["t"] - merged[-1]["t"] <= MERGE_S:
+            (x1, y1), (x2, y2) = merged[-1]["_xy"], k["_xy"]
+            if np.hypot(x2 - x1, y2 - y1) <= SAME_PLACE_PX:
+                continue                               # the same press, read again
+            if same_name(k["text"], merged[-1]["text"]):
+                merged[-1] = k
+                continue
+        merged.append(k)
+    for k in merged:
+        del k["_xy"]
     return merged

@@ -178,6 +178,39 @@ delivered steps (`reaction_models_v2.py`), the whole SOP on the same 720 recordi
 | **LightGBM, strict** (shipped) | **54.7%** | **29.4%** |
 | LightGBM, keeping 75% of training recall | 46.3% | 36.1% |
 
+### What the pointer did, and one press read twice
+
+The filter's 8 features describe only the screen. `reaction_features_v1.py` adds 9 about
+the pointer:
+
+- the CNN's confidence at the stop and over the last three frames;
+- how long it was tracked;
+- how far it moved in the last frame and in the last second;
+- where on the screen it stopped;
+- the time since the previous stop;
+- how many large regions changed in the next second.
+
+Held-out AUC rises from 0.817 to 0.914, and almost all of the gain survives two checks:
+
+- **without the position features:** 0.910;
+- **on applications the filter never saw** (trained on half the applications, tested on
+  the other half): 0.795 → 0.903 and 0.799 → 0.898.
+
+`click_variants_v1.py` also makes two stops within 2 s and 20 px one click, whatever OCR
+read. OCR can read one press two ways, e.g. "Open" and "Onen".
+
+Both are shipped. Same recordings and rules (`combined_sop_v8.py`):
+
+| | Real steps | Steps found |
+|---|---|---|
+| Whole SOP, 720 recordings of 61 applications | **77.1%** | **31.1%** |
+| Clicks, 974 recordings of 87 applications | 79.7% | 31.3% (right name 77.6%) |
+| Chance: random time and place | 0.1% | 0.1% |
+| Chance: random picks among the candidates | 28.5% | 11.5% |
+
+Keeping unnamed stops as "Click (icon)" would find 44.8% at 75.8% real. That is not
+switched on.
+
 ### The whole detector on one video
 
 ```

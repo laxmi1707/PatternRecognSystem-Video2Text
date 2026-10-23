@@ -1,0 +1,42 @@
+{
+  "video": "video.mp4",
+  "app": "Eclipse",
+  "app_confidence": 1.0,
+  "duration": 44.05,
+  "seconds_taken": 176.8,
+  "seconds_clicks": 9.3,
+  "steps": [
+    {
+      "t": 3.2,
+      "action": "Click",
+      "text": "Eclipte",
+      "x": 94,
+      "y": 17,
+      "score": 0.716
+    },
+    {
+      "t": 21.8,
+      "action": "Click",
+      "text": "Browso.",
+      "x": 519,
+      "y": 403,
+      "score": 0.893
+    },
+    {
+      "t": 38.0,
+      "action": "Click",
+      "text": "Save",
+      "x": 403,
+      "y": 380,
+      "score": 0.905
+    },
+    {
+      "t": 39.8,
+      "action": "Click",
+      "text": "pish",
+      "x": 521,
+      "y": 544,
+      "score": 0.907
+    }
+  ]
+}
