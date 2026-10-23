@@ -1,0 +1,68 @@
+{
+  "video": "video.mp4",
+  "app": "VSCode",
+  "app_confidence": 1.0,
+  "duration": 43.96666666666667,
+  "seconds_taken": 470.5,
+  "seconds_clicks": 29.8,
+  "steps": [
+    {
+      "t": 6.0,
+      "action": "Type",
+      "text": "Add Folder to Workspace_.",
+      "score": 0.531
+    },
+    {
+      "t": 6.2,
+      "action": "Click",
+      "text": "Edit",
+      "x": 59,
+      "y": 27,
+      "score": 0.435
+    },
+    {
+      "t": 6.8,
+      "action": "Click",
+      "text": "Open Workspace from File_",
+      "x": 146,
+      "y": 204,
+      "score": 0.681
+    },
+    {
+      "t": 14.8,
+      "action": "Click",
+      "text": "Select Folder",
+      "x": 785,
+      "y": 517,
+      "score": 0.764
+    },
+    {
+      "t": 19.6,
+      "action": "Click",
+      "text": "testtpyl",
+      "x": 127,
+      "y": 160,
+      "score": 0.674
+    },
+    {
+      "t": 28.0,
+      "action": "Type",
+      "text": "file-like obiect (streaml: defaults to the current",
+      "score": 0.723
+    },
+    {
+      "t": 30.0,
+      "action": "Type",
+      "text": "printldhellbq]",
+      "score": 0.719
+    },
+    {
+      "t": 35.4,
+      "action": "Click",
+      "text": "testtz py",
+      "x": 286,
+      "y": 101,
+      "score": 0.744
+    }
+  ]
+}

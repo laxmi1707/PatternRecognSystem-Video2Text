@@ -150,6 +150,34 @@ precision and recall. Adding the templates to the CNN changes nothing. The 87
 applications are harder than the five above, and they vary: Lemmy, Geany, Mastodon and
 VLC find over 60% of clicks, while OBS Studio, Zulip and Kodi find under 20%.
 
+### A better screen-reaction filter
+
+The filter that decides which pointer stops are clicks was a logistic regression on its
+8 features. Four models were compared under one procedure (`reaction_models_v1.py`):
+
+- fitted on the training recordings;
+- threshold chosen from 5-fold out-of-fold scores, grouped by recording, so that an
+  overfitting model is not flattered;
+- scored on the held-out stops.
+
+| Model | Held-out AUC | Kept stops at a click (strict threshold) |
+|---|---|---|
+| Logistic regression | 0.755 | 39.9% |
+| LightGBM | 0.817 | 49.9% |
+| Random forest | 0.818 | 50.9% |
+| Hist gradient boosting | 0.822 | 50.1% |
+
+All three tree models catch the same share of clicks as the logistic regression, with far
+fewer false stops. The detector now uses LightGBM (`cache/reaction_lgbm_v1.pkl`). As
+delivered steps (`reaction_models_v2.py`), the whole SOP on the same 720 recordings
+(61 applications) gives:
+
+| Filter | Real steps | Steps found |
+|---|---|---|
+| Logistic | 47.6% | 29.8% |
+| **LightGBM, strict** (shipped) | **54.7%** | **29.4%** |
+| LightGBM, keeping 75% of training recall | 46.3% | 36.1% |
+
 ### The whole detector on one video
 
 ```

@@ -21,7 +21,7 @@ as it is. Nothing here touches the team repo or its backend.
     POST /api/v1/knowledge/runbook/{id}
     GET  /api/v1/videos/ , /api/v1/evaluation/models , /health
 
-A video that the detector has already processed (cache/demo_v2/<App>_<task>.json,
+A video that the detector has already processed (cache/demo_v3/<App>_<task>.json,
 matched by file hash) is answered from that run, its progress replayed in a few
 seconds; any other video is processed live, which takes a few minutes on CPU.
 
@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
 from fastapi import FastAPI, File, HTTPException, UploadFile  # noqa: E402
 
-DEMO = CACHE / "demo_v2"
+DEMO = CACHE / "demo_v3"
 UPLOADS = DEMO / "uploads"
 ACTIVITY = {"bash": "terminal_ops", "vscode": "coding_editing", "eclipse": "coding_editing",
             "netbeans": "coding_editing", "kdevelop": "coding_editing", "pycharm": "coding_editing",

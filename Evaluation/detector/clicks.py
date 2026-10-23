@@ -5,14 +5,15 @@
        arrow, hand, I-beam); the best spot at p >= 0.8 is the pointer in that frame.
     3. A stop is the last frame of a run of frames with the pointer seen.
     4. The screen-reaction filter keeps the stops after which the screen changed like
-       it does after a click (8 features, logistic regression).
+       it does after a click (8 features, LightGBM).
     5. OCR around each kept stop names it by the text under the pointer, or the nearest
        text within 70 px; unnamed stops are dropped, and the same name twice within
        2 s is one click.
 
 Coordinates are in logical pixels: a frame wider than 2000 px (Retina) is halved.
 The models were fitted by the research scripts pointer_cnn_v1.py (the CNN) and
-bare_sop_v2.py (the filter); see Evaluation/README.md for how they were scored.
+reaction_models_v1.py (the filter, which replaced bare_sop_v2.py's logistic regression);
+see Evaluation/README.md for how they were scored.
 """
 from __future__ import annotations
 
@@ -26,7 +27,7 @@ import numpy as np
 from v2k.env import CACHE
 
 POINTER_MODEL = CACHE / "pointer_cnn_v1.pt"
-REACTION_MODEL = CACHE / "bare_sop_v2_reaction.pkl"      # (scaler, logistic, threshold)
+REACTION_MODEL = CACHE / "reaction_lgbm_v1.pkl"          # {model, threshold, ...}
 
 FPS = 5.0
 DIFF = 25                  # grey-level change counted as changed
@@ -176,7 +177,14 @@ def reaction_features(frames: list, stop) -> list[float]:
 
 
 def load_reaction_model(path: Path = REACTION_MODEL):
-    return pickle.loads(path.read_bytes())
+    """(score function on a feature matrix, threshold). Reads the LightGBM file, or the
+    older (scaler, logistic, threshold) tuple of bare_sop_v2."""
+    saved = pickle.loads(path.read_bytes())
+    if isinstance(saved, dict):
+        model = saved["model"]
+        return (lambda X: model.predict_proba(X)[:, 1]), saved["threshold"]
+    scaler, logistic, threshold = saved
+    return (lambda X: logistic.predict_proba(scaler.transform(X))[:, 1]), threshold
 
 
 # --- naming ---------------------------------------------------------------------------------
@@ -213,8 +221,8 @@ def click_steps(video: Path, ocr, progress=lambda pct, stage: None) -> list[dict
     st = stops(frames)
     if not st:
         return []
-    scaler, logistic, threshold = load_reaction_model()
-    p = logistic.predict_proba(scaler.transform(np.array([reaction_features(frames, x) for x in st])))[:, 1]
+    score, threshold = load_reaction_model()
+    p = score(np.array([reaction_features(frames, x) for x in st]))
     kept = [(stop, float(pj)) for stop, pj in zip(st, p) if pj >= threshold]
     progress(62, "reading the controls under the pointer")
 
