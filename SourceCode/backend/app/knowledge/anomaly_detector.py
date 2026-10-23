@@ -46,9 +46,13 @@ _RULES: list[tuple[str, str, str, list[str]]] = [
         "critical",
         "Command grants excessive privileges",
         [
+            r"\bsudo\b",                   # exact
+            # EasyOCR misreads of "sudo" observed in CUA dataset
+            r"\bsuco\b",                   # [suco ] → [sudo]
+            r"\*[Uu]dv\b",                # *Udv → sudo
+            r"\b[Uu]dv\s+tt\b",           # Udv tt → sudo apt
             r"\bsudo\s+su\b",
             r"\bsudo\s+-i\b",
-            r"\bsudo\b",                   # any sudo usage
             r"\bchmod\s+777\b",
             r"\bchmod\s+-R\s+777\b",
             r"\bchown\s+root\b",
