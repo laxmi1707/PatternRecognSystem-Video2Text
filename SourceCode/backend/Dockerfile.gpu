@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY pyproject.toml ./
 COPY app ./app
+COPY train_v3.sh train_v2.sh ./
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --timeout=1200 --retries=10 \
     torch --index-url https://download.pytorch.org/whl/cu124 && \
