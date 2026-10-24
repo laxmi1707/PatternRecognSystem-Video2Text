@@ -327,6 +327,126 @@ _PLATFORM_LABELS: dict[str, str] = {
     "duplicati": "system_config",
     "backintime": "system_config",
     "deja-dup": "system_config",
+    # ── EC2 dataset top-other platforms (from live audit) ──────────────────
+    # Media / streaming
+    "obs studio": "media_editing",    # screen recording/streaming
+    "obs": "media_editing",
+    "kodi": "media_editing",          # media center
+    "emby": "media_editing",          # media server
+    "opentoonz": "media_editing",     # animation
+    "plex": "media_editing",
+    "jellyfin": "media_editing",
+    # Messaging / social (Matrix ecosystem + others)
+    "element": "web_browsing",        # Matrix client (also ELEMENT)
+    "matrix": "web_browsing",         # Matrix protocol client (also MATRIX)
+    "zulip": "web_browsing",          # team chat
+    "mastodon": "web_browsing",       # fediverse social (also MASTODON)
+    "lemmy": "web_browsing",          # federated link aggregator
+    "wordpress": "web_browsing",      # CMS / blog
+    "duckduckgo": "web_browsing",     # browser/search
+    "whatsapp": "web_browsing",
+    "mattermost": "web_browsing",
+    "rocket.chat": "web_browsing",
+    "wire": "web_browsing",
+    "riot": "web_browsing",           # old name for Element
+    # Note-taking / knowledge
+    "simplenote": "documentation",    # also SimpleNote
+    "simple note": "documentation",
+    "affine": "documentation",        # knowledge management
+    "openproject": "documentation",   # project management
+    "openboard": "documentation",     # interactive whiteboard
+    "xournal": "documentation",
+    "xournalpp": "documentation",
+    "xournal++": "documentation",
+    "remarkable": "documentation",
+    "standardnotes": "documentation",
+    "standard notes": "documentation",
+    "tiddlywiki": "documentation",
+    "vnote": "documentation",
+    "nixnote": "documentation",
+    "tomboy": "documentation",
+    "gnote": "documentation",
+    # Coding / IDEs
+    "code::blocks": "coding_editing",
+    "code: :blocks": "coding_editing",   # typo variant in EC2 dataset
+    "codeblocks": "coding_editing",
+    "qt creator": "coding_editing",
+    "qt creater": "coding_editing",      # typo variant in EC2 dataset
+    "arduino": "coding_editing",         # also "Arduino iDE" typo
+    "komodo edit": "coding_editing",
+    "komodo": "coding_editing",
+    "veusz": "coding_editing",           # scientific graphing/data
+    "metabase": "coding_editing",        # BI/analytics
+    "redash": "coding_editing",
+    "superset": "coding_editing",
+    "grafana": "coding_editing",
+    "kibana": "coding_editing",
+    "dbeaver": "coding_editing",
+    "robo3t": "coding_editing",
+    "mongodb compass": "coding_editing",
+    "tableplus": "coding_editing",
+    "sequel pro": "coding_editing",
+    "winmerge": "coding_editing",
+    "meld": "coding_editing",
+    "kdiff3": "coding_editing",
+    "beyond compare": "coding_editing",
+    "codecompare": "coding_editing",
+    "helix": "coding_editing",
+    "lapce": "coding_editing",
+    "zed": "coding_editing",
+    "lite-xl": "coding_editing",
+    "micro editor": "coding_editing",
+    "kakoune": "coding_editing",
+    # Diagramming / GIS / CAD
+    "freecad": "diagram_design",         # 3D CAD
+    "qgis": "diagram_design",            # GIS mapping
+    "openscad": "diagram_design",
+    "librecad": "diagram_design",
+    "bricscad": "diagram_design",
+    "sweet home 3d": "diagram_design",
+    "blendercad": "diagram_design",
+    "kicad": "diagram_design",           # PCB design
+    "fritzing": "diagram_design",
+    "leocad": "diagram_design",
+    "solvespace": "diagram_design",
+    # Image / font editing
+    "fontforge": "image_editing",        # font editor
+    "birdfont": "image_editing",
+    "trimage": "image_editing",
+    "imageviewer": "image_editing",
+    "nomacs": "image_editing",
+    "feh": "image_editing",
+    "sxiv": "image_editing",
+    # Finance / ERP / business
+    "frappe books": "system_config",     # accounting
+    "frappe": "system_config",
+    "gnucash": "system_config",
+    "homebank": "system_config",
+    "skrooge": "system_config",
+    "lunchmoney": "system_config",
+    "odoo": "system_config",
+    "erpnext": "system_config",
+    "akaunting": "system_config",
+    # System / package tools
+    "pamac": "system_config",
+    "synaptic": "system_config",
+    "muon": "system_config",
+    "octopi": "system_config",
+    "discover": "system_config",
+    "gnome software": "system_config",
+    "ubuntu software": "system_config",
+    "mint software": "system_config",
+    "flathub": "system_config",
+    "snapd": "system_config",
+    # Remaining other (from EC2 audit — 82 tasks)
+    "flameshot": "image_editing",    # screenshot tool
+    "kdevelop": "coding_editing",    # KDE IDE
+    "natron": "media_editing",       # VFX compositing
+    "pdfedit": "documentation",      # PDF editor
+    "conky": "system_config",        # system monitor widget
+    "grassgis": "diagram_design",    # GIS (GrassGIS)
+    "grass gis": "diagram_design",
+    "krtia": "image_editing",        # typo for Krita in EC2 dataset
 }
 
 # Instruction keyword rules — ordered most-specific first
