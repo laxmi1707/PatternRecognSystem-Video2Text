@@ -29,13 +29,15 @@ ex.ui.detect(blank)
 ex.cnn.embed([blank])
 
 import detector  # noqa: E402
-from detector import clicks, typed_text  # noqa: E402
+from detector import clicks, model_file, typed_text  # noqa: E402
 
 clicks.load_pointer_model()
 clicks.load_reaction_model()
-bundle = joblib.load(typed_text.RANKERS)
-stage1 = sd.stage1_path(bundle)
-joblib.load(stage1)
+if model_file.PKL:                       # the image: all four models in one pickle
+    bundle = model_file.load()["typing"]
+else:
+    bundle = joblib.load(typed_text.RANKERS)
+    joblib.load(sd.stage1_path(bundle))
 pooled = bundle["pooled"]
 pooled.predict_proba(np.zeros((1, pooled.n_features_in_)))      # LightGBM needs libgomp
 

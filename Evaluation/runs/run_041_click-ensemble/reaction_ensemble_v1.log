@@ -1,0 +1,16 @@
+12716 training stops, 12767 held-out stops
+  lgbm: fitted, 1s
+  rf: fitted, 14s
+  hgb: fitted, 2s
+  lgbm   held-out AUC 0.914, threshold 0.523
+  rf     held-out AUC 0.909, threshold 0.466
+  hgb    held-out AUC 0.913, threshold 0.498
+  mean3  held-out AUC 0.914, threshold 0.496
+OCR around 4 new stops ...
+  12s
+
+filter      AUC  clicks    real   found   whole    real   found
+lgbm      0.914    1832   77.0%   45.3%    1508   77.5%   45.2%
+rf        0.909    1889   76.1%   46.2%    1553   77.0%   46.3%
+hgb       0.913    1902   75.9%   46.4%    1550   76.7%   46.0%
+mean3     0.914    1878   76.7%   46.3%    1540   77.3%   46.1%

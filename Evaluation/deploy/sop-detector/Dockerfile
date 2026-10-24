@@ -21,6 +21,9 @@ RUN pip install --no-cache-dir -r requirements.txt \
 
 COPY context/ /app/
 
+# Every fitted model comes from this one file (detector/model_file.py).
+ENV SOP_DETECTOR_PKL=/app/models/sop_detector.pkl
+
 # Download the OCR, YOLO and ResNet weights now, so a task starts without the internet,
 # and fail the build if any model does not load.
 RUN python warmup.py

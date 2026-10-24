@@ -31,8 +31,12 @@ def typing_steps(video: Path, progress=lambda pct, stage: None) -> dict:
     import joblib
     from v2k import sop_detector as sd
     from v2k.frames import Extractors, extract_video
-    bundle = joblib.load(RANKERS)
-    app_bundle = joblib.load(sd.stage1_path(bundle))
+    from detector import model_file
+    if model_file.PKL:                       # the one-file deployment (detector/model_file.py)
+        bundle, app_bundle = model_file.load()["typing"], model_file.load()["stage1"]
+    else:
+        bundle = joblib.load(RANKERS)
+        app_bundle = joblib.load(sd.stage1_path(bundle))
     progress(5, "reading the screen (OCR, one frame per second)")
     ex = Extractors(with_cnn="cnn" in app_bundle["blocks"])
     if FAST_OCR:

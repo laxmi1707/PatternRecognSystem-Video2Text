@@ -94,7 +94,10 @@ To stop paying, use either:
 
 ## Updating
 
-Rebuild and push with the same tag, then restart the service:
+The image takes every fitted model from one file, `Evaluation/models/sop_detector.pkl`
+(`SOP_DETECTOR_PKL`). After retraining, write a new one with
+`python -m detector.model_file build Evaluation/models/<new name>.pkl`, point `build.sh`
+at it, then rebuild and push with the same tag and restart the service:
 
 ```bash
 aws ecs update-service --cluster video2text-sop-detector \

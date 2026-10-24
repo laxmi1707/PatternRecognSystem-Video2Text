@@ -275,6 +275,21 @@ python -m detector path/to/recording.mp4 --out steps.json      # typing + clicks
 - `clicks.py` finds the pointer, its stops and the click steps;
 - `pipeline.py` merges both.
 
+**All four fitted models are in one pickle, `models/sop_detector.pkl`** (39 MB): the
+stage-1 application model (run_029), the typing ranker bundle (run_040), the click
+filter (`cache/reaction_lgbm_v2.pkl`) and the pointer CNN's weights as numpy arrays.
+`pickle.load` returns a dict (scikit-learn, LightGBM and numpy needed; torch is not).
+With `SOP_DETECTOR_PKL=models/sop_detector.pkl` the detector loads everything from it;
+the container does. On a test video the steps, scores and application confidence are
+identical to loading the four files. Rebuild it after retraining with
+`python -m detector.model_file build <new file>`; `show` lists what is inside.
+
+**One model per step, or an ensemble?** The typing ranker already averages two
+(per-application and pooled). For the click filter, `reaction_ensemble_v1.py` averaged
+LightGBM, a random forest and gradient boosting, thresholded the same way: held-out AUC
+0.914, the same as LightGBM alone, and the whole SOP 77.3% real / 46.1% found against
+77.5% / 45.2% - a different threshold, not a better filter - so LightGBM stays.
+
 The service, the stand-in backend and the container use only this package (with the
 `v2k` harness under it). The numbered scripts around it are the research that built and
 scored it, kept as they were run. `bare_sop_v2.py` is the same detector written against

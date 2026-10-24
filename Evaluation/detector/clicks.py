@@ -66,8 +66,12 @@ def _net():
 
 def load_pointer_model(path: Path = POINTER_MODEL):
     import torch
+    from detector import model_file
     m = _net()
-    m.load_state_dict(torch.load(path, map_location="cpu"))
+    if model_file.PKL and path == POINTER_MODEL:      # the one-file deployment (detector/model_file.py)
+        m.load_state_dict({k: torch.from_numpy(v) for k, v in model_file.load()["pointer_cnn"].items()})
+    else:
+        m.load_state_dict(torch.load(path, map_location="cpu"))
     m.eval()
     return m
 
@@ -215,7 +219,11 @@ def pointer_features(frames: list, st: list, W: float, H: float, fps: float = FP
 def load_reaction_model(path: Path = REACTION_MODEL):
     """(score function on the 17 features, threshold). An older file - the 8-feature
     LightGBM, or bare_sop_v2's (scaler, logistic, threshold) tuple - scores the first 8."""
-    saved = pickle.loads(path.read_bytes())
+    from detector import model_file
+    if model_file.PKL and path == REACTION_MODEL:
+        saved = model_file.load()["reaction"]
+    else:
+        saved = pickle.loads(path.read_bytes())
     if isinstance(saved, dict):
         model, n = saved["model"], len(saved.get("features", range(8)))
         return (lambda X: model.predict_proba(X[:, :n])[:, 1]), saved["threshold"]
