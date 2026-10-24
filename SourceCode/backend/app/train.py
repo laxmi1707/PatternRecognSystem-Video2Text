@@ -55,6 +55,11 @@ def main() -> None:
         help="Skip feature extraction and load cached X_train/X_test/y_train/y_test from --model-dir. "
              "Use after label or model changes when feature extraction code is unchanged."
     )
+    parser.add_argument(
+        "--models", nargs="+", default=None,
+        help="Train only these named models (e.g. --models random_forest xgboost transformer stacking). "
+             "If omitted, all registered models are trained."
+    )
     args = parser.parse_args()
 
     model_dir = Path(args.model_dir)
@@ -200,6 +205,13 @@ def main() -> None:
     model_dir = Path(args.model_dir)
     model_dir.mkdir(parents=True, exist_ok=True)
     model_names = ml_service.list_models()
+    if args.models:
+        requested = set(args.models)
+        model_names = [m for m in model_names if m in requested]
+        missing = requested - set(model_names)
+        if missing:
+            logger.warning(f"Requested models not found in registry: {missing}")
+        logger.info(f"Filtering to {len(model_names)} requested models: {model_names}")
     total_models = len(model_names)
     logger.info(f"Phase 3/3: Training {total_models} models...")
     results = []

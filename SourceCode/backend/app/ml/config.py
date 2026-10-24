@@ -15,6 +15,10 @@ ACTIVITY_LABELS = [
     "terminal_ops",      # shell commands, file system, process management
     "system_config",     # settings, preferences, themes, permissions, packages
     "web_browsing",      # browser navigation, search, bookmarks
+    "diagram_design",    # draw.io, Inkscape, Miro, Visio, Excalidraw
+    "media_editing",     # OpenShot, Kdenlive, Audacity, Blender, video/audio tools
+    "file_management",   # Nautilus, Dolphin, file manager operations
+    "image_editing",     # GIMP, Krita, Darktable, photo/raster editing
     "other",
 ]
 
