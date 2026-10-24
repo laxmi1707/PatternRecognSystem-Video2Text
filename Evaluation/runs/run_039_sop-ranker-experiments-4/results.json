@@ -1,0 +1,234 @@
+{
+  "n_candidates": 515941,
+  "n_targets": 1690,
+  "n_apps": 61,
+  "D": {
+    "name": "per-application rankers, 32 features (shipped)",
+    "rows": [
+      {
+        "threshold": 0.3,
+        "steps": 1352,
+        "precision": 0.3942307692307692,
+        "recall": 0.3153846153846154
+      },
+      {
+        "threshold": 0.5,
+        "steps": 882,
+        "precision": 0.5056689342403629,
+        "recall": 0.263905325443787
+      }
+    ]
+  },
+  "H": {
+    "name": "per-application rankers, 32 + 12 new features",
+    "rows": [
+      {
+        "threshold": 0.3,
+        "steps": 1474,
+        "precision": 0.46675712347354137,
+        "recall": 0.40710059171597635
+      },
+      {
+        "threshold": 0.5,
+        "steps": 983,
+        "precision": 0.5676500508646999,
+        "recall": 0.3301775147928994
+      }
+    ]
+  },
+  "I": {
+    "name": "one pooled ranker, 32 + 12 new features",
+    "rows": [
+      {
+        "threshold": 0.3,
+        "steps": 1916,
+        "precision": 0.41597077244258873,
+        "recall": 0.47159763313609465
+      },
+      {
+        "threshold": 0.5,
+        "steps": 1083,
+        "precision": 0.541089566020314,
+        "recall": 0.3467455621301775
+      }
+    ]
+  },
+  "importance_I": [
+    [
+      "n_cands",
+      969.0
+    ],
+    [
+      "x_norm",
+      688.6
+    ],
+    [
+      "n_reads",
+      635.6
+    ],
+    [
+      "born_with",
+      575.2
+    ],
+    [
+      "text_score",
+      534.2
+    ],
+    [
+      "start_rel",
+      528.8
+    ],
+    [
+      "y_norm",
+      460.6
+    ],
+    [
+      "rel_life",
+      447.4
+    ],
+    [
+      "new_frac",
+      432.8
+    ],
+    [
+      "ts_rank",
+      335.6
+    ],
+    [
+      "y_rank",
+      321.2
+    ],
+    [
+      "n_new",
+      304.0
+    ],
+    [
+      "n_same_row",
+      290.2
+    ],
+    [
+      "max_word",
+      261.0
+    ],
+    [
+      "final_len",
+      250.4
+    ],
+    [
+      "frac_upper",
+      246.6
+    ],
+    [
+      "frames_growing",
+      234.0
+    ],
+    [
+      "conf_mean",
+      230.4
+    ],
+    [
+      "frac_alpha",
+      215.6
+    ],
+    [
+      "conf_min",
+      160.2
+    ],
+    [
+      "frac_punct",
+      146.6
+    ],
+    [
+      "frac_digit",
+      137.8
+    ],
+    [
+      "frac_titleword",
+      90.6
+    ],
+    [
+      "seen_before",
+      88.8
+    ],
+    [
+      "n_words",
+      72.2
+    ],
+    [
+      "starts_lower",
+      52.0
+    ],
+    [
+      "after_prompt",
+      45.4
+    ],
+    [
+      "growth_frac",
+      35.4
+    ],
+    [
+      "max_jump",
+      35.4
+    ],
+    [
+      "seen_after",
+      30.2
+    ],
+    [
+      "chars_per_s",
+      24.0
+    ],
+    [
+      "first_is_command",
+      19.0
+    ],
+    [
+      "has_dot",
+      17.2
+    ],
+    [
+      "ends_colon",
+      15.8
+    ],
+    [
+      "growth",
+      15.6
+    ],
+    [
+      "first_before",
+      14.0
+    ],
+    [
+      "has_eq_paren",
+      13.4
+    ],
+    [
+      "distinct_states",
+      12.4
+    ],
+    [
+      "has_path",
+      6.2
+    ],
+    [
+      "is_lowest",
+      2.4
+    ],
+    [
+      "has_flag",
+      2.0
+    ],
+    [
+      "is_formula",
+      1.4
+    ],
+    [
+      "has_space",
+      0.8
+    ],
+    [
+      "screen_life",
+      0.0
+    ]
+  ]
+}

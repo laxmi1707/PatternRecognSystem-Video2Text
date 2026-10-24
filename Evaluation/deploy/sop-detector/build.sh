@@ -20,8 +20,8 @@ CTX="$BUILD/context"
 
 case "$BUILD" in */deploy/sop-detector/build) ;; *) echo "unexpected build dir $BUILD"; exit 1 ;; esac
 rm -rf "$BUILD"
-mkdir -p "$CTX/vendor/main-$SNAPSHOT" "$CTX/runs/run_037_sop-detector" \
-         "$CTX/runs/run_029_appid70/models" "$CTX/cache/demo_v5"
+mkdir -p "$CTX/vendor/main-$SNAPSHOT" "$CTX/runs/run_040_sop-detector-v2" \
+         "$CTX/runs/run_029_appid70/models" "$CTX/cache/demo_v6"
 
 git -C "$REPO" archive "$SNAPSHOT" SourceCode/backend | tar -x -C "$CTX/vendor/main-$SNAPSHOT"
 
@@ -31,10 +31,10 @@ cp "$EVAL/sop_detector_service.py" "$CTX/"
 cp -r "$EVAL/detector" "$CTX/detector"
 cp -r "$EVAL/v2k" "$CTX/v2k"
 rm -rf "$CTX/detector/__pycache__" "$CTX/v2k/__pycache__"
-cp "$EVAL/runs/run_037_sop-detector/sop_detector.joblib" "$CTX/runs/run_037_sop-detector/"
+cp "$EVAL/runs/run_040_sop-detector-v2/sop_detector.joblib" "$CTX/runs/run_040_sop-detector-v2/"
 cp "$EVAL/runs/run_029_appid70/models/ocr_native+ui+visual+cnn__mlp.joblib" "$CTX/runs/run_029_appid70/models/"
 cp "$EVAL/cache/pointer_cnn_v1.pt" "$EVAL/cache/reaction_lgbm_v2.pkl" "$CTX/cache/"
-cp "$EVAL/cache/demo_v5/"*.json "$CTX/cache/demo_v5/"
+cp "$EVAL/cache/demo_v6/"*.json "$CTX/cache/demo_v6/"
 cp "$HERE/requirements.txt" "$HERE/warmup.py" "$CTX/"
 cp "$HERE/Dockerfile" "$BUILD/"
 

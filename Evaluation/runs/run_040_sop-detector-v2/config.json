@@ -1,0 +1,68 @@
+{
+  "design": "runs/run_039_sop-ranker-experiments-4",
+  "threshold": 0.5,
+  "per_app_rankers": 60,
+  "n_rows": 515941,
+  "importance": [
+    [
+      "n_cands",
+      942
+    ],
+    [
+      "x_norm",
+      718
+    ],
+    [
+      "n_reads",
+      636
+    ],
+    [
+      "born_with",
+      592
+    ],
+    [
+      "start_rel",
+      575
+    ],
+    [
+      "text_score",
+      531
+    ],
+    [
+      "rel_life",
+      493
+    ],
+    [
+      "y_norm",
+      460
+    ],
+    [
+      "new_frac",
+      420
+    ],
+    [
+      "ts_rank",
+      327
+    ],
+    [
+      "n_new",
+      301
+    ],
+    [
+      "y_rank",
+      284
+    ],
+    [
+      "max_word",
+      268
+    ],
+    [
+      "final_len",
+      256
+    ],
+    [
+      "n_same_row",
+      254
+    ]
+  ]
+}

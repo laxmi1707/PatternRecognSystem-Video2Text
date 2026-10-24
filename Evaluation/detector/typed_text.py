@@ -4,10 +4,12 @@
        full resolution, UI detector, visual features, ResNet embedding).
     2. Name the application from those frames (run_029's stage-1 model).
     3. Keep OCR text that grows at the same place from frame to frame (a field being
-       typed into), and score each candidate with that application's ranker (run_037);
-       the ones above threshold, deduplicated, are "Type" steps.
+       typed into), and score each candidate with the mean of that application's ranker
+       and a pooled one (run_040; design and out-of-fold scores in run_039); the ones
+       above threshold, deduplicated, are "Type" steps.
 
-The heavy lifting is in v2k.sop_detector, which also trains and evaluates the rankers.
+The heavy lifting is in v2k.sop_detector and v2k.sop_extras, which also train and
+evaluate the rankers. A run_037 bundle (version 1) still loads, through sop_detector.
 """
 from __future__ import annotations
 
@@ -15,7 +17,7 @@ from pathlib import Path
 
 from v2k.env import RUNS
 
-RANKERS = RUNS / "run_037_sop-detector" / "sop_detector.joblib"
+RANKERS = RUNS / "run_040_sop-detector-v2" / "sop_detector.joblib"
 
 
 def typing_steps(video: Path, progress=lambda pct, stage: None) -> dict:
@@ -31,7 +33,11 @@ def typing_steps(video: Path, progress=lambda pct, stage: None) -> dict:
                                    native_ocr=True, parity_ocr="ocr" in app_bundle["blocks"])
     record.update(task_id=0, app="(input)", platform="", instruction="", keyword_label="")
     progress(28, "identifying the application and filtering typed text")
-    res = sd.detect(bundle, arrays, record, None, app_bundle)
+    if bundle.get("version") == 2:           # run_040 on: the round-4 ranker (v2k/sop_extras.py)
+        from v2k import sop_extras
+        res = sop_extras.detect(bundle, arrays, record, None, app_bundle)
+    else:
+        res = sd.detect(bundle, arrays, record, None, app_bundle)
     res["duration"] = (record.get("video") or {}).get("duration_seconds")
     res["steps"] = [{"t": round(s["time"], 2), "action": "Type", "text": s["text"], "score": round(s["score"], 3)}
                     for s in res["steps"]]

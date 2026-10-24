@@ -219,6 +219,34 @@ links to the video. With them (`combined_sop_v9.py`, shipped):
 | Chance: random time and place | 0.2% | 0.1% |
 | Chance: random picks among the candidates | 28.3% | 16.7% |
 
+**Typing: how the text arrived.** Most typed strings the ranker missed never grow
+between two sampled frames: the whole string arrives at once and looks like any label.
+`v2k/sop_extras.py` adds 11 features from the frames - how many other new lines arrived
+in the same second (a new page brings many, typing one), whether the string was on
+screen before, how it grew - and the text score's rank in its recording. A candidate's
+score is now the mean of its application's ranker and one pooled ranker
+(`sop_ranker_experiments_v4.py`, `runs/run_039`; out of fold over the same 6,716
+recordings, threshold 0.5):
+
+| | precision | recall |
+|---|---|---|
+| run_037, 32 features, per application (before) | 50.6% | 26.4% |
+| + 8 features on how the string arrived (`sop_ranker_experiments_v3.py`, run_038) | 52.4% | 26.6% |
+| + 3 on what arrived with it, per application (run_039) | 56.8% | 33.0% |
+| **… mean of per-application and pooled ranker (shipped, `runs/run_040`)** | **66.2%** | **31.2%** |
+
+With it (`combined_sop_v10.py`, shipped):
+
+| | Real steps | Steps found |
+|---|---|---|
+| Typing, the 720 recordings (197 typed strings) | 68.1% | 32.5% (before: 47.4% / 27.4%) |
+| Whole SOP, 720 recordings of 61 applications | **77.5%** | **45.2%** |
+| Chance: random time and place | 0.2% | 0.1% |
+| Chance: random picks among the candidates | 28.7% | 16.7% |
+
+`train_typing_v2.py` fits the shipped bundle; `detector/typed_text.py` loads it, and a
+run_037 bundle still loads through `v2k/sop_detector.py`.
+
 ### The whole detector on one video
 
 ```

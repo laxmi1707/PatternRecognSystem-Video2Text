@@ -1,0 +1,72 @@
+clicks, 974 held-out recordings of 87 applications (3113 clicks): 1832 steps (611 on icons), 77.0% real, 45.3% found, right name 77.6% of 745
+typing: run_039, mean of per-application and pooled rankers, threshold 0.5
+
+whole SOP, 720 recordings of 61 applications; logged 2388 clicks, 197 typed, 3188 steps in all
+  clicks   1414 steps  78.1% real  46.2% found
+  typing     94 steps  68.1% real  32.5% found
+  whole    1508 steps  77.5% real  45.2% found  (36.6% of every logged step)
+  baseline random            0.2% real  0.1% found
+  baseline random candidate  28.7% real  16.7% found
+
+by application: steps / real / found
+  Komodo Edit                    30   90.0%   71.1%
+  Lemmy                          27   92.6%   69.4%
+  DuckDuckGo                     29   69.0%   69.0%
+  OpenToonz                      28   75.0%   65.6%
+  Spyder                         25   72.0%   64.3%
+  OnlyOffice Calendar            33   90.9%   58.8%
+  Audacity                       30   90.0%   58.7%
+  Metabase                       38   81.6%   57.4%
+  Bash                           14   57.1%   57.1%
+  LibreOffice Draw               24   66.7%   57.1%
+  Gedit                          28   89.3%   56.8%
+  Zotero                         27   96.3%   56.5%
+  WeKan                          28  100.0%   56.0%
+  WordPress                      44   70.5%   53.4%
+  Affine                         23   78.3%   52.9%
+  Ubuntu Terminal                12   75.0%   52.9%
+  Frappe Books                   93   81.7%   52.8%
+  QGIS                           41   80.5%   52.4%
+  Inkscape                       18   72.2%   52.0%
+  Geany                          18   88.9%   51.6%
+  Eclipse                        45   82.2%   51.4%
+  LibreOffice Impress            27   88.9%   51.1%
+  OpenProject                    34   82.4%   50.9%
+  Chromium                       19   84.2%   50.0%
+  PyCharm                        21   81.0%   48.6%
+  IntelliJ IDEA                  17   94.1%   48.5%
+  Atom                           19   73.7%   48.3%
+  MuseScore                      25   72.0%   47.4%
+  Brackets                       19   84.2%   47.1%
+  Zulip                          22   63.6%   46.7%
+  Veusz                          58   87.9%   46.4%
+  KDevelop                       17   94.1%   45.7%
+  Cryptomator                    31   83.9%   45.6%
+  Anki                           37   78.4%   45.3%
+  NetBeans                       15   86.7%   44.8%
+  OpenShot                       17   64.7%   44.0%
+  FreeCAD                        28   71.4%   43.5%
+  LibreOffice Calc               24   66.7%   43.2%
+  GNU Octave                      9   66.7%   42.9%
+  Jitsi                          21   57.1%   41.4%
+  Blender                        22   63.6%   41.2%
+  Matrix                         25   72.0%   40.9%
+  7-Zip                          17   88.2%   40.5%
+  Mozilla Firefox                21   71.4%   40.5%
+  OnlyOffice Document Editor     32   75.0%   40.0%
+  Scribus                        36   77.8%   40.0%
+  Shotcut                        15   53.3%   40.0%
+  draw.io                        21   85.7%   38.3%
+  Bluefish                       12   66.7%   36.4%
+  GnuCash                        19   84.2%   35.6%
+  Signal                         17   82.4%   33.3%
+  OnlyOffice Spreadsheet         22   50.0%   32.4%
+  OpenBoard                      18   66.7%   30.8%
+  Code__Blocks                   15   86.7%   30.2%
+  Krita                          15   53.3%   25.8%
+  LibreOffice Writer             16   87.5%   24.6%
+  VSCode                         12   58.3%   24.1%
+  Arduino IDE                    12   50.0%   24.0%
+  OnlyOffice Presentation        19   57.9%   22.0%
+  Bitwarden                      15   40.0%   16.2%
+  OnlyOffice PDF Forms           12   33.3%    6.3%

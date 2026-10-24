@@ -1,0 +1,222 @@
+{
+  "n_candidates": 515941,
+  "n_targets": 1690,
+  "n_apps": 61,
+  "D": {
+    "name": "per-application rankers, 32 features (shipped)",
+    "rows": [
+      {
+        "threshold": 0.3,
+        "steps": 1352,
+        "precision": 0.3942307692307692,
+        "recall": 0.3153846153846154
+      },
+      {
+        "threshold": 0.5,
+        "steps": 882,
+        "precision": 0.5056689342403629,
+        "recall": 0.263905325443787
+      }
+    ]
+  },
+  "H": {
+    "name": "per-application rankers, 32 + 9 new features",
+    "rows": [
+      {
+        "threshold": 0.3,
+        "steps": 1278,
+        "precision": 0.42566510172143973,
+        "recall": 0.32189349112426036
+      },
+      {
+        "threshold": 0.5,
+        "steps": 858,
+        "precision": 0.5244755244755245,
+        "recall": 0.26627218934911245
+      }
+    ]
+  },
+  "I": {
+    "name": "one pooled ranker, 32 + 9 new features",
+    "rows": [
+      {
+        "threshold": 0.3,
+        "steps": 1379,
+        "precision": 0.36548223350253806,
+        "recall": 0.2982248520710059
+      },
+      {
+        "threshold": 0.5,
+        "steps": 805,
+        "precision": 0.4670807453416149,
+        "recall": 0.22248520710059172
+      }
+    ]
+  },
+  "importance_I": [
+    [
+      "n_cands",
+      1228.2
+    ],
+    [
+      "x_norm",
+      832.2
+    ],
+    [
+      "start_rel",
+      702.0
+    ],
+    [
+      "n_reads",
+      655.2
+    ],
+    [
+      "rel_life",
+      643.0
+    ],
+    [
+      "text_score",
+      579.0
+    ],
+    [
+      "y_norm",
+      508.8
+    ],
+    [
+      "y_rank",
+      413.0
+    ],
+    [
+      "ts_rank",
+      404.0
+    ],
+    [
+      "frames_growing",
+      338.2
+    ],
+    [
+      "frac_upper",
+      304.8
+    ],
+    [
+      "n_same_row",
+      283.8
+    ],
+    [
+      "final_len",
+      268.8
+    ],
+    [
+      "max_word",
+      266.2
+    ],
+    [
+      "conf_mean",
+      260.0
+    ],
+    [
+      "frac_alpha",
+      230.6
+    ],
+    [
+      "conf_min",
+      188.6
+    ],
+    [
+      "frac_punct",
+      143.6
+    ],
+    [
+      "frac_digit",
+      130.6
+    ],
+    [
+      "frac_titleword",
+      113.0
+    ],
+    [
+      "n_words",
+      77.0
+    ],
+    [
+      "seen_before",
+      71.0
+    ],
+    [
+      "starts_lower",
+      62.2
+    ],
+    [
+      "after_prompt",
+      44.8
+    ],
+    [
+      "growth_frac",
+      39.8
+    ],
+    [
+      "max_jump",
+      30.8
+    ],
+    [
+      "seen_after",
+      26.0
+    ],
+    [
+      "ends_colon",
+      25.8
+    ],
+    [
+      "chars_per_s",
+      25.6
+    ],
+    [
+      "first_is_command",
+      18.0
+    ],
+    [
+      "has_eq_paren",
+      17.6
+    ],
+    [
+      "growth",
+      15.2
+    ],
+    [
+      "first_before",
+      14.2
+    ],
+    [
+      "has_dot",
+      13.2
+    ],
+    [
+      "distinct_states",
+      9.8
+    ],
+    [
+      "has_path",
+      9.0
+    ],
+    [
+      "is_formula",
+      2.8
+    ],
+    [
+      "has_flag",
+      2.0
+    ],
+    [
+      "has_space",
+      1.2
+    ],
+    [
+      "is_lowest",
+      0.4
+    ],
+    [
+      "screen_life",
+      0.0
+    ]
+  ]
+}
