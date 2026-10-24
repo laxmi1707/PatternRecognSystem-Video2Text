@@ -247,6 +247,12 @@ With it (`combined_sop_v10.py`, shipped):
 `train_typing_v2.py` fits the shipped bundle; `detector/typed_text.py` loads it, and a
 run_037 bundle still loads through `v2k/sop_detector.py`.
 
+These typing scores read the screen at the logged actions' moments, as the frame cache
+does. `bare_check_v2.py` re-reads 16 held-out recordings once a second, as an upload is
+read, with both designs retrained without them (19 typed strings): old 40.0% real /
+42.1% found, new 50.0% / 42.1% (log-timed frames: 80.0% / 42.1% and 88.9% / 42.1%).
+Log: `runs/run_040_sop-detector-v2/bare_check_v2.log`.
+
 ### The whole detector on one video
 
 ```

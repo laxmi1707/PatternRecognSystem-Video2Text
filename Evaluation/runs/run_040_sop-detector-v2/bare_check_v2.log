@@ -1,0 +1,41 @@
+16 held-out recordings with logged typing, 16 applications
+  extracted Bash/111528: 11 frames in 206s
+  extracted Komodo Edit/53578: 33 frames in 404s
+  extracted Brackets/76419: 20 frames in 274s
+  extracted Zotero/101219: 18 frames in 237s
+  extracted OnlyOffice PDF Forms/102947: 29 frames in 406s
+  extracted Cryptomator/55899: 26 frames in 517s
+  extracted Frappe Books/158207: 61 frames in 378s
+  extracted GNU Octave/159629: 34 frames in 419s
+  extracted OnlyOffice Spreadsheet/70048: 36 frames in 512s
+  extracted Chromium/105048: 24 frames in 267s
+  extracted GnuCash/67288: 17 frames in 120s
+  extracted LibreOffice Draw/90298: 29 frames in 96s
+  extracted PyCharm/52989: 31 frames in 151s
+  extracted Veusz/158447: 115 frames in 495s
+  extracted LibreOffice Writer/69747: 28 frames in 98s
+training both designs without them: 1757 of 515941 candidates left out
+
+recording                      typed   cache old/new   bare old/new   (right/steps)
+OnlyOffice Calendar/69579          1     0/0   0/0       0/0   0/0  
+Bash/111528                        1     1/1   1/1       1/1   1/1  
+Komodo Edit/53578                  1     0/0   1/1       0/0   1/1  
+Brackets/76419                     1     0/0   0/0       0/0   0/0  
+Zotero/101219                      1     1/1   1/1       1/1   1/1  
+OnlyOffice PDF Forms/102947        2     0/0   0/0       0/0   1/1  
+Cryptomator/55899                  1     1/2   1/2       1/2   1/1  
+Frappe Books/158207                2     1/1   0/0       2/4   0/2  
+GNU Octave/159629                  1     1/1   1/1       1/4   1/3  
+OnlyOffice Spreadsheet/70048       1     1/1   1/1       0/1   0/2  
+Chromium/105048                    1     1/2   1/1       1/5   1/3  
+GnuCash/67288                      1     0/0   0/0       0/0   0/0  
+LibreOffice Draw/90298             1     0/0   0/0       0/0   0/0  
+PyCharm/52989                      1     0/0   0/0       0/0   0/0  
+Veusz/158447                       2     1/1   1/1       1/2   1/1  
+LibreOffice Writer/69747           1     0/0   0/0       0/0   0/0  
+
+19 logged typed strings
+  cache old    10 steps   80.0% real   42.1% found
+  cache new     9 steps   88.9% real   42.1% found
+  bare  old    20 steps   40.0% real   42.1% found
+  bare  new    16 steps   50.0% real   42.1% found
