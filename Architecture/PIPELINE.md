@@ -134,10 +134,10 @@ Default location (`app/config.py`, overridable by env var):
 | Setting | Default |
 |---------|---------|
 | `MODEL_S3_BUCKET` | `video2knowledge-dev-model-artifacts-984263476980` |
-| `MODEL_S3_PREFIX` | `models/v1` |
+| `MODEL_S3_PREFIX` | `models/v2` |
 | `MODEL_S3_REGION` | `ap-southeast-1` |
 
-i.e. `s3://video2knowledge-dev-model-artifacts-984263476980/models/v1/<name>.pkl` (+ `<name>.sha256`).
+i.e. `s3://video2knowledge-dev-model-artifacts-984263476980/models/v2/<name>.pkl` (+ `<name>.sha256`).
 Set `MODEL_S3_BUCKET=` (empty) to skip S3. See `Architecture/MODEL_ARTIFACTS.md`.
 
 ## 5. Frontend (`SourceCode/frontend/src`)

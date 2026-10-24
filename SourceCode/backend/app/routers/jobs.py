@@ -2,7 +2,9 @@ from collections import defaultdict
 from pathlib import Path
 
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db, async_session
@@ -12,6 +14,7 @@ from app.services import job_service, video_service
 from app.services.classification_service import run_classification_job
 
 router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 def _build_model_comparison(results) -> tuple[list[ModelSummary], str | None]:
@@ -74,7 +77,8 @@ async def _run_pipeline_background(job_id: int, video_path: Path | None, action_
 
 
 @router.post("/{job_id}/run")
-async def run_job(job_id: int, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def run_job(request: Request, job_id: int, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     job = await job_service.get_job(db, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")

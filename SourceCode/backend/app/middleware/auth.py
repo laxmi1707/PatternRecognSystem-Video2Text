@@ -8,6 +8,8 @@ _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
 async def verify_api_key(api_key: str | None = Security(_api_key_header)) -> str:
+    if not settings.api_key:
+        return "dev-mode"
     if not api_key or api_key != settings.api_key:
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
     return api_key

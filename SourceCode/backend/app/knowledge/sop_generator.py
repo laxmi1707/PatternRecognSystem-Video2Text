@@ -146,29 +146,42 @@ _TERMINAL_COMMANDS: set[str] = {
 }
 
 
+_UI_NOISE_PATTERN = re.compile(
+    r"\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Activities|Terminal|"
+    r"Applications|Places|System|Files|Settings|Monday|Tuesday|Wednesday|Thursday|"
+    r"Friday|Saturday|Sunday)\b"
+)
+
+
 def _extract_terminal_command(text: str) -> str:
     """Extract shell commands from OCR text of terminal segments."""
     if not text:
         return ""
-    # Split on shell prompt markers ($ or #) to isolate commands
-    # Works for: "user@host:~$ cmd", ":-$ cmd", "$ cmd"
     candidates = re.split(r"[$#]\s+", text)
 
     best_cmd = ""
-    for candidate in candidates[1:]:  # skip text before first prompt
-        # Take only up to the next prompt artifact or newline
+    best_is_known = False
+    for candidate in candidates[1:]:
         candidate = re.split(r"\n|\s{3,}", candidate)[0].strip()
-        # Truncate at user@host pattern (allow spaces around @ from OCR errors)
-        user_at = re.search(r"\s+\S+\s*@\s*\S+", candidate)
+        user_at = re.search(r"[\s;]\S+\s*@\s*\S+", candidate)
         if user_at:
             candidate = candidate[:user_at.start()].strip()
-        if not candidate:
+        if not candidate or len(candidate) < 3:
+            continue
+        if _UI_NOISE_PATTERN.search(candidate):
             continue
         tokens = candidate.split()
+        if len(tokens) > 10:
+            continue
         first = tokens[0].lower().lstrip("'\"") if tokens else ""
-        if first in _TERMINAL_COMMANDS and len(candidate) > len(first):
-            if len(candidate) > len(best_cmd):
-                best_cmd = candidate[:120]
+        is_known = first in _TERMINAL_COMMANDS and len(candidate) > len(first)
+        # Prefer known commands, but accept any text after $ or # prompt
+        if is_known and not best_is_known:
+            best_cmd = candidate[:80]
+            best_is_known = True
+        elif is_known == best_is_known and len(candidate) > len(best_cmd):
+            best_cmd = candidate[:80]
+            best_is_known = is_known
 
     return best_cmd
 
@@ -268,21 +281,9 @@ class SOPGenerator:
         # 1. Collect raw OCR for whole-document keyword/platform detection
         all_raw_ocr = " ".join(ocr_texts).lower()
 
-        # 2. Clean OCR text for each segment (for display only)
-        cleaned_ocr = [_clean_ocr(t) for t in ocr_texts]
-
-        # 3. Merge consecutive same-label segments
-        merged_segs, merged_ocr = _merge_consecutive_segments(segments, cleaned_ocr)
-        # Keep raw OCR per merged segment for keyword matching (cleaned loses multi-word phrases)
-        merged_raw_ocr: list[str] = []
-        n = len(segments)
-        i_raw = 0
-        for seg in merged_segs:
-            parts = []
-            while i_raw < n and segments[i_raw].get("start_time", 0) < seg.get("end_time", 9999):
-                parts.append(ocr_texts[i_raw])
-                i_raw += 1
-            merged_raw_ocr.append(" ".join(parts))
+        # 2. Use each segment as its own step (no merging — preserves time ranges)
+        merged_segs = segments
+        merged_raw_ocr = list(ocr_texts)
 
         # 4. Detect platform from OCR (overrides "Screen Recording" fallback)
         detected_platform = platform
