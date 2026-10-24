@@ -17,7 +17,7 @@ from app.services import video_service
 router = APIRouter(prefix="/api/v1/videos", tags=["videos"])
 limiter = Limiter(key_func=get_remote_address)
 
-MAX_FILE_SIZE = 500 * 1024 * 1024  # 500 MB
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 MAX_ACTION_LOG_SIZE = 10 * 1024 * 1024  # 10 MB
 CHUNK_SIZE = 64 * 1024  # 64 KB
 ALLOWED_CONTENT_TYPES = {"video/mp4", "video/quicktime", "video/webm", "video/x-msvideo", "application/octet-stream"}
@@ -64,7 +64,7 @@ async def upload_video(
             if total_size > MAX_FILE_SIZE:
                 await f.close()
                 file_path.unlink(missing_ok=True)
-                raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)} MB")
+                raise HTTPException(status_code=413, detail=f"File too large. Maximum allowed size is {MAX_FILE_SIZE // (1024*1024)} MB")
             await f.write(chunk)
 
     action_log_path_str: str | None = None
