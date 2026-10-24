@@ -13,11 +13,17 @@ evaluate the rankers. A run_037 bundle (version 1) still loads, through sop_dete
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from v2k.env import RUNS
 
 RANKERS = RUNS / "run_040_sop-detector-v2" / "sop_detector.joblib"
+# SOP_DETECTOR_FAST_OCR=1 reads only what changed since the previous frame
+# (detector/fast_ocr.py): 5.7x faster reading on 16 held-out recordings, but 10 of 19
+# logged typed strings found against 12 with full reads (ocr_fast_eval_v2.py), so it
+# is off by default.
+FAST_OCR = os.environ.get("SOP_DETECTOR_FAST_OCR") == "1"
 
 
 def typing_steps(video: Path, progress=lambda pct, stage: None) -> dict:
@@ -29,6 +35,9 @@ def typing_steps(video: Path, progress=lambda pct, stage: None) -> dict:
     app_bundle = joblib.load(sd.stage1_path(bundle))
     progress(5, "reading the screen (OCR, one frame per second)")
     ex = Extractors(with_cnn="cnn" in app_bundle["blocks"])
+    if FAST_OCR:
+        from detector.fast_ocr import IncrementalOCR
+        ex.ocr = IncrementalOCR(ex.ocr)
     arrays, record = extract_video(video, [], ex, grid=False, grid_ocr=False,
                                    native_ocr=True, parity_ocr="ocr" in app_bundle["blocks"])
     record.update(task_id=0, app="(input)", platform="", instruction="", keyword_label="")

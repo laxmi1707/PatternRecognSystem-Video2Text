@@ -253,6 +253,16 @@ read, with both designs retrained without them (19 typed strings): old 40.0% rea
 42.1% found, new 50.0% / 42.1% (log-timed frames: 80.0% / 42.1% and 88.9% / 42.1%).
 Log: `runs/run_040_sop-detector-v2/bare_check_v2.log`.
 
+**Fast mode (off by default).** Reading the screen once a second is almost all of a new
+video's time. `detector/fast_ocr.py` re-reads only the screen bands that changed since
+the previous frame and keeps the rest; `SOP_DETECTOR_FAST_OCR=1` turns it on. On the same
+16 held-out recordings (`ocr_fast_eval_v2.py`, full reads from `bare_check_v2.py`),
+reading took 4,798 s with full reads and 844 s with fast mode (5.7x), and 9 of 16
+recordings gave identical typed steps. It found 10 of the 19 logged typed strings
+against 12 (50% real against 57%): the ranker was trained on full reads, whose text
+flickers from frame to frame, and steadier reads change when a string seems to appear.
+So full reads stay the default. Log: `runs/run_040_sop-detector-v2/ocr_fast_eval_v2.log`.
+
 ### The whole detector on one video
 
 ```

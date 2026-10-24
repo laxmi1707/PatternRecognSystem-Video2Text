@@ -1,0 +1,57 @@
+OnlyOffice Calendar/69579      full   218s  fast    29s (4 full, 11 partial, 1 reused)  steps 1->1 same  right 1->1 of 1
+Bash/111528                    full   206s  fast    23s (1 full, 7 partial, 3 reused)  steps 1->1 same  right 1->1 of 1
+Komodo Edit/53578              full     0s  fast    50s (4 full, 25 partial, 4 reused)  steps 1->0 CHANGED  right 1->0 of 1
+    logged: ['.txt']
+    full:   [(19, 'txt', 0.51)]
+    fast:   []
+    candidates only in full: [(4, 'documents'), (4, 'saveaii'), (6, 'redg'), (10, '0languagehelp'), (10, 'filesaving'), (10, 'printing'), (15, 'makekomodothedefaulteditorfor'), (17, 'and')]
+    candidates only in fast: [(1, 'col'), (1, 'documents'), (1, 'openfiles1'), (1, 'text'), (1, 'txt'), (1, 'users'), (3, 'text1txt'), (4, 'saveail')]
+Brackets/76419                 full   274s  fast    60s (7 full, 12 partial, 1 reused)  steps 1->0 CHANGED  right 1->0 of 1
+    logged: ['true']
+    full:   [(10, 'truel', 0.53)]
+    fast:   []
+    candidates only in full: [(3, 'other'), (3, 'theother'), (3, 'tomodify'), (4, 'bracketseslint'), (4, 'quie'), (6, 'line16cclumn31'), (7, 'line16cclumn28'), (9, 'autoupdate')]
+    candidates only in fast: [(3, 'otherpane'), (3, 'thepreferencessupported'), (3, 'tomodifyyourpreferences'), (3, 'usethisfile'), (4, 'inthe'), (4, 'quickviewenabled'), (5, 'brackets'), (5, 'bracketseslint')]
+Zotero/101219                  full   237s  fast    36s (4 full, 12 partial, 2 reused)  steps 1->1 same  right 1->1 of 1
+OnlyOffice PDF Forms/102947    full     0s  fast    42s (3 full, 22 partial, 4 reused)  steps 1->1 same  right 1->1 of 2
+Cryptomator/55899              full   517s  fast    95s (5 full, 21 partial, 0 reused)  steps 2->2 CHANGED  right 1->1 of 1
+    logged: ['password']
+    full:   [(4, 'Enter password for "test":', 0.83), (4, 'Remember password', 0.65)]
+    fast:   [(4, 'Enter password for "test"', 0.55), (4, 'Remember password', 0.53)]
+    candidates only in full: [(2, 'share'), (3, 'anlock'), (3, 'share'), (15, 'ivolumeshlkqix6dxxrn'), (18, 'write'), (19, '000'), (21, '803'), (24, '303')]
+    candidates only in fast: [(3, 'nnlock'), (4, 'itest'), (6, 'itest'), (7, 'itest'), (13, 'itest'), (17, 'idle'), (17, 'locateencryptedfile'), (17, 'write')]
+Frappe Books/158207            full     0s  fast    70s (14 full, 41 partial, 6 reused)  steps 2->1 CHANGED  right 1->0 of 2
+    logged: ['tele', 'cas']
+    full:   [(38, 'Cash', 0.59), (48, '5 0.00', 0.54)]
+    fast:   [(48, '5 0.00', 0.73)]
+    candidates only in full: [(0, 'activateialindows'), (1, 'addproducisorservicesthatyouselltoyourcustomers'), (1, 'addtaxes'), (1, 'aows'), (1, 'ciuersueerdocumentsfrappebooksgabepiacedooksdo'), (1, 'fewvcustomerst0creaieyourfirstsalesinvoice'), (1, 'reviewaccounts'), (1, 'setupsystemdefaultsiikedateformatanddisplayprecision')]
+    candidates only in fast: [(0, 'activatewindows'), (1, 'activatenindows'), (1, 'addproducis0rservicesthatvouselltoyourcustomers'), (1, 'dows'), (1, 'fewcustomerst0createyourfirstsalesinvoice'), (1, 'reportissue'), (3, 'activatewindows'), (3, 'addproducis')]
+GNU Octave/159629              full     0s  fast    43s (4 full, 21 partial, 9 reused)  steps 4->3 CHANGED  right 1->1 of 1
+    logged: ['solve_quadratic(1, -6, 9)']
+    full:   [(19, 'solve_quadratic(1,', 0.88), (11, 'solvel', 0.81), (19, '-quadraticd', 0.65), (13, 'solve_q4', 0.57)]
+    fast:   [(13, 'solve_quadratic(1,', 0.84), (15, 'quadratil', 0.6), (8, '(resulc)', 0.51)]
+    candidates only in full: [(6, 'complexrocta'), (6, 'compute'), (6, 'part'), (6, 'quadratica'), (6, 'rcots'), (6, 'rea'), (7, 'complex'), (7, 'equazion')]
+    candidates only in fast: [(6, 'corpute'), (6, 'draticsclvequadratica'), (6, 'ifd'), (6, 'qua'), (6, 'realpart'), (6, 'rocc3'), (6, 'scots'), (7, 'imag')]
+OnlyOffice Spreadsheet/70048   full     0s  fast    49s (4 full, 21 partial, 11 reused)  steps 2->3 CHANGED  right 0->1 of 1
+    logged: ['=COUNTA(A2:A10)']
+    full:   [(31, '=CQUNTA(AZ:A1o)', 0.84), (20, 'COUNTA(value1, [value2];', 0.69)]
+    fast:   [(31, '=COUNTA(AZA10)', 0.89), (20, 'COUNTA(value1, [value2];', 0.62), (29, 'FECOUNTA(AZ:Aid', 0.53)]
+    candidates only in full: [(12, 'abc'), (14, 'abc'), (15, 'ccncitciutc'), (15, 'countaaza1o'), (15, 'ficolumns'), (16, 'abj'), (16, 'ficounta'), (16, 'ficountblank')]
+    candidates only in fast: [(4, '34losangeles'), (5, '28newyork'), (5, '34losangeles'), (15, 'abc'), (15, 'cncitciutc'), (15, 'columns'), (15, 'countaa2'), (15, 'ficountblank')]
+Chromium/105048                full   267s  fast    51s (5 full, 17 partial, 2 reused)  steps 3->5 CHANGED  right 1->1 of 1
+    logged: ['chrome://setting/addresses']
+    full:   [(11, 'chrome:/ [settingsladdresses', 0.87), (5, 'chrome ] settings/downloads', 0.6), (9, 'chrome:] [settings/performance', 0.57)]
+    fast:   [(11, 'chrome:/ /settings/addresses', 0.84), (9, 'chrome:[ [settings/performance', 0.83), (9, 'chrome:[ [settings/downloads', 0.6), (10, 'chrome / [settings/ad - Google Search', 0.56), (9, 'chrome:[ [settings/autofill', 0.51)]
+    candidates only in full: [(4, 'chi'), (4, 'chromeisettingsperformance'), (4, 'romesettingsperformance'), (5, 'chromesettingsperformance'), (6, 'chrome'), (6, 'chromechromeurls'), (6, 'chromesettingsaddresses'), (6, 'isettingsperformance')]
+    candidates only in fast: [(4, 'chie'), (4, 'chromesettingsperformance'), (4, 'jomesettingsperformance'), (5, 'chrome'), (5, 'chromeisettingsperformance'), (5, 'mlsettingsperformancel'), (6, 'chromeichromeurls'), (6, 'chromeisettingsaddresses')]
+GnuCash/67288                  full   120s  fast    18s (3 full, 12 partial, 2 reused)  steps 0->0 same  right 0->0 of 1
+LibreOffice Draw/90298         full     0s  fast    31s (7 full, 13 partial, 9 reused)  steps 0->0 same  right 0->0 of 1
+PyCharm/52989                  full   151s  fast    45s (5 full, 19 partial, 7 reused)  steps 1->1 same  right 1->1 of 1
+Veusz/158447                   full   495s  fast   151s (15 full, 75 partial, 25 reused)  steps 1->1 same  right 1->1 of 2
+LibreOffice Writer/69747       full     0s  fast    53s (7 full, 19 partial, 2 reused)  steps 0->0 same  right 0->0 of 1
+
+reading time 2485s -> 844s (2.9x faster); identical typed steps 9/16
+typed steps 21 -> 20; right 12 -> 10 of 19 logged typed strings
+
+note: this run read full-read times with a pattern that missed application names with a space, so the total above
+(2485 s) leaves 8 out. From bare_check_v2.log, full reads of all 16 took 4798 s: 5.7x the 844 s of fast mode.
