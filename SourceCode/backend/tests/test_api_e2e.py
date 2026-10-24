@@ -151,3 +151,25 @@ def test_title_from_labels_uses_dominant_label():
     assert _title_from_labels(segs, "Bash", 7) == "Terminal Operations on Bash"
     assert _title_from_labels(segs, "Screen Recording", 7) == "Terminal Operations"
     assert _title_from_labels([], "Bash", 7) == "Screen Activity Analysis #7"
+
+
+def test_upload_limit_allows_typical_screen_recordings():
+    from app.routers import videos
+
+    # A 26 MB screen recording was rejected by the previous 10 MB limit.
+    assert videos.MAX_FILE_SIZE == 100 * 1024 * 1024
+
+
+@pytest.mark.asyncio
+async def test_oversized_upload_is_rejected_and_not_kept(client: AsyncClient, monkeypatch, tmp_path):
+    from app.config import settings
+    from app.routers import videos
+
+    monkeypatch.setattr(videos, "MAX_FILE_SIZE", 1024)
+    monkeypatch.setattr(settings, "upload_dir", str(tmp_path))
+    r = await client.post(
+        "/api/v1/videos/upload",
+        files={"file": ("big.mp4", b"\x00" * 4096, "video/mp4")},
+    )
+    assert r.status_code == 413
+    assert list(tmp_path.iterdir()) == []
