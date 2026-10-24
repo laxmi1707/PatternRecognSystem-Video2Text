@@ -4,7 +4,7 @@ import uuid
 from pathlib import Path
 
 import aiofiles
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,7 +34,7 @@ def _sanitize_filename(name: str) -> str:
 @router.post("/upload", response_model=VideoUploadResponse, status_code=201)
 @limiter.limit("5/minute")
 async def upload_video(
-    request,
+    request: Request,
     file: UploadFile = File(...),
     action_log: UploadFile | None = File(None, description="Optional action_log.json"),
     model_name: str | None = Query(None, description="Classifier model to use"),
