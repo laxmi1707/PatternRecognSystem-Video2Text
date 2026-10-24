@@ -7,17 +7,25 @@ os.environ["MKL_NUM_THREADS"] = "1"
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 logger = logging.getLogger(__name__)
 
 from app.config import settings
 from app.database import engine
+from app.middleware.auth import verify_api_key
 from app.models.base import Base
 from app.routers import classification, evaluation, knowledge
 from app.routers import videos, jobs
+
+limiter = Limiter(key_func=get_remote_address, default_limits=["30/minute"])
 
 
 @asynccontextmanager
@@ -34,6 +42,25 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded. Try again later."})
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -48,11 +75,13 @@ async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
-app.include_router(classification.router)
-app.include_router(evaluation.router)
-app.include_router(videos.router)
-app.include_router(jobs.router)
-app.include_router(knowledge.router)
+_auth = [Depends(verify_api_key)]
+
+app.include_router(classification.router, dependencies=_auth)
+app.include_router(evaluation.router, dependencies=_auth)
+app.include_router(videos.router, dependencies=_auth)
+app.include_router(jobs.router, dependencies=_auth)
+app.include_router(knowledge.router, dependencies=_auth)
 
 
 @app.get("/health")

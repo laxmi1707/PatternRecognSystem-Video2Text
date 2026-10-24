@@ -462,7 +462,7 @@ async def export_report(job_id: int, db: AsyncSession = Depends(get_db)):
         )
     except Exception as exc:
         logger.exception("Report generation failed: %s", exc)
-        raise HTTPException(status_code=500, detail=f"Report generation failed: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Report generation failed") from exc
 
     return Response(
         content=docx_bytes,

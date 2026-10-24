@@ -16,13 +16,16 @@ class Settings(BaseSettings):
     # model directory (which is also the fallback on any S3 failure).
     # Set MODEL_S3_BUCKET to an empty string to skip S3 and use local models only.
     model_s3_bucket: str | None = "video2knowledge-dev-model-artifacts-984263476980"
-    model_s3_prefix: str = "models/v1"
+    model_s3_prefix: str = "models/v2"
     model_s3_region: str | None = "ap-southeast-1"
     model_s3_require_checksum: bool = False
 
+    # API key authentication (empty string = auth disabled, for local dev)
+    api_key: str = ""
+
     allowed_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
     allowed_methods: list[str] = ["GET", "POST", "PATCH", "DELETE", "OPTIONS"]
-    allowed_headers: list[str] = ["Authorization", "Content-Type"]
+    allowed_headers: list[str] = ["Authorization", "Content-Type", "X-API-Key"]
     allow_credentials: bool = True
 
 
