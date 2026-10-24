@@ -4,7 +4,9 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 ARG VITE_API_BASE_URL=http://localhost:8000/api/v1
+ARG VITE_API_KEY=
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_API_KEY=$VITE_API_KEY
 RUN npm run build
 
 FROM nginx:alpine
