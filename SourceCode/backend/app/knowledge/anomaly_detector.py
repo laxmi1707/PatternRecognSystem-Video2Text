@@ -26,6 +26,8 @@ _RULES: list[tuple[str, str, str, list[str]]] = [
             r"\bshred\b",
             r"\btruncate\s+-s\s+0\b",
             r"\bwipe\b",
+            r"\buserdel\b",                      # delete user account
+            r"\buserde\b",                       # EasyOCR misread of userdel
         ],
     ),
     (
@@ -51,6 +53,8 @@ _RULES: list[tuple[str, str, str, list[str]]] = [
             r"\bsuco\b",                   # [suco ] → [sudo]
             r"\*[Uu]dv\b",                # *Udv → sudo
             r"\b[Uu]dv\s+tt\b",           # Udv tt → sudo apt
+            r"\bjud\b",                    # [jud ] → [sudo]
+            r"\bsud\b",                    # [sud ] → [sudo]
             r"\bsudo\s+su\b",
             r"\bsudo\s+-i\b",
             r"\bchmod\s+777\b",
@@ -106,6 +110,10 @@ _RULES: list[tuple[str, str, str, list[str]]] = [
             r"\bkill\s+-9\b",
             r"\bkillall\b",
             r"\bpkill\s+-9\b",
+            # EasyOCR misreads of "kill" observed in CUA dataset
+            r"\bRill\b",                   # [Rill ] → [kill]
+            r"\bKill\b",                   # capitalised variant
+            r"\bkil\b",                    # truncated
         ],
     ),
     (
