@@ -6,7 +6,7 @@
 
 set -e
 
-DATASET_ROOT=/home/ubuntu/PatternRecognSystem-Video2Text/dataset
+DATASET_ROOT="${DATASET_ROOT:-/app/dataset}"
 MODEL_DIR=./models/v3
 LOG_FILE=train_v3.log
 
