@@ -120,7 +120,7 @@ Random Forest               (SVM+RF+MLP base)
            Activity Label (17 classes)
                      │
                      ▼
-         LLM Knowledge Generation
+      Knowledge Generation (Rule-Based)
       SOP · Runbook · Timeline · RAG
 ```
 

@@ -264,8 +264,8 @@ def _merge_consecutive_segments(
 
 
 class SOPGenerator:
-    def __init__(self, llm_client=None):
-        self._llm = llm_client
+    def __init__(self):
+        pass
 
     def generate_from_segments(
         self,

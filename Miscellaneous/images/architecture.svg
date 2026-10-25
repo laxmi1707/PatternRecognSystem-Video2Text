@@ -182,7 +182,7 @@
   <rect x="200" y="664" width="500" height="80" rx="8" fill="#162535" stroke="#00c6ff" stroke-width="1.5" stroke-opacity="0.5" filter="url(#shadow)"/>
   <rect x="200" y="664" width="4" height="80" rx="2" fill="url(#accent)" opacity="0.6"/>
   <text x="450" y="690" font-family="Arial Black,Arial,sans-serif" font-size="13" font-weight="900"
-        fill="#e0eeff" text-anchor="middle">LLM Knowledge Generation</text>
+        fill="#e0eeff" text-anchor="middle">Knowledge Generation (Rule-Based)</text>
   <!-- 4 pills -->
   <rect x="218" y="700" width="90" height="22" rx="11" fill="#00c6ff" fill-opacity="0.12" stroke="#00c6ff" stroke-width="1" stroke-opacity="0.4"/>
   <text x="263" y="715" font-family="Arial,sans-serif" font-size="10" fill="#00c6ff" text-anchor="middle">SOP</text>
