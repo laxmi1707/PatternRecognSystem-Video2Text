@@ -105,9 +105,10 @@ class MLService:
 
     def _ensure_trained(self, model_name: str) -> None:
         if model_name not in self._trained_models:
-            X, y = self._get_training_data(prefer_real=True)
-            self._registry.get(model_name).fit(X, y)
-            self._trained_models.add(model_name)
+            raise FileNotFoundError(
+                f"Model '{model_name}' is not loaded. "
+                f"Loaded models: {sorted(self._trained_models)}"
+            )
 
     def train_all(self, X: np.ndarray, y: np.ndarray) -> None:
         for clf in self._registry.all():
