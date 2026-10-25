@@ -97,32 +97,7 @@ Password: demo1234
   <img src="Miscellaneous/images/architecture.svg" alt="TRACE Pipeline Architecture" width="100%"/>
 </div>
 
-```
-Screen Recording
-      │
-      ▼
-┌─────────────────────────────────────────────┐
-│            Feature Extraction               │
-│  OCR(50) · UI/YOLO(30) · CNN-Visual(1280)  │
-│  Interaction(30) · Temporal(1) = 1,391 dim  │
-└────────────────────┬────────────────────────┘
-                     │
-      ┌──────────────┼──────────────┐
-      ▼              ▼              ▼
-  Tier 1          Tier 2         Tier 3
-Classical ML    Deep Learning   Ensemble
-SVM · KNN      LSTM · CNN1D   Stacking ← best
-Random Forest               (SVM+RF+MLP base)
-      │              │              │
-      └──────────────┴──────────────┘
-                     │
-                     ▼
-           Activity Label (17 classes)
-                     │
-                     ▼
-      Knowledge Generation (Rule-Based)
-      SOP · Runbook · Timeline · RAG
-```
+> Full resolution: [architecture.pdf](Miscellaneous/images/architecture.pdf)
 
 | Layer | Technologies |
 |-------|-------------|
