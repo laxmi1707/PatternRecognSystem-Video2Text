@@ -50,3 +50,6 @@ SourceCode/backend/models/*.pkl
 # IAM boundary snapshots (account-specific)
 infra/aws/iam/current-boundary.json
 infra/aws/iam/merged-boundary.json
+
+# Action-classifier outputs (models, feature cache) - publish to S3, not git
+SourceCode/backend/models/actions/

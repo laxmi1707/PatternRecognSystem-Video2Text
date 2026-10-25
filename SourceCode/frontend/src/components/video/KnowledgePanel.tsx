@@ -6,6 +6,10 @@ interface SOPStep {
   title: string;
   description: string;
   time_range: string;
+  // Set when the SOP was built from an action log: what the screen showed after the step.
+  delay_s?: number | null;
+  screen_output?: string[];
+  screen_removed?: string[];
 }
 
 interface SOPResponse {
@@ -15,7 +19,16 @@ interface SOPResponse {
   steps: SOPStep[];
   expected_outcome: string;
   troubleshooting: string[];
+  platform?: string;
+  source_recording?: string;
+  generated_at?: string;
 }
+
+const screenTextStyle = {
+  background: '#1e1e1e', color: '#d4d4d4',
+  padding: '8px 12px', borderRadius: 4, fontSize: 13,
+  marginTop: 4, marginBottom: 0, overflow: 'auto', whiteSpace: 'pre-wrap' as const,
+};
 
 interface RunbookStep {
   number: number;
@@ -148,6 +161,13 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
           zIndex: 1,
         }}>
           <h3 style={{ marginTop: 0 }}>{sop.title}</h3>
+          {sop.platform && (
+            <p style={{ fontSize: 14, color: '#4b5563' }}>
+              <strong>Application / platform:</strong> {sop.platform}<br />
+              <strong>Source recording:</strong> {sop.source_recording}<br />
+              <strong>Generated:</strong> {sop.generated_at}
+            </p>
+          )}
           <p><strong>Purpose:</strong> {sop.purpose}</p>
           <p><strong>Prerequisites:</strong></p>
           <ul>{sop.prerequisites.map((p, i) => <li key={i}>{p}</li>)}</ul>
@@ -159,6 +179,14 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
                 {step.time_range && <span className="text-muted" style={{ fontSize: 12, marginLeft: 8 }}>[{step.time_range}]</span>}
                 <br />
                 <span style={{ fontSize: 14 }}>{step.description}</span>
+                {step.screen_output && step.screen_output.length > 0 && (
+                  <pre style={screenTextStyle}>{step.screen_output.join('\n')}</pre>
+                )}
+                {step.screen_removed && step.screen_removed.length > 0 && (
+                  <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
+                    <em>No longer shown:</em> {step.screen_removed.join(' · ')}
+                  </div>
+                )}
               </li>
             ))}
           </ol>
