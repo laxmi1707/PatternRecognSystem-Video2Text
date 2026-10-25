@@ -93,6 +93,10 @@ Password: demo1234
 
 ## Architecture
 
+<div align="center">
+  <img src="Miscellaneous/images/architecture.svg" alt="TRACE Pipeline Architecture" width="100%"/>
+</div>
+
 ```
 Screen Recording
       │

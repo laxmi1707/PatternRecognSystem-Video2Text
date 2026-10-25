@@ -1,0 +1,202 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 780" width="900" height="780">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f1923"/>
+      <stop offset="100%" style="stop-color:#1a2d45"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00c6ff"/>
+      <stop offset="100%" style="stop-color:#0072ff"/>
+    </linearGradient>
+    <linearGradient id="tier1grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a3a4a"/>
+      <stop offset="100%" style="stop-color:#0d2233"/>
+    </linearGradient>
+    <linearGradient id="tier2grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a2a4a"/>
+      <stop offset="100%" style="stop-color:#0d1833"/>
+    </linearGradient>
+    <linearGradient id="tier3grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a3a2a"/>
+      <stop offset="100%" style="stop-color:#0d2218"/>
+    </linearGradient>
+    <linearGradient id="featgrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#162535"/>
+      <stop offset="100%" style="stop-color:#0f1d2a"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#00c6ff" opacity="0.8"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#4a8fcc" opacity="0.7"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="780" fill="url(#bg)"/>
+
+  <!-- Left accent bar -->
+  <rect x="0" y="0" width="4" height="780" fill="url(#accent)" rx="2"/>
+
+  <!-- Title -->
+  <text x="450" y="38" font-family="Arial Black,Arial,sans-serif" font-size="18" font-weight="900"
+        fill="#c8d8e8" text-anchor="middle" letter-spacing="2">TRACE — Pipeline Architecture</text>
+  <rect x="200" y="46" width="500" height="2" fill="url(#accent)" rx="1" opacity="0.5"/>
+
+  <!-- ── BOX 1: Screen Recording ── -->
+  <rect x="250" y="64" width="400" height="64" rx="8" fill="#162535" stroke="#00c6ff" stroke-width="1.5" stroke-opacity="0.6" filter="url(#shadow)"/>
+  <rect x="250" y="64" width="4" height="64" rx="2" fill="url(#accent)"/>
+  <!-- rec icon -->
+  <rect x="270" y="80" width="36" height="26" rx="3" fill="none" stroke="#00c6ff" stroke-width="1.5" opacity="0.7"/>
+  <circle cx="298" cy="84" r="5" fill="#ff4d4d" opacity="0.9"/>
+  <circle cx="298" cy="84" r="3" fill="#ff4d4d"/>
+  <text x="281" y="97" font-family="monospace" font-size="8" fill="#00c6ff" opacity="0.8">REC</text>
+  <text x="450" y="90" font-family="Arial Black,Arial,sans-serif" font-size="14" font-weight="900"
+        fill="#e0eeff" text-anchor="middle">Screen Recording</text>
+  <text x="450" y="110" font-family="Arial,sans-serif" font-size="11" fill="#7a9cc0" text-anchor="middle">
+    .mp4 video  ·  action_log.json
+  </text>
+
+  <!-- Arrow 1→2 -->
+  <line x1="450" y1="128" x2="450" y2="154" stroke="#00c6ff" stroke-width="2" opacity="0.7" marker-end="url(#arrow)"/>
+
+  <!-- ── BOX 2: Feature Extraction ── -->
+  <rect x="80" y="158" width="740" height="148" rx="8" fill="url(#featgrad)" stroke="#00c6ff" stroke-width="1.5" stroke-opacity="0.5" filter="url(#shadow)"/>
+  <rect x="80" y="158" width="4" height="148" rx="2" fill="url(#accent)" opacity="0.7"/>
+  <text x="450" y="181" font-family="Arial Black,Arial,sans-serif" font-size="13" font-weight="900"
+        fill="#e0eeff" text-anchor="middle" letter-spacing="1">FEATURE EXTRACTION</text>
+
+  <!-- 5 modality boxes -->
+  <!-- OCR -->
+  <rect x="98" y="192" width="122" height="72" rx="6" fill="#0d1e2d" stroke="#00c6ff" stroke-width="1" stroke-opacity="0.5"/>
+  <text x="159" y="212" font-family="Arial,sans-serif" font-size="10" fill="#00c6ff" text-anchor="middle" font-weight="bold">OCR / Text</text>
+  <text x="159" y="230" font-family="Arial,sans-serif" font-size="22" fill="#00c6ff" text-anchor="middle" font-weight="bold" filter="url(#glow)">50</text>
+  <text x="159" y="254" font-family="Arial,sans-serif" font-size="9" fill="#4a7090" text-anchor="middle">EasyOCR</text>
+
+  <!-- UI/YOLO -->
+  <rect x="232" y="192" width="122" height="72" rx="6" fill="#0d1e2d" stroke="#0072ff" stroke-width="1" stroke-opacity="0.5"/>
+  <text x="293" y="212" font-family="Arial,sans-serif" font-size="10" fill="#4499ff" text-anchor="middle" font-weight="bold">UI / YOLO</text>
+  <text x="293" y="230" font-family="Arial,sans-serif" font-size="22" fill="#4499ff" text-anchor="middle" font-weight="bold" filter="url(#glow)">30</text>
+  <text x="293" y="254" font-family="Arial,sans-serif" font-size="9" fill="#4a7090" text-anchor="middle">YOLOv8 detection</text>
+
+  <!-- CNN Visual -->
+  <rect x="366" y="192" width="168" height="72" rx="6" fill="#0d1e2d" stroke="#00c6ff" stroke-width="1.5" stroke-opacity="0.7"/>
+  <text x="450" y="212" font-family="Arial,sans-serif" font-size="10" fill="#00c6ff" text-anchor="middle" font-weight="bold">CNN Visual</text>
+  <text x="450" y="230" font-family="Arial,sans-serif" font-size="22" fill="#00c6ff" text-anchor="middle" font-weight="bold" filter="url(#glow)">1,280</text>
+  <text x="450" y="254" font-family="Arial,sans-serif" font-size="9" fill="#4a7090" text-anchor="middle">EfficientNet-B0</text>
+
+  <!-- Interaction -->
+  <rect x="546" y="192" width="122" height="72" rx="6" fill="#0d1e2d" stroke="#0072ff" stroke-width="1" stroke-opacity="0.5"/>
+  <text x="607" y="212" font-family="Arial,sans-serif" font-size="10" fill="#4499ff" text-anchor="middle" font-weight="bold">Interaction</text>
+  <text x="607" y="230" font-family="Arial,sans-serif" font-size="22" fill="#4499ff" text-anchor="middle" font-weight="bold" filter="url(#glow)">30</text>
+  <text x="607" y="254" font-family="Arial,sans-serif" font-size="9" fill="#4a7090" text-anchor="middle">click · key · drag</text>
+
+  <!-- Temporal Flag -->
+  <rect x="680" y="192" width="122" height="72" rx="6" fill="#0d1e2d" stroke="#0072ff" stroke-width="1" stroke-opacity="0.5"/>
+  <text x="741" y="212" font-family="Arial,sans-serif" font-size="10" fill="#4499ff" text-anchor="middle" font-weight="bold">Temporal</text>
+  <text x="741" y="230" font-family="Arial,sans-serif" font-size="22" fill="#4499ff" text-anchor="middle" font-weight="bold" filter="url(#glow)">1</text>
+  <text x="741" y="254" font-family="Arial,sans-serif" font-size="9" fill="#4a7090" text-anchor="middle">flag / context</text>
+
+  <!-- Combined label -->
+  <rect x="240" y="277" width="420" height="22" rx="11" fill="#00c6ff" fill-opacity="0.1" stroke="#00c6ff" stroke-width="1" stroke-opacity="0.4"/>
+  <text x="450" y="292" font-family="Arial,sans-serif" font-size="11" fill="#00c6ff" text-anchor="middle">
+    Combined feature vector: <tspan font-weight="bold">1,391 dimensions</tspan>
+  </text>
+
+  <!-- Arrow 2→Tier boxes (fan out) -->
+  <!-- center down then split -->
+  <line x1="450" y1="306" x2="450" y2="328" stroke="#4a8fcc" stroke-width="1.5" opacity="0.6"/>
+  <line x1="200" y1="328" x2="700" y2="328" stroke="#4a8fcc" stroke-width="1.5" opacity="0.5"/>
+  <line x1="200" y1="328" x2="200" y2="352" stroke="#4a8fcc" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-white)"/>
+  <line x1="450" y1="328" x2="450" y2="352" stroke="#4a8fcc" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-white)"/>
+  <line x1="700" y1="328" x2="700" y2="352" stroke="#4a8fcc" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-white)"/>
+
+  <!-- ── TIER 1 ── -->
+  <rect x="80" y="356" width="238" height="152" rx="8" fill="url(#tier1grad)" stroke="#00c6ff" stroke-width="1.5" stroke-opacity="0.6" filter="url(#shadow)"/>
+  <rect x="80" y="356" width="238" height="30" rx="8" fill="#00c6ff" fill-opacity="0.12"/>
+  <rect x="80" y="374" width="238" height="12" rx="0" fill="#00c6ff" fill-opacity="0.12"/>
+  <text x="199" y="377" font-family="Arial Black,Arial,sans-serif" font-size="11" font-weight="900"
+        fill="#00c6ff" text-anchor="middle" letter-spacing="1">TIER 1 — Classical ML</text>
+  <text x="199" y="402" font-family="monospace" font-size="12" fill="#c8d8e8" text-anchor="middle">SVM</text>
+  <text x="199" y="421" font-family="monospace" font-size="12" fill="#c8d8e8" text-anchor="middle">KNN</text>
+  <text x="199" y="440" font-family="monospace" font-size="12" fill="#c8d8e8" text-anchor="middle">Random Forest</text>
+  <text x="199" y="459" font-family="monospace" font-size="12" fill="#c8d8e8" text-anchor="middle">Decision Tree</text>
+  <text x="199" y="478" font-family="monospace" font-size="12" fill="#7a9cc0" text-anchor="middle">XGBoost · LightGBM</text>
+  <text x="199" y="498" font-family="Arial,sans-serif" font-size="9" fill="#4a7090" text-anchor="middle">scikit-learn</text>
+
+  <!-- ── TIER 2 ── -->
+  <rect x="331" y="356" width="238" height="152" rx="8" fill="url(#tier2grad)" stroke="#4499ff" stroke-width="1.5" stroke-opacity="0.6" filter="url(#shadow)"/>
+  <rect x="331" y="356" width="238" height="30" rx="8" fill="#4499ff" fill-opacity="0.10"/>
+  <rect x="331" y="374" width="238" height="12" rx="0" fill="#4499ff" fill-opacity="0.10"/>
+  <text x="450" y="377" font-family="Arial Black,Arial,sans-serif" font-size="11" font-weight="900"
+        fill="#4499ff" text-anchor="middle" letter-spacing="1">TIER 2 — Deep Learning</text>
+  <text x="450" y="412" font-family="monospace" font-size="12" fill="#c8d8e8" text-anchor="middle">LSTM</text>
+  <text x="450" y="435" font-family="monospace" font-size="12" fill="#c8d8e8" text-anchor="middle">CNN1D</text>
+  <text x="450" y="458" font-family="monospace" font-size="12" fill="#7a9cc0" text-anchor="middle">MLP · Transformer</text>
+  <text x="450" y="498" font-family="Arial,sans-serif" font-size="9" fill="#4a7090" text-anchor="middle">PyTorch</text>
+
+  <!-- ── TIER 3 ── -->
+  <rect x="582" y="356" width="238" height="152" rx="8" fill="url(#tier3grad)" stroke="#00e08a" stroke-width="1.5" stroke-opacity="0.7" filter="url(#shadow)"/>
+  <rect x="582" y="356" width="238" height="30" rx="8" fill="#00e08a" fill-opacity="0.08"/>
+  <rect x="582" y="374" width="238" height="12" rx="0" fill="#00e08a" fill-opacity="0.08"/>
+  <text x="701" y="377" font-family="Arial Black,Arial,sans-serif" font-size="11" font-weight="900"
+        fill="#00e08a" text-anchor="middle" letter-spacing="1">TIER 3 — Ensemble</text>
+  <text x="701" y="410" font-family="monospace" font-size="12" fill="#c8d8e8" text-anchor="middle">Stacking</text>
+  <text x="701" y="429" font-family="Arial,sans-serif" font-size="10" fill="#7abf9a" text-anchor="middle">(SVM + RF + MLP → meta)</text>
+  <text x="701" y="458" font-family="monospace" font-size="12" fill="#7a9cc0" text-anchor="middle">Voting (hard + soft)</text>
+  <!-- Best badge -->
+  <rect x="626" y="468" width="150" height="24" rx="12" fill="#00e08a" fill-opacity="0.15" stroke="#00e08a" stroke-width="1" stroke-opacity="0.6"/>
+  <text x="701" y="484" font-family="Arial,sans-serif" font-size="11" fill="#00e08a" text-anchor="middle" font-weight="bold">★ Best  F1 = 0.89</text>
+  <text x="701" y="498" font-family="Arial,sans-serif" font-size="9" fill="#4a7090" text-anchor="middle">scikit-learn</text>
+
+  <!-- Converge arrows to Activity Label -->
+  <line x1="199" y1="508" x2="199" y2="530" stroke="#4a8fcc" stroke-width="1.5" opacity="0.6"/>
+  <line x1="450" y1="508" x2="450" y2="530" stroke="#4a8fcc" stroke-width="1.5" opacity="0.6"/>
+  <line x1="701" y1="508" x2="701" y2="530" stroke="#4a8fcc" stroke-width="1.5" opacity="0.6"/>
+  <line x1="199" y1="530" x2="701" y2="530" stroke="#4a8fcc" stroke-width="1.5" opacity="0.5"/>
+  <line x1="450" y1="530" x2="450" y2="552" stroke="#00c6ff" stroke-width="2" opacity="0.8" marker-end="url(#arrow)"/>
+
+  <!-- ── BOX 3: Activity Label ── -->
+  <rect x="200" y="556" width="500" height="80" rx="8" fill="#162535" stroke="#00c6ff" stroke-width="1.5" stroke-opacity="0.6" filter="url(#shadow)"/>
+  <rect x="200" y="556" width="4" height="80" rx="2" fill="url(#accent)"/>
+  <text x="450" y="580" font-family="Arial Black,Arial,sans-serif" font-size="13" font-weight="900"
+        fill="#e0eeff" text-anchor="middle">Activity Label  —  17 Classes</text>
+  <text x="450" y="600" font-family="Arial,sans-serif" font-size="10" fill="#7a9cc0" text-anchor="middle">
+    coding · debugging · terminal · web_browsing · git_ops · docker
+  </text>
+  <text x="450" y="618" font-family="Arial,sans-serif" font-size="10" fill="#7a9cc0" text-anchor="middle">
+    media_editing · diagram_design · image_editing · file_management · …
+  </text>
+
+  <!-- Arrow 3→4 -->
+  <line x1="450" y1="636" x2="450" y2="660" stroke="#00c6ff" stroke-width="2" opacity="0.7" marker-end="url(#arrow)"/>
+
+  <!-- ── BOX 4: LLM Knowledge Generation ── -->
+  <rect x="200" y="664" width="500" height="80" rx="8" fill="#162535" stroke="#00c6ff" stroke-width="1.5" stroke-opacity="0.5" filter="url(#shadow)"/>
+  <rect x="200" y="664" width="4" height="80" rx="2" fill="url(#accent)" opacity="0.6"/>
+  <text x="450" y="690" font-family="Arial Black,Arial,sans-serif" font-size="13" font-weight="900"
+        fill="#e0eeff" text-anchor="middle">LLM Knowledge Generation</text>
+  <!-- 4 pills -->
+  <rect x="218" y="700" width="90" height="22" rx="11" fill="#00c6ff" fill-opacity="0.12" stroke="#00c6ff" stroke-width="1" stroke-opacity="0.4"/>
+  <text x="263" y="715" font-family="Arial,sans-serif" font-size="10" fill="#00c6ff" text-anchor="middle">SOP</text>
+  <rect x="318" y="700" width="90" height="22" rx="11" fill="#00c6ff" fill-opacity="0.12" stroke="#00c6ff" stroke-width="1" stroke-opacity="0.4"/>
+  <text x="363" y="715" font-family="Arial,sans-serif" font-size="10" fill="#00c6ff" text-anchor="middle">Runbook</text>
+  <rect x="418" y="700" width="90" height="22" rx="11" fill="#00c6ff" fill-opacity="0.12" stroke="#00c6ff" stroke-width="1" stroke-opacity="0.4"/>
+  <text x="463" y="715" font-family="Arial,sans-serif" font-size="10" fill="#00c6ff" text-anchor="middle">Timeline</text>
+  <rect x="518" y="700" width="90" height="22" rx="11" fill="#00c6ff" fill-opacity="0.12" stroke="#00c6ff" stroke-width="1" stroke-opacity="0.4"/>
+  <text x="563" y="715" font-family="Arial,sans-serif" font-size="10" fill="#00c6ff" text-anchor="middle">RAG Search</text>
+
+  <!-- Bottom bar -->
+  <rect x="0" y="755" width="900" height="25" fill="#ffffff" fill-opacity="0.03"/>
+  <rect x="0" y="755" width="900" height="1.5" fill="url(#accent)" opacity="0.25"/>
+  <text x="450" y="771" font-family="Arial,sans-serif" font-size="10" fill="#4a6080" text-anchor="middle">
+    ISY5002 Pattern Recognition Systems · Group 21 · NUS M.Tech AIS · 2026
+  </text>
+</svg>
