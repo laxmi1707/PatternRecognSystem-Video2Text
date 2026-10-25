@@ -55,12 +55,12 @@ def _extract_features(
 
 
 ALL_MODELS = [
-    # Tier 1
-    "svm", "naive_bayes", "decision_tree", "random_forest", "knn", "xgboost", "lightgbm",
-    # Tier 2
-    "mlp", "cnn1d", "lstm", "transformer", "workflow_lstm", "workflow_transformer",
-    # Tier 3
-    "voting", "stacking", "late_fusion",
+    # Tier 1 (v3 trained)
+    "svm", "knn", "random_forest",
+    # Tier 2 (v3 trained)
+    "cnn1d", "lstm",
+    # Tier 3 (v3 trained)
+    "stacking",
 ]
 
 # Feature extraction and classification are CPU-bound and synchronous, so they run in a
