@@ -1,171 +1,158 @@
-# Video2Knowledge
+<div align="center">
+  <img src="Miscellaneous/images/banner.svg" alt="TRACE — Task Recognition & Activity Capture Engine" width="100%"/>
+</div>
 
-**A Multi-Tier Ensemble Approach for Multimodal Workflow Recognition and Automated Documentation from Software Engineering Screen Recordings**
+# TRACE — Task Recognition & Activity Capture Engine
 
-NUS M.Tech AIS — Pattern Recognition Systems | Semester 2 | 2026
+**A Multi-Tier Ensemble Approach for Multimodal Activity Recognition and Automated SOP Generation from Desktop Screen Recordings**
 
----
+NUS M.Tech AIS — ISY5002 Pattern Recognition Systems | Group 21 | Semester 2, 2026
 
-## Problem Statement
+* * *
 
-Recorded engineering sessions (screen recordings of cloud deployments, CI/CD execution, troubleshooting) are difficult to search and reuse. Manual SOP creation is expensive, onboarding is slow, and operational knowledge remains locked inside videos.
+## Executive Summary
 
-## Solution
+Desktop screen recordings contain expert knowledge that is impossible to search or reuse. **TRACE** automatically converts these recordings into structured SOPs and runbooks by fusing six modalities — visual frames, OCR text, UI context, command/log signals, interaction events, and temporal patterns — through a three-tier classifier.
 
-An AI-powered workflow understanding system that:
-1. Processes recorded screen recordings
-2. Extracts OCR text, terminal commands, and UI context
-3. Recognizes DevOps activities using a multi-tier classifier
-4. Generates SOPs, timelines, and knowledge articles automatically
-5. Provides searchable knowledge retrieval via RAG
+| Metric | Value |
+|--------|-------|
+| Dataset | 277 tasks · 8 apps · ~2.3 GB (VideoCUA subset) |
+| Activity classes | 17 (coding, debugging, media editing, diagram design, …) |
+| Best model (v3) | Stacking ensemble — F1 **0.89** |
+| vs. v2 baseline | +76% macro-F1 improvement (KNN 0.51 → Stacking 0.89) |
+| Feature vector | 1,391 dims (OCR + UI + CNN-visual + interaction) |
+| Models trained | 6 — SVM, KNN, Random Forest (Tier 1) · LSTM, CNN1D (Tier 2) · Stacking (Tier 3) |
 
-## Architecture (6 Layers)
+**System components:**
 
-| Layer | Name | Owner | Directory |
-|-------|------|-------|-----------|
-| L1 | Presentation | Joshua | SourceCode/frontend/ |
-| L2 | API & Backend | Muneeswaran | SourceCode/backend/app/ |
-| L3 | Preprocessing & Feature Extraction | Stalin | SourceCode/backend/app/ml/feature_engineering.py |
-| L4 | Multi-Tier Classifier | Muneeswaran | SourceCode/backend/app/ml/ |
-| L5 | Data & Storage | Lakshmi | SourceCode/backend/app/models/ |
-| L6 | Monitoring & CI/CD | Lakshmi | .github/workflows/ |
+- **Ingestion** — video upload, frame extraction, action log parsing
+- **Feature extraction** — EfficientNet-B0 CNN visual features, EasyOCR, YOLO UI detection, interaction statistics
+- **Multi-tier classifier** — classical ML → deep learning → ensemble fusion
+- **Knowledge generation** — LLM-powered SOP, runbook, and timeline generation
+- **Dashboard** — React frontend for upload, activity timeline, and knowledge retrieval
 
-## Multi-Tier Classifier
+* * *
 
-| Tier | Type | Algorithms |
-|------|------|------------|
-| Tier 1 | Classical ML | SVM, Naive Bayes, Decision Tree, Random Forest, KNN, XGBoost, LightGBM |
-| Tier 2 | Deep Learning | CNN, LSTM, Transformer, ViT, MLP |
-| Tier 3 | Ensemble + Fusion | Voting Classifier, Stacking Classifier, Multimodal Late Fusion |
+## Project Contribution
 
-Target Classes (10): git_operations, docker_workflow, kubernetes_ops, terraform_iac, aws_console, jenkins_ci_cd, coding_editing, debugging, documentation, other
+| Member | Student ID | Scope | Email |
+|--------|-----------|-------|-------|
+| Lakshmi Barthwal Chamoli | A0340664E | AWS infrastructure, video upload, OCR pipeline, SVM, Naive Bayes, temporal sequence analysis, CI/CD | *(email)* |
+| Yuan Zilin | A0283899Y | React dashboard, workflow visualization, ground-truth collection, evaluation framework, MLP, CNN1D, Voting ensemble | *(email)* |
+| Stalin Sagayaraj | A0340115X | Docker, video ingestion, YOLO UI detection, LSTM, Transformer | *(email)* |
+| Muthaiah Muneeswaran | A0019650J | FastAPI backend, multi-tier classifier, Decision Tree, Random Forest, multimodal late fusion, CI/CD, monitoring | *(email)* |
 
-## Team
+* * *
 
-| Member | Role | Scope |
-|--------|------|-------|
-| Joshua | Frontend + UI/UX | React dashboard, video upload, workflow visualization |
-| Muneeswaran | Backend + Pattern Recognition | FastAPI API, multi-tier classifier, evaluation framework, RAG |
-| Stalin | Preprocessing + Feature Extraction | Video ingestion, OCR, YOLO, cursor detection |
-| Lakshmi | Infrastructure + Data + CI/CD | AWS infra, database, Docker, CI/CD, monitoring |
+## Video Demo
 
-## Tech Stack
+| Video | Link |
+|-------|------|
+| Promotional overview | *(link to be added)* |
+| Technical walkthrough | *(link to be added)* |
+
+* * *
+
+## User Guide
+
+The full setup and run guide is in [SourceCode/backend/README.md](SourceCode/backend/README.md).
+
+**Quick start (Docker):**
+
+```bash
+# Clone
+git clone https://github.com/laxmi1707/PatternRecognSystem-Video2Text.git
+cd PatternRecognSystem-Video2Text
+
+# Start backend + frontend + DB
+docker compose up -d
+
+# Access
+# Frontend:  http://localhost:5173
+# API docs:  http://localhost:8000/docs
+```
+
+**Demo credentials:**
+
+```
+Username: demo
+Password: demo1234
+```
+
+* * *
+
+## Research Questions
+
+| RQ | Question | Experiment |
+|----|----------|------------|
+| RQ1 | Classical ML vs. deep learning for multimodal activity recognition? | Tier 1 vs. Tier 2 |
+| RQ2 | Does multimodal fusion beat individual modalities? | Tier 3 ensemble + modality ablation |
+| RQ3 | Can sequence models identify higher-level workflows from activity sequences? | LSTM/Transformer on activity sequences |
+
+* * *
+
+## Architecture
+
+```
+Screen Recording
+      │
+      ▼
+┌─────────────────────────────────────────────┐
+│            Feature Extraction               │
+│  OCR(50) · UI/YOLO(30) · CNN-Visual(1280)  │
+│  Interaction(30) · Temporal(1) = 1,391 dim  │
+└────────────────────┬────────────────────────┘
+                     │
+      ┌──────────────┼──────────────┐
+      ▼              ▼              ▼
+  Tier 1          Tier 2         Tier 3
+Classical ML    Deep Learning   Ensemble
+SVM · KNN      LSTM · CNN1D   Stacking ← best
+Random Forest               (SVM+RF+MLP base)
+      │              │              │
+      └──────────────┴──────────────┘
+                     │
+                     ▼
+           Activity Label (17 classes)
+                     │
+                     ▼
+         LLM Knowledge Generation
+      SOP · Runbook · Timeline · RAG
+```
 
 | Layer | Technologies |
 |-------|-------------|
-| Frontend | React, TypeScript, Vite |
+| Frontend | React 18, TypeScript, Vite |
 | Backend | Python 3.11, FastAPI, SQLAlchemy (async) |
-| ML | PyTorch, scikit-learn, XGBoost, LightGBM |
-| Database | PostgreSQL, pgvector, Redis |
-| Cloud | AWS (ECS Fargate, SageMaker, S3, Lambda, Step Functions) |
-| CI/CD | GitHub Actions |
+| ML | PyTorch, scikit-learn, XGBoost, LightGBM, EfficientNet-B0 |
+| OCR / Vision | EasyOCR, YOLO, OpenCV, Albumentations |
+| Database | PostgreSQL + pgvector |
+| LLM | Anthropic Claude (SOP/runbook generation) |
+| Cloud | AWS ECS Fargate, S3, SageMaker |
+| CI/CD | GitHub Actions, Docker, MLflow |
 
-## Quick Start
+* * *
 
-    # Backend
-    cd SourceCode/backend
-    python3.11 -m venv .venv
-    source .venv/bin/activate
-    cp .env.example .env
-    pip install -e ".[ml,dev]"
-    uvicorn app.main:app --reload --port 8000
+## Project Report
 
-    # Frontend
-    cd SourceCode/frontend
-    npm install
-    npm run dev
+Full report: [ProjectReport/](ProjectReport/) *(final PDF to be linked after Oct 31)*
 
-## AWS Deployment
-
-ECS Fargate + SageMaker (not EKS). See Architecture/README.md for full rationale.
-
----
-
-## Git Branching Strategy
-
-### Branch Flow
-
-    Joshua:  feat/frontend-dashboard --+
-                                       |
-    Muneeswaran: feat/pattern-recognition --+---> develop ---> release/* ---> main
-                                       |      (dev env)    (uat env)     (prd env)
-    Stalin:  feat/preprocessing -------+
-                                       |
-    Lakshmi: feat/infra-data ----------+
-
-### Branch Purposes
-
-| Branch | Purpose | Deploys To | Approvers |
-|--------|---------|------------|-----------|
-| feat/* | Individual feature work. Each member works here daily. | Local only | None |
-| develop | Integration branch. All members merge here to test together. | dev environment | 1 approver |
-| release/* | Release candidate. Frozen for UAT testing before presentations. | uat environment | 2 approvers |
-| main | Production-ready. Only verified, tested code lives here. | stg, prd environments | 2 approvers |
-
-### Why We Use a develop Branch
-
-Without develop:
-
-    feat/* --> main (RISKY: untested integration, could break production)
-
-With develop:
-
-    feat/* --> develop (test together, catch conflicts) --> main (safe, verified)
-
-### How Each Member Works
-
-    # 1. Start new work
-    git checkout develop
-    git pull origin develop
-    git checkout -b feat/my-feature
-
-    # 2. Work on your feature
-    git add .
-    git commit -m "feat(ml): add SVM classifier"
-    git push origin feat/my-feature
-
-    # 3. Create Pull Request to develop (on GitHub)
-    #    1 team member reviews and approves
-    #    Merge to develop -> auto-deploys to dev
-
-    # 4. For release (before presentations)
-    #    PR from develop to release/v0.2.0
-    #    Auto-deploys to uat, team tests
-
-    # 5. Promote to production
-    #    PR from release/* to main
-    #    2 approvers required
-    #    Auto-deploys to stg, manual promote to prd
-
-### Commit Message Convention
-
-    feat(ml): add SVM classifier with probability support
-    feat(api): add video upload endpoint
-    feat(frontend): add video dropzone component
-    fix(ml): correct confusion matrix label ordering
-    test(ml): add cross-validation tests for Tier 1
-    docs: update architecture README
-    chore: update pyproject.toml dependencies
-
-    Format: type(scope): description
-    Types: feat, fix, test, docs, chore, refactor, ci
-    Scopes: ml, api, frontend, infra, db
-
----
-
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| Architecture/README.md | Architecture, AWS decisions, environments, network |
-| SourceCode/backend/README.md | Backend setup, ML pipeline, API reference |
-| SourceCode/frontend/README.md | Frontend setup, pages, components |
-| CHANGELOG.md | Version history |
+* * *
 
 ## Key Dates
 
 | Date | Milestone |
 |------|-----------|
-| Sep 15, 2026 | Project proposal submission |
-| Sep 30, 2026 | First presentation (6:30-10:30pm, Zoom) |
-| Oct 31, 2026 | Final deliverables submission |
+| Sep 15, 2026 | Project proposal submitted |
+| Sep 30, 2026 | First presentation (Zoom, 6:30–10:30 pm) |
+| Oct 31, 2026 | Final deliverables — code, report, demo video |
+
+* * *
+
+## Miscellaneous
+
+Screenshots and assets: [Miscellaneous/images/](Miscellaneous/images/)
+
+---
+
+*NUS-ISS M.Tech in Artificial Intelligence Systems — ISY5002 Pattern Recognition Systems*
