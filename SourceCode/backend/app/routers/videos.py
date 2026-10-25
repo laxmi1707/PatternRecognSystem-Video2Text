@@ -17,7 +17,7 @@ from app.services import video_service
 router = APIRouter(prefix="/api/v1/videos", tags=["videos"])
 limiter = Limiter(key_func=get_remote_address)
 
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB (uploads stream to disk; analysis time grows with length)
 MAX_ACTION_LOG_SIZE = 10 * 1024 * 1024  # 10 MB
 CHUNK_SIZE = 64 * 1024  # 64 KB
 ALLOWED_CONTENT_TYPES = {"video/mp4", "video/quicktime", "video/webm", "video/x-msvideo", "application/octet-stream"}
