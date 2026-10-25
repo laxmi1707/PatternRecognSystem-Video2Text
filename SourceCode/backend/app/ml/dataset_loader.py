@@ -213,6 +213,17 @@ _PLATFORM_LABELS: dict[str, str] = {
     "korganizer": "web_browsing",
     "kontact": "web_browsing",
     "GNOME Contacts": "web_browsing",
+    # ── AWS / Cloud consoles ───────────────────────────────────────────────
+    "aws console": "aws_console",
+    "aws management console": "aws_console",
+    "amazon web services": "aws_console",
+    "aws": "aws_console",
+    "s3 console": "aws_console",
+    "ec2 console": "aws_console",
+    "cloudwatch": "aws_console",
+    "azure portal": "aws_console",
+    "google cloud console": "aws_console",
+    "gcp console": "aws_console",
     # ── DevOps / containers / cloud ────────────────────────────────────────
     "portainer": "docker_workflow",
     "rancher": "kubernetes_ops",
