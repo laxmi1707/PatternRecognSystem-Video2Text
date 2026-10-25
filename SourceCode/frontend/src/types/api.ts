@@ -24,6 +24,8 @@ export interface ClassificationResultDTO {
   start_time: number;
   end_time: number;
   ocr_text?: string;
+  operations?: string[];
+  label_source?: string;
 }
 
 export interface ModelSummaryDTO {

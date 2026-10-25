@@ -27,8 +27,9 @@ sop_gen = SOPGenerator()
 runbook_gen = RunbookGenerator()
 
 # Tier priority for selecting the best model result per segment
-_TIER_PRIORITY = {"tier3": 0, "tier2": 1, "tier1": 2}
+_TIER_PRIORITY = {"decision": -1, "tier3": 0, "tier2": 1, "tier1": 2}
 _MODEL_TIER = {
+    "decision": "decision",
     "voting": "tier3", "stacking": "tier3", "late_fusion": "tier3",
     "mlp": "tier2", "cnn1d": "tier2", "lstm": "tier2", "transformer": "tier2",
     "workflow_lstm": "tier2", "workflow_transformer": "tier2",
@@ -61,6 +62,7 @@ def _best_segments(results) -> list[dict]:
             "predicted_label": r.predicted_label,
             "confidence": r.confidence,
             "ocr_text": ocr,
+            "operations": list(probs.get("_operations") or []),
         })
     return segs
 

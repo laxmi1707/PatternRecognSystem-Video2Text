@@ -21,6 +21,21 @@ _LABEL_DESCRIPTIONS: dict[str, str] = {
     "jenkins_ci_cd":    "Configure or trigger CI/CD pipelines",
     "documentation":    "Write or update documentation",
     "other":            "Perform general screen activity",
+    "cloud_storage":            "Work with storage in the AWS console (S3, EBS, EFS)",
+    "cloud_compute":            "Manage compute in the AWS console (EC2, Lambda, ECS)",
+    "cloud_networking":         "Configure networking in the AWS console (VPC, security groups, load balancers)",
+    "cloud_identity_security":  "Manage access and secrets in the AWS console (IAM, Secrets Manager, KMS)",
+    "cloud_database":           "Manage databases in the AWS console (RDS, DynamoDB)",
+    "cloud_monitoring":         "Monitor resources in the AWS console (CloudWatch, CloudTrail)",
+}
+
+_CLOUD_AREA_NAMES: dict[str, str] = {
+    "cloud_storage": "AWS storage",
+    "cloud_compute": "AWS compute",
+    "cloud_networking": "AWS networking",
+    "cloud_identity_security": "AWS identity & secrets",
+    "cloud_database": "AWS database",
+    "cloud_monitoring": "AWS monitoring",
 }
 
 # Platform-specific action verbs for more natural step descriptions
@@ -362,7 +377,15 @@ class SOPGenerator:
 
             # For terminal segments, try to extract actual command from OCR first
             terminal_cmd = _extract_terminal_command(raw_ocr) if label in ("terminal_ops", "debugging", "git_operations", "docker_workflow") else ""
-            if terminal_cmd:
+            if label in _CLOUD_AREA_NAMES:
+                # AWS console segment labelled by the OCR rules: area + operations seen.
+                ops = seg.get("operations") or []
+                area = _CLOUD_AREA_NAMES[label]
+                step_title = f"{area}: {', '.join(ops)}" if ops else area
+                description = _LABEL_DESCRIPTIONS[label] + "."
+                if ops:
+                    description += f" Operation{'s' if len(ops) > 1 else ''}: {', '.join(ops)}."
+            elif terminal_cmd:
                 keyword_action = ""
                 step_title = f"Run: `{terminal_cmd}`"
                 description = f"Execute: `{terminal_cmd}`"

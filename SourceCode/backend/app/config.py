@@ -20,6 +20,14 @@ class Settings(BaseSettings):
     model_s3_region: str | None = "ap-southeast-1"
     model_s3_require_checksum: bool = False
 
+    # Who decides each segment's activity label (env LABEL_SOURCE):
+    #   "model"  - the trained classifiers only
+    #   "hybrid" - OCR rules where the AWS console is recognised (cloud_* service area +
+    #              operations), the trained classifiers everywhere else
+    #   "rules"  - OCR rules only; segments the rules cannot label become "other"
+    # Rules only run when a video is analysed; training labels are not affected.
+    label_source: str = "hybrid"
+
     # API key authentication (empty string = auth disabled, for local dev)
     api_key: str = ""
 

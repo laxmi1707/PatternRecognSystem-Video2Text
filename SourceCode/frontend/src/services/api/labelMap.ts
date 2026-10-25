@@ -68,6 +68,31 @@ const LABEL_META: Record<string, { title: string; descriptionTemplate: string }>
     descriptionTemplate:
       'An activity was detected that does not match a known category. Classified as other with {confidence}% confidence by {model}.',
   },
+  // AWS console segments, labelled from on-screen text (URL, page titles, banners) by OCR rules.
+  cloud_storage: {
+    title: 'Worked with AWS storage (S3, EBS, EFS)',
+    descriptionTemplate: 'The AWS console was used for storage. Recognised from screen text with {confidence}% confidence by {model}.',
+  },
+  cloud_compute: {
+    title: 'Managed AWS compute (EC2, Lambda, ECS)',
+    descriptionTemplate: 'The AWS console was used for compute resources. Recognised from screen text with {confidence}% confidence by {model}.',
+  },
+  cloud_networking: {
+    title: 'Configured AWS networking (VPC, security groups, load balancers)',
+    descriptionTemplate: 'The AWS console was used for networking. Recognised from screen text with {confidence}% confidence by {model}.',
+  },
+  cloud_identity_security: {
+    title: 'Managed AWS access and secrets (IAM, Secrets Manager, KMS)',
+    descriptionTemplate: 'The AWS console was used for identity or secrets. Recognised from screen text with {confidence}% confidence by {model}.',
+  },
+  cloud_database: {
+    title: 'Managed AWS databases (RDS, DynamoDB)',
+    descriptionTemplate: 'The AWS console was used for databases. Recognised from screen text with {confidence}% confidence by {model}.',
+  },
+  cloud_monitoring: {
+    title: 'Monitored AWS resources (CloudWatch, CloudTrail)',
+    descriptionTemplate: 'The AWS console was used for monitoring. Recognised from screen text with {confidence}% confidence by {model}.',
+  },
 };
 
 const TERMINAL_LABELS = new Set(['terminal_ops', 'debugging', 'git_operations', 'docker_workflow']);
@@ -95,12 +120,13 @@ export function mapResultsToSteps(results: ClassificationResultDTO[]): WorkflowS
     const endSec = r.end_time ?? (i + 1) * 5;
 
     const cmd = TERMINAL_LABELS.has(r.label) ? extractCommand(r.ocr_text ?? '') : '';
-    const title = cmd ? `Run: \`${cmd}\`` : meta.title;
+    const ops = r.operations && r.operations.length > 0 ? ` — ${r.operations.join(', ')}` : '';
+    const title = cmd ? `Run: \`${cmd}\`` : `${meta.title}${ops}`;
     const description = cmd
       ? `Execute: \`${cmd}\`. Classified as ${r.label.replace('_', ' ')} with ${confidencePct}% confidence by ${r.model_name}.`
       : meta.descriptionTemplate
           .replace('{confidence}', String(confidencePct))
-          .replace('{model}', r.model_name);
+          .replace('{model}', r.label_source || r.model_name);
 
     return {
       n: i + 1,

@@ -32,10 +32,13 @@ def _build_model_comparison(results) -> tuple[list[ModelSummary], str | None]:
 
     comparison = []
     for name, confidences in by_model.items():
-        try:
-            tier = ml_service.get_model_tier(name)
-        except Exception:
-            tier = "unknown"
+        if name == "decision":
+            tier = "decision"  # final per-segment label (OCR rules or best model)
+        else:
+            try:
+                tier = ml_service.get_model_tier(name)
+            except Exception:
+                tier = "unknown"
         comparison.append(ModelSummary(
             model_name=name,
             tier=tier,
@@ -45,7 +48,7 @@ def _build_model_comparison(results) -> tuple[list[ModelSummary], str | None]:
 
     # Prefer higher tiers (ensembles > deep > classical) then by confidence within tier.
     # Sorting by raw confidence alone causes miscalibrated models (e.g. Naive Bayes) to win.
-    _TIER_RANK = {"tier3": 0, "tier2": 1, "tier1": 2, "unknown": 3}
+    _TIER_RANK = {"decision": -1, "tier3": 0, "tier2": 1, "tier1": 2, "unknown": 3}
     comparison.sort(key=lambda m: (_TIER_RANK.get(m.tier, 3), -m.avg_confidence, m.latency_ms))
     best = comparison[0].model_name if comparison else None
     return comparison, best
@@ -115,7 +118,10 @@ async def get_job_results(job_id: int, db: AsyncSession = Depends(get_db)):
         ClassificationResult(
             label=r.predicted_label,
             confidence=r.confidence,
-            probabilities={k: v for k, v in (r.probabilities or {}).items() if k != "_ocr"},
+            probabilities={k: v for k, v in (r.probabilities or {}).items()
+                           if not k.startswith("_") and isinstance(v, (int, float))},
+            operations=list((r.probabilities or {}).get("_operations") or []),
+            label_source=str((r.probabilities or {}).get("_source") or ""),
             model_name=r.model_name,
             latency_ms=r.latency_ms,
             start_time=r.start_time,

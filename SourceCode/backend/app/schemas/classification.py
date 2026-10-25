@@ -30,7 +30,11 @@ class ClassifyBatchRequest(BaseModel):
 
 
 class ClassificationResult(BaseModel):
-    label: ActivityLabel
+    # A plain string: ACTIVITY_LABELS grows (e.g. diagram_design) and rules add cloud_*
+    # labels; an enum here made the results endpoint fail on any label it didn't list.
+    label: str
+    operations: list[str] = []  # e.g. ["upload"] for AWS console segments (OCR rules)
+    label_source: str = ""  # "ocr_rules" or the model name that decided this label
     confidence: float
     probabilities: dict[str, float]
     model_name: str

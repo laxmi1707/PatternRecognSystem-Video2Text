@@ -10,6 +10,8 @@ from pathlib import Path
 import numpy as np
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
+from app.ml.cloud_rules import decide_cloud_label
 from app.ml.dataset import generate_synthetic_dataset
 from app.models.job import AnalysisJob
 from app.models.result import ClassificationResult
@@ -62,6 +64,49 @@ ALL_MODELS = [
     # Tier 3
     "voting", "stacking", "late_fusion",
 ]
+
+# The final per-segment label is stored as an extra result row under this model name.
+DECISION_MODEL = "decision"
+LABEL_SOURCES = ("model", "hybrid", "rules")
+_TIER_RANK = {name: rank for rank, names in enumerate((
+    ["voting", "stacking", "late_fusion"],
+    ["mlp", "cnn1d", "lstm", "transformer", "workflow_lstm", "workflow_transformer"],
+    ["svm", "naive_bayes", "decision_tree", "random_forest", "knn", "xgboost", "lightgbm"],
+)) for name in names}
+
+
+def decide_segment_labels(
+    segments: list[dict],
+    model_results: dict[str, list[dict]],
+    label_source: str,
+) -> list[dict]:
+    """Final label per segment: OCR rules or the trained models, per ``label_source``.
+
+    - rules decide a segment when its OCR text is recognisably the AWS console
+      (``hybrid`` and ``rules``): a cloud_* service area plus the operations seen;
+    - otherwise the trained model with the highest tier, then highest confidence,
+      decides (``hybrid``), or the segment is "other" (``rules``).
+    """
+    decisions = []
+    for i, seg in enumerate(segments):
+        rule = decide_cloud_label(seg.get("ocr_text", ""), source="screen")
+        if rule is not None:
+            decisions.append({"label": rule.service, "confidence": rule.confidence,
+                              "source": "ocr_rules", "operations": rule.operations,
+                              "evidence": rule.evidence})
+            continue
+        candidates = [
+            (name, preds[i]) for name, preds in model_results.items()
+            if i < len(preds) and label_source == "hybrid"
+        ]
+        if candidates:
+            name, pred = min(candidates, key=lambda c: (_TIER_RANK.get(c[0], 99), -c[1]["confidence"]))
+            decisions.append({"label": pred["label"], "confidence": pred["confidence"],
+                              "source": name, "operations": [], "evidence": []})
+        else:
+            decisions.append({"label": "other", "confidence": 0.0,
+                              "source": "ocr_rules", "operations": [], "evidence": []})
+    return decisions
 
 # Feature extraction and classification are CPU-bound and synchronous, so they run in a
 # worker thread (asyncio.to_thread) to keep the event loop free for /health and job-status
@@ -126,9 +171,13 @@ async def run_classification_job(
 
         await update_job_status(db, job.id, "processing", 65.0, "loading classification models")
 
-        all_model_results = await _classify_all_models(
-            X, db=db, job_id=job.id
-        )
+        label_source = settings.label_source if settings.label_source in LABEL_SOURCES else "hybrid"
+        if label_source == "rules":
+            all_model_results: dict[str, list[dict]] = {}
+        else:
+            all_model_results = await _classify_all_models(
+                X, db=db, job_id=job.id
+            )
 
         await update_job_status(db, job.id, "processing", 96.0, "saving results to database")
 
@@ -152,6 +201,27 @@ async def run_classification_job(
                     latency_ms=pred["latency_ms"],
                 )
                 results.append(cr)
+
+        if label_source != "model":
+            seg_list = [segments[i] if i < len(segments) else {"start_time": i * 5.0, "end_time": (i + 1) * 5.0}
+                        for i in range(n_segments)]
+            for i, d in enumerate(decide_segment_labels(seg_list, all_model_results, label_source)):
+                seg = seg_list[i]
+                probs: dict = {d["label"]: d["confidence"], "_source": d["source"],
+                               "_operations": d["operations"], "_evidence": d["evidence"]}
+                if seg.get("ocr_text"):
+                    probs["_ocr"] = seg["ocr_text"]
+                results.append(ClassificationResult(
+                    job_id=job.id,
+                    segment_index=i,
+                    start_time=seg["start_time"],
+                    end_time=seg["end_time"],
+                    predicted_label=d["label"],
+                    confidence=d["confidence"],
+                    probabilities=probs,
+                    model_name=DECISION_MODEL,
+                    latency_ms=0.0,
+                ))
 
         db.add_all(results)
         await update_job_status(db, job.id, "completed", 100.0, "analysis complete")
