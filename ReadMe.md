@@ -103,7 +103,7 @@ See [architecture.pdf](Miscellaneous/images/architecture.pdf) for the full pipel
 | OCR / Vision | EasyOCR, YOLO, OpenCV, Albumentations |
 | Database | PostgreSQL + pgvector |
 | Knowledge Generation | Rule-based SOP and runbook from pattern recognition output |
-| Cloud | AWS ECS Fargate, S3, SageMaker |
+| Cloud | AWS ECS Fargate, S3 |
 | CI/CD | GitHub Actions, Docker, MLflow |
 
 * * *
