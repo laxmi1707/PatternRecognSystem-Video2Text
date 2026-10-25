@@ -20,6 +20,10 @@ _LABEL_DESCRIPTIONS: dict[str, str] = {
     "terraform_iac":    "Provision infrastructure using Terraform",
     "jenkins_ci_cd":    "Configure or trigger CI/CD pipelines",
     "documentation":    "Write or update documentation",
+    "diagram_design":   "Create or edit diagrams, flowcharts, or visual designs",
+    "media_editing":    "Edit video, audio, or multimedia content",
+    "file_management":  "Manage files and directories in the file system",
+    "image_editing":    "Edit or process images using a graphics tool",
     "other":            "Perform general screen activity",
 }
 
@@ -339,9 +343,8 @@ class SOPGenerator:
         # 1. Collect raw OCR for whole-document keyword/platform detection
         all_raw_ocr = " ".join(ocr_texts).lower()
 
-        # 2. Use each segment as its own step (no merging — preserves time ranges)
-        merged_segs = segments
-        merged_raw_ocr = list(ocr_texts)
+        # 2. Merge consecutive same-label segments — prevents 3 identical "Coding Editing" steps
+        merged_segs, merged_raw_ocr = _merge_consecutive_segments(segments, ocr_texts)
 
         # 4. Detect platform from OCR (overrides "Screen Recording" fallback)
         detected_platform = platform
