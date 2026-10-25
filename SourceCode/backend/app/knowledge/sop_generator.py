@@ -178,6 +178,9 @@ def _extract_terminal_command(text: str) -> str:
             continue
         if _UI_NOISE_PATTERN.search(candidate):
             continue
+        # Reject garbled OCR: require printable ASCII only
+        if not re.match(r'^[\x20-\x7E]+$', candidate):
+            continue
         tokens = candidate.split()
         if len(tokens) > 10:
             continue
@@ -369,6 +372,12 @@ class SOPGenerator:
             else:
                 # Run keyword matching on RAW ocr (multi-word phrases intact, not split by · )
                 keyword_action = _extract_keywords(raw_ocr)
+                # Don't let a generic platform keyword ("Navigate VS Code") override a specific
+                # activity label (git_operations, debugging, etc.) — use the label instead
+                _generic_platform_actions = {"Navigate VS Code", "Navigate Eclipse IDE", "Navigate IntelliJ / PyCharm"}
+                _specific_labels = {"git_operations", "debugging", "docker_workflow", "aws_console", "kubernetes_ops", "terminal_ops"}
+                if keyword_action in _generic_platform_actions and label in _specific_labels:
+                    keyword_action = ""
                 step_title = keyword_action if keyword_action else label.replace("_", " ").title()
                 description = _step_description(label, detected_platform, raw_ocr, keyword_action)
 
