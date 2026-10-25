@@ -28,7 +28,7 @@ Desktop screen recordings contain expert knowledge that is impossible to search 
 - **Ingestion** — video upload, frame extraction, action log parsing
 - **Feature extraction** — EfficientNet-B0 CNN visual features, EasyOCR, YOLO UI detection, interaction statistics
 - **Multi-tier classifier** — classical ML → deep learning → ensemble fusion
-- **Knowledge generation** — LLM-powered SOP, runbook, and timeline generation
+- **Knowledge generation** — Rule-based SOP, runbook, and timeline generation from pattern recognition output
 - **Dashboard** — React frontend for upload, activity timeline, and knowledge retrieval
 
 * * *
@@ -93,11 +93,7 @@ Password: demo1234
 
 ## Architecture
 
-<div align="center">
-  <img src="Miscellaneous/images/architecture.svg" alt="TRACE Pipeline Architecture" width="100%"/>
-</div>
-
-> Full resolution: [architecture.pdf](Miscellaneous/images/architecture.pdf)
+See [architecture.pdf](Miscellaneous/images/architecture.pdf) for the full pipeline diagram.
 
 | Layer | Technologies |
 |-------|-------------|
@@ -106,7 +102,7 @@ Password: demo1234
 | ML | PyTorch, scikit-learn, XGBoost, LightGBM, EfficientNet-B0 |
 | OCR / Vision | EasyOCR, YOLO, OpenCV, Albumentations |
 | Database | PostgreSQL + pgvector |
-| LLM | Anthropic Claude (SOP/runbook generation) |
+| Knowledge Generation | Rule-based SOP and runbook from pattern recognition output |
 | Cloud | AWS ECS Fargate, S3, SageMaker |
 | CI/CD | GitHub Actions, Docker, MLflow |
 
