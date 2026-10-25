@@ -34,7 +34,7 @@ export function VideoDropzone({ onFileSelected }: VideoDropzoneProps) {
         </svg>
       </div>
       <p className="dropzone-title">Drop a video here, or click to browse</p>
-      <p className="text-muted dropzone-sub">MP4, MOV or WebM - up to 500MB</p>
+      <p className="text-muted dropzone-sub">MP4, MOV or WebM - up to 100MB</p>
       <input
         ref={inputRef}
         type="file"
