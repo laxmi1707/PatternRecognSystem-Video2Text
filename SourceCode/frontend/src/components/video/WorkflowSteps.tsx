@@ -33,21 +33,24 @@ export function WorkflowSteps({ steps }: WorkflowStepsProps) {
       </p>
       {riskySteps.map(step => {
         const badge = RISK_BADGE[step.risk_level!];
+        const borderColor = step.risk_level === 'high' ? '#dc2626' : '#d97706';
         return (
-          <div className="workflow-step" key={step.n} style={{ borderLeft: `3px solid ${step.risk_level === 'high' ? '#dc2626' : '#d97706'}`, paddingLeft: 8 }}>
-            <div className="workflow-step-num" style={{ background: step.risk_level === 'high' ? '#dc2626' : '#d97706' }}>{step.n}</div>
-            <div className="workflow-step-body">
-              <div className="workflow-step-head">
-                <h4>
+          <div className="workflow-step" key={step.n} style={{ borderLeft: `3px solid ${borderColor}`, paddingLeft: 8, marginBottom: 10 }}>
+            <div className="workflow-step-num" style={{ background: borderColor, fontSize: 11, width: 20, height: 20, minWidth: 20 }}>{step.n}</div>
+            <div className="workflow-step-body" style={{ flex: 1 }}>
+              <div className="workflow-step-head" style={{ flexWrap: 'wrap', gap: 4 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>
                   {step.title}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   {badge && <span style={badge.style} title={step.risk_reason}>{badge.label}</span>}
-                </h4>
-                <span className="tag tag-outline">{step.time}</span>
+                  <span className="tag tag-outline" style={{ fontSize: 11 }}>{step.time}</span>
+                </div>
               </div>
               {step.risk_reason && (
-                <p style={{ fontSize: 12, color: step.risk_level === 'high' ? '#dc2626' : '#d97706', margin: '2px 0 4px' }}>{step.risk_reason}</p>
+                <p style={{ fontSize: 11, color: borderColor, margin: '2px 0 3px', fontWeight: 500 }}>{step.risk_reason}</p>
               )}
-              <p className="text-muted">{step.description}</p>
+              <p className="text-muted" style={{ fontSize: 11, margin: 0, lineHeight: 1.4 }}>{step.description}</p>
             </div>
           </div>
         );
