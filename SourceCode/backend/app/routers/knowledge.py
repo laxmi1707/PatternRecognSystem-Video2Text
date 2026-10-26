@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -237,7 +237,7 @@ async def generate_sop(job_id: int, db: AsyncSession = Depends(get_db)):
             platform=platform,
             actions=actions,
             source_recording=raw_filename or video_file.name,
-            generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
+            generated_at=datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M SGT"),
         )
     else:
         # No action log: one step per classified activity segment.
