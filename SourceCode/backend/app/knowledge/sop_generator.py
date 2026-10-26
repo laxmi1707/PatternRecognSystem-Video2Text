@@ -298,12 +298,12 @@ def _merge_consecutive_segments(
                 cur_ocr_parts.append(ocr)
         else:
             merged_segs.append(cur)
-            merged_ocr.append(" · ".join(p for p in cur_ocr_parts if p)[:200])
+            merged_ocr.append(" · ".join(p for p in cur_ocr_parts if p))
             cur = dict(seg)
             cur_ocr_parts = [ocr]
 
     merged_segs.append(cur)
-    merged_ocr.append(" · ".join(p for p in cur_ocr_parts if p)[:200])
+    merged_ocr.append(" · ".join(p for p in cur_ocr_parts if p))
 
     return merged_segs, merged_ocr
 
