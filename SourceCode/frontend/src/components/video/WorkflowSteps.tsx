@@ -16,13 +16,26 @@ const RISK_BADGE: Record<string, { label: string; style: React.CSSProperties }> 
 };
 
 export function WorkflowSteps({ steps }: WorkflowStepsProps) {
+  const riskySteps = steps.filter(s => s.risk_level && s.risk_level !== 'none');
+
+  if (riskySteps.length === 0) {
+    return (
+      <div className="workflow-steps">
+        <p className="text-muted" style={{ padding: '16px 0', textAlign: 'center' }}>No anomalies detected in this recording.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="workflow-steps">
-      {steps.map(step => {
-        const badge = step.risk_level && step.risk_level !== 'none' ? RISK_BADGE[step.risk_level] : null;
+      <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>
+        {riskySteps.length} anomaly{riskySteps.length > 1 ? 'ies' : ''} detected
+      </p>
+      {riskySteps.map(step => {
+        const badge = RISK_BADGE[step.risk_level!];
         return (
-          <div className="workflow-step" key={step.n} style={badge ? { borderLeft: `3px solid ${step.risk_level === 'high' ? '#dc2626' : '#d97706'}`, paddingLeft: 8 } : undefined}>
-            <div className="workflow-step-num" style={badge ? { background: step.risk_level === 'high' ? '#dc2626' : '#d97706' } : undefined}>{step.n}</div>
+          <div className="workflow-step" key={step.n} style={{ borderLeft: `3px solid ${step.risk_level === 'high' ? '#dc2626' : '#d97706'}`, paddingLeft: 8 }}>
+            <div className="workflow-step-num" style={{ background: step.risk_level === 'high' ? '#dc2626' : '#d97706' }}>{step.n}</div>
             <div className="workflow-step-body">
               <div className="workflow-step-head">
                 <h4>
@@ -31,7 +44,7 @@ export function WorkflowSteps({ steps }: WorkflowStepsProps) {
                 </h4>
                 <span className="tag tag-outline">{step.time}</span>
               </div>
-              {badge && step.risk_reason && (
+              {step.risk_reason && (
                 <p style={{ fontSize: 12, color: step.risk_level === 'high' ? '#dc2626' : '#d97706', margin: '2px 0 4px' }}>{step.risk_reason}</p>
               )}
               <p className="text-muted">{step.description}</p>
