@@ -269,6 +269,8 @@ async def generate_sop(job_id: int, db: AsyncSession = Depends(get_db)):
                 "delay_s": s.delay_s,
                 "screen_output": s.screen_output,
                 "screen_removed": s.screen_removed,
+                "risk_level": s.risk_level,
+                "risk_reason": s.risk_reason,
             }
             for s in sop.steps
         ],

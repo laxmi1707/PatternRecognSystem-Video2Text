@@ -66,6 +66,8 @@ class SOPStep:
     delay_s: float | None = None
     screen_output: list[str] = field(default_factory=list)  # text that appeared
     screen_removed: list[str] = field(default_factory=list)  # text that disappeared
+    risk_level: str = "none"   # "high" | "medium" | "none"
+    risk_reason: str = ""
 
 
 # Keywords that indicate meaningful UI actions — matched against OCR text.
@@ -157,6 +159,44 @@ _TERMINAL_COMMANDS: set[str] = {
     "ps", "kill", "top", "df", "du", "mount", "ping", "ifconfig", "netstat",
     "aws", "terraform", "helm", "ansible", "systemctl", "service", "journalctl",
 }
+
+
+# Risk rules: (activity_labels, ocr_keywords, risk_level, reason)
+# Applied in order — first match wins.
+_RISK_RULES: list[tuple[set[str], list[str], str, str]] = [
+    # Destructive cloud operations
+    ({"aws_console"}, ["delete", "terminate", "destroy", "purge", "deregister", "detach"],
+     "high", "Destructive AWS operation detected"),
+    # Destructive filesystem / DB commands visible in OCR
+    (set(), ["rm -rf", "rm -r /", "drop table", "drop database", "truncate table",
+             "chmod 777", "sudo rm"],
+     "high", "Destructive command visible on screen"),
+    # Force operations and credential exposure
+    (set(), ["--force", "--hard", "force-push", "force push",
+             "password", "secret", "private_key", "credentials", "access_key"],
+     "high", "Sensitive operation or credential visible on screen"),
+    # Infrastructure destroy
+    ({"terraform_iac", "kubernetes_ops"}, ["destroy", "drain", "force-delete", "delete ns"],
+     "high", "Irreversible infrastructure change detected"),
+    # Container/cluster removal
+    ({"docker_workflow", "kubernetes_ops"}, ["prune", "force", "kill", "remove", "delete"],
+     "medium", "Potentially destructive container or cluster operation"),
+    # Errors and crashes in debugging sessions
+    ({"debugging"}, ["exception", "crash", "fatal", "killed", "error", "traceback", "segfault"],
+     "medium", "Error or crash detected during debugging"),
+]
+
+
+def _assess_risk(label: str, ocr_text: str) -> tuple[str, str]:
+    """Return (risk_level, risk_reason) for a segment given its activity label and OCR text."""
+    if not ocr_text:
+        return "none", ""
+    text_lower = ocr_text.lower()
+    for labels, keywords, level, reason in _RISK_RULES:
+        label_match = (not labels) or (label in labels)
+        if label_match and any(kw in text_lower for kw in keywords):
+            return level, reason
+    return "none", ""
 
 
 _UI_NOISE_PATTERN = re.compile(
@@ -382,12 +422,15 @@ class SOPGenerator:
                 step_title = keyword_action if keyword_action else label.replace("_", " ").title()
                 description = _step_description(label, detected_platform, raw_ocr, keyword_action)
 
+            risk_level, risk_reason = _assess_risk(label, raw_ocr)
             steps.append(SOPStep(
                 number=i + 1,
                 title=step_title,
                 description=description,
                 time_range=f"{start:.1f}s - {end:.1f}s",
                 detected_text=raw_ocr,
+                risk_level=risk_level,
+                risk_reason=risk_reason,
             ))
 
         # 4. Prerequisites driven by OCR content (more reliable than model labels on F1=0.29)
