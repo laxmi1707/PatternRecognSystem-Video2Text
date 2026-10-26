@@ -155,6 +155,7 @@ _TERMINAL_COMMANDS: set[str] = {
     "curl", "wget", "ssh", "scp", "tar", "zip", "unzip", "apt", "yum", "brew",
     "export", "source", "chmod", "sudo", "bash", "sh", "zsh", "vim", "nano",
     "ps", "kill", "top", "df", "du", "mount", "ping", "ifconfig", "netstat",
+    "aws", "terraform", "helm", "ansible", "systemctl", "service", "journalctl",
 }
 
 
@@ -190,13 +191,10 @@ def _extract_terminal_command(text: str) -> str:
             continue
         first = tokens[0].lower().lstrip("'\"") if tokens else ""
         is_known = first in _TERMINAL_COMMANDS and len(candidate) > len(first)
-        # Prefer known commands, but accept any text after $ or # prompt
-        if is_known and not best_is_known:
+        # Only accept text whose first word is a known command — rejects OCR garbage
+        if is_known and (not best_is_known or len(candidate) > len(best_cmd)):
             best_cmd = candidate[:80]
             best_is_known = True
-        elif is_known == best_is_known and len(candidate) > len(best_cmd):
-            best_cmd = candidate[:80]
-            best_is_known = is_known
 
     return best_cmd
 
