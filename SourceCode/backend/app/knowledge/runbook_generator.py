@@ -54,25 +54,33 @@ class RunbookGenerator:
         detected_commands: list[str] | None,
         ocr_texts: list[str] | None = None,
     ) -> RunbookDocument:
-        from app.knowledge.sop_generator import _extract_keywords
+        from app.knowledge.sop_generator import (
+            _extract_keywords, _extract_terminal_command, _merge_consecutive_segments,
+        )
+
+        if not ocr_texts:
+            ocr_texts = [""] * len(activity_sequence)
+
+        merged_segs, merged_ocr = _merge_consecutive_segments(activity_sequence, ocr_texts)
+
+        _TERMINAL_LABELS = {"terminal_ops", "debugging", "git_operations", "docker_workflow", "kubernetes_ops"}
 
         steps: list[RunbookStep] = []
-        for i, activity in enumerate(activity_sequence):
+        for i, (activity, raw_ocr) in enumerate(zip(merged_segs, merged_ocr)):
             raw_label = activity.get("predicted_label", activity.get("label", "other"))
-            raw_ocr = (ocr_texts[i] if ocr_texts and i < len(ocr_texts) else "")
-            keyword_action = _extract_keywords(raw_ocr)
-            action = keyword_action if keyword_action else raw_label.replace("_", " ").title()
+            start = activity.get("start_time", 0)
+            end = activity.get("end_time", 0)
 
-            if keyword_action and platform.lower() not in keyword_action.lower():
-                details = f"{keyword_action} on {platform}."
-            elif keyword_action:
-                details = f"{keyword_action}."
+            terminal_cmd = _extract_terminal_command(raw_ocr) if raw_label in _TERMINAL_LABELS else ""
+            if terminal_cmd:
+                action = f"Run: `{terminal_cmd}`"
+                details = f"Execute: `{terminal_cmd}` on {platform}."
+                command = terminal_cmd
             else:
-                details = f"{action.lower()} on {platform}."
-
-            command = ""
-            if detected_commands and i < len(detected_commands):
-                command = detected_commands[i]
+                keyword_action = _extract_keywords(raw_ocr)
+                action = keyword_action if keyword_action else raw_label.replace("_", " ").title()
+                details = f"{action} on {platform}." if platform.lower() not in action.lower() else f"{action}."
+                command = ""
 
             steps.append(
                 RunbookStep(
@@ -80,8 +88,7 @@ class RunbookGenerator:
                     action=action,
                     details=details,
                     command=command,
-                    expected_output=f"Activity completed with confidence "
-                    f"{activity.get('confidence', 0):.0%}",
+                    expected_output=f"{raw_label.replace('_', ' ').title()} completed at {start:.0f}s–{end:.0f}s",
                 )
             )
 
