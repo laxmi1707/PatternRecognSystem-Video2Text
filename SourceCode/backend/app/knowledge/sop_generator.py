@@ -164,23 +164,28 @@ _TERMINAL_COMMANDS: set[str] = {
 # Risk rules: (activity_labels, ocr_keywords, risk_level, reason)
 # Applied in order — first match wins.
 _RISK_RULES: list[tuple[set[str], list[str], str, str]] = [
-    # Destructive cloud operations
-    ({"aws_console"}, ["delete", "terminate", "destroy", "purge", "deregister", "detach"],
-     "high", "Destructive AWS operation detected"),
-    # Destructive filesystem / DB commands visible in OCR
+    # Destructive filesystem / DB commands — label-agnostic
     (set(), ["rm -rf", "rm -r /", "drop table", "drop database", "truncate table",
              "chmod 777", "sudo rm"],
      "high", "Destructive command visible on screen"),
-    # Force operations and credential exposure
+    # Infrastructure destroy — label-agnostic (catches terraform even when misclassified)
+    (set(), ["terraform destroy", "terraform apply -destroy", "terminate-instances",
+             "delete-cluster", "kubectl delete ns", "kubectl delete namespace"],
+     "high", "Irreversible infrastructure change detected"),
+    # Force operations and credential exposure — label-agnostic
     (set(), ["--force", "--hard", "force-push", "force push",
-             "password", "secret", "private_key", "credentials", "access_key"],
+             "aws_secret_access_key", "aws_access_key_id", "password=",
+             "private_key", "credentials", "access_key"],
      "high", "Sensitive operation or credential visible on screen"),
-    # Infrastructure destroy
+    # Destructive cloud operations
+    ({"aws_console"}, ["delete", "terminate", "destroy", "purge", "deregister", "detach"],
+     "high", "Destructive AWS operation detected"),
+    # Infrastructure destroy (label-specific fallback)
     ({"terraform_iac", "kubernetes_ops"}, ["destroy", "drain", "force-delete", "delete ns"],
      "high", "Irreversible infrastructure change detected"),
-    # Container/cluster removal
-    ({"docker_workflow", "kubernetes_ops"}, ["prune", "force", "kill", "remove", "delete"],
-     "medium", "Potentially destructive container or cluster operation"),
+    # Container removal — label-agnostic for common patterns
+    (set(), ["docker rmi", "docker rm -f", "docker system prune"],
+     "medium", "Potentially destructive container operation"),
     # Errors and crashes in debugging sessions
     ({"debugging"}, ["exception", "crash", "fatal", "killed", "error", "traceback", "segfault"],
      "medium", "Error or crash detected during debugging"),

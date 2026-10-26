@@ -90,11 +90,12 @@ function extractCommand(ocrText: string): string {
 type RiskRule = { labels: string[]; keywords: string[]; level: 'high' | 'medium'; reason: string };
 
 const RISK_RULES: RiskRule[] = [
-  { labels: ['aws_console'], keywords: ['delete', 'terminate', 'destroy', 'purge', 'deregister'], level: 'high', reason: 'Destructive AWS operation detected' },
   { labels: [], keywords: ['rm -rf', 'rm -r /', 'drop table', 'drop database', 'truncate table', 'chmod 777', 'sudo rm'], level: 'high', reason: 'Destructive command visible on screen' },
-  { labels: [], keywords: ['--force', '--hard', 'force-push', 'force push', 'password', 'secret', 'private_key', 'access_key'], level: 'high', reason: 'Sensitive operation or credential visible on screen' },
+  { labels: [], keywords: ['terraform destroy', 'terraform apply -destroy', 'terminate-instances', 'delete-cluster', 'kubectl delete ns', 'kubectl delete namespace'], level: 'high', reason: 'Irreversible infrastructure change detected' },
+  { labels: [], keywords: ['--force', '--hard', 'force-push', 'force push', 'aws_secret_access_key', 'aws_access_key_id', 'password=', 'private_key', 'access_key'], level: 'high', reason: 'Sensitive operation or credential visible on screen' },
+  { labels: ['aws_console'], keywords: ['delete', 'terminate', 'destroy', 'purge', 'deregister'], level: 'high', reason: 'Destructive AWS operation detected' },
   { labels: ['terraform_iac', 'kubernetes_ops'], keywords: ['destroy', 'drain', 'force-delete'], level: 'high', reason: 'Irreversible infrastructure change detected' },
-  { labels: ['docker_workflow', 'kubernetes_ops'], keywords: ['prune', 'force', 'kill', 'remove', 'delete'], level: 'medium', reason: 'Potentially destructive container operation' },
+  { labels: ['docker_workflow', 'kubernetes_ops', 'coding_editing'], keywords: ['docker rmi', 'docker rm -f', 'docker system prune'], level: 'medium', reason: 'Potentially destructive container operation' },
   { labels: ['debugging'], keywords: ['exception', 'crash', 'fatal', 'killed', 'traceback', 'segfault'], level: 'medium', reason: 'Error or crash detected during debugging' },
 ];
 

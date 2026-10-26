@@ -88,7 +88,7 @@ export function UploadPage({ onFileSelected }: UploadPageProps) {
               {['MP4', 'MOV', 'WebM'].map(f => (
                 <span key={f} className="format-badge">{f}</span>
               ))}
-              <span className="format-limit">Up to 500 MB</span>
+              <span className="format-limit">Up to 100 MB</span>
             </div>
           </div>
 
