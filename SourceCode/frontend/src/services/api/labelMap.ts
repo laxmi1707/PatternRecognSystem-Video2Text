@@ -117,7 +117,8 @@ export function mapResultsToSteps(results: ClassificationResultDTO[]): WorkflowS
     const startSec = r.start_time ?? i * 5;
     const endSec = r.end_time ?? (i + 1) * 5;
 
-    const cmd = TERMINAL_LABELS.has(r.label) ? extractCommand(r.ocr_text ?? '') : '';
+    const extractedCmd = extractCommand(r.ocr_text ?? '');
+    const cmd = TERMINAL_LABELS.has(r.label) ? extractedCmd : '';
     const title = cmd ? `Run: \`${cmd}\`` : meta.title;
     const description = cmd
       ? `Execute: \`${cmd}\`. Classified as ${r.label.replace('_', ' ')} with ${confidencePct}% confidence by ${r.model_name}.`
@@ -125,7 +126,9 @@ export function mapResultsToSteps(results: ClassificationResultDTO[]): WorkflowS
           .replace('{confidence}', String(confidencePct))
           .replace('{model}', r.model_name);
 
-    const { risk_level, risk_reason } = assessRisk(r.label, r.ocr_text ?? '');
+    // combine raw OCR text + extracted command for risk matching
+    const riskText = [r.ocr_text ?? '', extractedCmd].filter(Boolean).join(' ');
+    const { risk_level, risk_reason } = assessRisk(r.label, riskText);
 
     return {
       n: i + 1,
