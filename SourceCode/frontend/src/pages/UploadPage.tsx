@@ -33,7 +33,10 @@ export function UploadPage({ onFileSelected }: UploadPageProps) {
             </div>
             <span className="upload-badge">Pattern Recognition System</span>
             <h1 className="upload-title">TRACE</h1>
-            <p className="upload-engine-tag">Task Recognition &amp; Activity Capture Engine</p>
+            <p className="upload-engine-tag">
+              A Multimodal Pattern Recognition Framework<br />
+              for <mark className="upload-highlight">Screen Activity Understanding</mark> and <mark className="upload-highlight">Knowledge Extraction</mark>
+            </p>
             <p className="upload-desc">
               Drop a screen recording and the pipeline automatically recognises developer
               activities, extracts structured workflows, and generates SOP + Runbook documents.

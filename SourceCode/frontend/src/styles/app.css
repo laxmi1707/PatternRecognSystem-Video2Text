@@ -87,11 +87,19 @@
   line-height: 1.15;
 }
 .upload-engine-tag {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 400;
   color: #cbd5e1;
-  letter-spacing: 0.03em;
-  margin: 0 0 14px 0;
+  letter-spacing: 0.01em;
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+}
+.upload-highlight {
+  background: rgba(250, 204, 21, 0.25);
+  color: #fde68a;
+  border-radius: 3px;
+  padding: 0 4px;
+  font-weight: 600;
 }
 .upload-desc {
   font-size: 14px;
