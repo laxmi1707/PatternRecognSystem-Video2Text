@@ -87,6 +87,29 @@ function extractCommand(ocrText: string): string {
   return '';
 }
 
+type RiskRule = { labels: string[]; keywords: string[]; level: 'high' | 'medium'; reason: string };
+
+const RISK_RULES: RiskRule[] = [
+  { labels: ['aws_console'], keywords: ['delete', 'terminate', 'destroy', 'purge', 'deregister'], level: 'high', reason: 'Destructive AWS operation detected' },
+  { labels: [], keywords: ['rm -rf', 'rm -r /', 'drop table', 'drop database', 'truncate table', 'chmod 777', 'sudo rm'], level: 'high', reason: 'Destructive command visible on screen' },
+  { labels: [], keywords: ['--force', '--hard', 'force-push', 'force push', 'password', 'secret', 'private_key', 'access_key'], level: 'high', reason: 'Sensitive operation or credential visible on screen' },
+  { labels: ['terraform_iac', 'kubernetes_ops'], keywords: ['destroy', 'drain', 'force-delete'], level: 'high', reason: 'Irreversible infrastructure change detected' },
+  { labels: ['docker_workflow', 'kubernetes_ops'], keywords: ['prune', 'force', 'kill', 'remove', 'delete'], level: 'medium', reason: 'Potentially destructive container operation' },
+  { labels: ['debugging'], keywords: ['exception', 'crash', 'fatal', 'killed', 'traceback', 'segfault'], level: 'medium', reason: 'Error or crash detected during debugging' },
+];
+
+function assessRisk(label: string, ocrText: string): { risk_level: 'high' | 'medium' | 'none'; risk_reason: string } {
+  if (!ocrText) return { risk_level: 'none', risk_reason: '' };
+  const text = ocrText.toLowerCase();
+  for (const rule of RISK_RULES) {
+    const labelMatch = rule.labels.length === 0 || rule.labels.includes(label);
+    if (labelMatch && rule.keywords.some(kw => text.includes(kw))) {
+      return { risk_level: rule.level, risk_reason: rule.reason };
+    }
+  }
+  return { risk_level: 'none', risk_reason: '' };
+}
+
 export function mapResultsToSteps(results: ClassificationResultDTO[]): WorkflowStep[] {
   return results.map((r, i) => {
     const meta = LABEL_META[r.label] ?? LABEL_META['other'];
@@ -102,11 +125,15 @@ export function mapResultsToSteps(results: ClassificationResultDTO[]): WorkflowS
           .replace('{confidence}', String(confidencePct))
           .replace('{model}', r.model_name);
 
+    const { risk_level, risk_reason } = assessRisk(r.label, r.ocr_text ?? '');
+
     return {
       n: i + 1,
       time: `${formatSeconds(startSec)}-${formatSeconds(endSec)}`,
       title,
       description,
+      risk_level,
+      risk_reason,
     };
   });
 }

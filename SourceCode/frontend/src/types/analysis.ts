@@ -3,6 +3,8 @@ export interface WorkflowStep {
   time: string;
   title: string;
   description: string;
+  risk_level?: 'high' | 'medium' | 'none';
+  risk_reason?: string;
 }
 
 export interface ModelSummary {
