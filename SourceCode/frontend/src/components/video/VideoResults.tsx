@@ -43,7 +43,7 @@ export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
       <div className="results-head">
         <div>
           <h6 style={{ color: 'var(--color-accent-700)' }}>Analysis complete</h6>
-          <h1 style={{ marginBottom: 4 }}>{result.name}</h1>
+          <h1 style={{ marginBottom: 4, fontSize: 22, wordBreak: 'break-all' }}>{result.name}</h1>
           <p style={{ margin: 0, fontSize: 13, color: '#4b5563' }}>
             {result.date} &middot; {result.duration} &middot; {result.stepCount} steps
             {displayLabel && <> &middot; Viewing: <strong>{displayLabel}</strong></>}
