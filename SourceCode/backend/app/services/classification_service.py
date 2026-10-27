@@ -55,14 +55,15 @@ def _extract_features(
 
 
 def _get_available_models() -> list[str]:
-    """Return only models that have a .pkl file in the configured model dir."""
-    from pathlib import Path
-    from app.ml.config import MLConfig
-    model_dir = Path(MLConfig().model_dir)
-    if not model_dir.exists():
-        return []
+    """Return only models that loaded from a .pkl file in the configured model dir.
+
+    Asks ml_service rather than globbing model_dir: its first use is what syncs the
+    models from S3, so in a fresh container model_dir is empty until then.
+    """
+    from app.services.ml_service import ml_service
+
     order = ["svm", "knn", "random_forest", "cnn1d", "lstm", "stacking"]
-    available = {p.stem for p in model_dir.glob("*.pkl")}
+    available = set(ml_service.loaded_models())
     # Return in tier order, only those present
     ordered = [m for m in order if m in available]
     # Append any extras not in the fixed order
@@ -88,7 +89,8 @@ async def _classify_all_models(
     db=None, job_id: int | None = None,
 ) -> dict[str, list[dict]]:
     all_results: dict[str, list[dict]] = {}
-    models = _get_available_models()
+    # First use of ml_service downloads and loads the models, so keep it off the event loop.
+    models = await asyncio.to_thread(_get_available_models)
     total = len(models)
     for idx, model_name in enumerate(models):
         if db and job_id:

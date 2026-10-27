@@ -167,6 +167,9 @@ class MLService:
     def list_models(self) -> list[str]:
         return self._registry.names()
 
+    def loaded_models(self) -> list[str]:
+        return sorted(self._trained_models)
+
     def list_by_tier(self, tier: str) -> list[str]:
         return [m.name for m in self._registry.list_by_tier(tier)]
 

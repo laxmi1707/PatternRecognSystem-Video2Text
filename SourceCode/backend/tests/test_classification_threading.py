@@ -96,3 +96,13 @@ async def test_failed_model_is_skipped_not_raised(monkeypatch):
     results = await cs._classify_all_models(np.zeros((1, 4)))
 
     assert list(results) == ["mlp"]
+
+
+def test_available_models_come_from_ml_service(monkeypatch):
+    # In a fresh container model_dir stays empty until ml_service syncs it from S3,
+    # so the model list must come from what ml_service loaded, not from the folder.
+    from app.services.ml_service import ml_service
+
+    monkeypatch.setattr(ml_service, "_trained_models", {"knn", "svm", "mlp"})
+
+    assert cs._get_available_models() == ["svm", "knn", "mlp"]
