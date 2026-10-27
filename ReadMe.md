@@ -69,15 +69,8 @@ cd PatternRecognSystem-Video2Text
 docker compose up -d
 
 # Access
-# Frontend:  http://localhost:5173
+# Frontend:  https://main.d2tjfo3h4t5uox.amplifyapp.com/
 # API docs:  http://localhost:8000/docs
-```
-
-**Demo credentials:**
-
-```
-Username: demo
-Password: demo1234
 ```
 
 * * *
