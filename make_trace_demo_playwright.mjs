@@ -17,7 +17,7 @@ import { tmpdir } from 'os';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const APP_URL = 'http://54.255.213.206:5173';
+const APP_URL = process.env.APP_URL || 'http://localhost:5173';
 const OUT_VIDEO = resolve(__dirname, 'dataset/demo-videos/TRACE_demo_video.mp4');
 const FRAMES_DIR = join(tmpdir(), 'trace_demo_frames');
 const W = 1280, H = 800;
