@@ -278,16 +278,23 @@ def _step_description(label: str, platform: str, ocr: str, keyword_action: str =
     return f"{base}."
 
 
+_MAX_STEP_DURATION_S = 12.0  # cap per merged step so long same-label runs split into readable steps
+
+
 def _merge_consecutive_segments(
     segments: list[dict],
     ocr_texts: list[str],
 ) -> tuple[list[dict], list[str]]:
-    """Merge consecutive segments with the same activity label into one step."""
+    """Merge consecutive segments with the same label, capped at _MAX_STEP_DURATION_S each."""
     if not segments:
         return [], []
 
     merged_segs: list[dict] = []
     merged_ocr: list[str] = []
+
+    def _flush(cur, parts):
+        merged_segs.append(cur)
+        merged_ocr.append(" · ".join(p for p in parts if p))
 
     cur = dict(segments[0])
     cur_ocr_parts = [ocr_texts[0]] if ocr_texts else [""]
@@ -295,21 +302,19 @@ def _merge_consecutive_segments(
     for i in range(1, len(segments)):
         seg = segments[i]
         ocr = ocr_texts[i] if i < len(ocr_texts) else ""
-        if seg["predicted_label"] == cur["predicted_label"]:
-            # Extend current segment
+        same_label = seg["predicted_label"] == cur["predicted_label"]
+        cur_duration = (cur.get("end_time") or 0) - (cur.get("start_time") or 0)
+        if same_label and cur_duration < _MAX_STEP_DURATION_S:
             cur["end_time"] = seg["end_time"]
             cur["confidence"] = max(cur["confidence"], seg.get("confidence", 0))
             if ocr and ocr not in cur_ocr_parts:
                 cur_ocr_parts.append(ocr)
         else:
-            merged_segs.append(cur)
-            merged_ocr.append(" · ".join(p for p in cur_ocr_parts if p))
+            _flush(cur, cur_ocr_parts)
             cur = dict(seg)
             cur_ocr_parts = [ocr]
 
-    merged_segs.append(cur)
-    merged_ocr.append(" · ".join(p for p in cur_ocr_parts if p))
-
+    _flush(cur, cur_ocr_parts)
     return merged_segs, merged_ocr
 
 
