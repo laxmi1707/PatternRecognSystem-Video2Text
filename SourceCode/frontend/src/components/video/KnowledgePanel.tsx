@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiPost } from '../../services/api/client';
+import { apiPost, ApiError } from '../../services/api/client';
 
 interface SOPStep {
   number: number;
@@ -71,7 +71,16 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
   const [loading, setLoading] = useState<'sop' | 'runbook' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { generateSOP(); }, [jobId]);
+  useEffect(() => { setSop(null); setRunbook(null); setError(null); }, [jobId]);
+
+  function errorMessage(e: unknown, action: string): string {
+    if (e instanceof ApiError) {
+      if (e.status === 404) return `Analysis job not found — this recording may be from a previous session. Upload it again to generate a ${action}.`;
+      if (e.status >= 500) return `Server error (${e.status}): ${e.detail}`;
+      return e.detail;
+    }
+    return `Failed to generate ${action}. Is the backend running?`;
+  }
 
   async function generateSOP() {
     setLoading('sop');
@@ -80,7 +89,7 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
       const result = await apiPost<SOPResponse>(`/knowledge/sop/${jobId}`);
       setSop(result);
     } catch (e) {
-      setError('Failed to generate SOP. Is the backend running?');
+      setError(errorMessage(e, 'SOP'));
     } finally {
       setLoading(null);
     }
@@ -93,7 +102,7 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
       const result = await apiPost<RunbookResponse>(`/knowledge/runbook/${jobId}`);
       setRunbook(result);
     } catch (e) {
-      setError('Failed to generate Runbook. Is the backend running?');
+      setError(errorMessage(e, 'Runbook'));
     } finally {
       setLoading(null);
     }
