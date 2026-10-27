@@ -1,6 +1,6 @@
 /**
  * TRACE Demo Video — Playwright screenshot capture
- * Order: Landing → Upload → Analysing → Results → Model Comparison → History
+ * Order: Landing → Upload → Analysing → Results → Model Comparison → SOP → History
  *
  * Usage:  node make_trace_demo_playwright.mjs
  * Output: dataset/demo-videos/TRACE_demo_video.mp4
@@ -25,7 +25,7 @@ const DEMO_CANDIDATES = [
   'dataset/demo-videos/demo_kubernetes_ops.mp4',
 ];
 const UPLOAD_FILE = DEMO_CANDIDATES.map(p => resolve(__dirname, p)).find(existsSync);
-if (!UPLOAD_FILE) { console.error('No demo video found.'); process.exit(1); }
+if (!UPLOAD_FILE) { console.error('No demo video found in dataset/demo-videos/'); process.exit(1); }
 console.log(`Upload file: ${UPLOAD_FILE}`);
 
 mkdirSync(FRAMES_DIR, { recursive: true });
@@ -59,114 +59,135 @@ async function liveCapture(page, ms) {
   const page = await ctx.newPage();
 
   // ── 1. LANDING PAGE ──────────────────────────────────────────────────────
-  console.log('[1/6] Landing page...');
+  console.log('[1/7] Landing page...');
   await page.goto(APP_URL, { waitUntil: 'networkidle', timeout: 60000 });
   await sleep(800);
-  await shot(page, 3);                         // hold on hero
+  await shot(page, 3);                        // hero with upload zone
 
-  await page.evaluate(() => window.scrollBy(0, 300));
-  await sleep(400);
-  await shot(page, 2);                         // show pipeline steps panel
+  await page.evaluate(() => window.scrollBy(0, 320));
+  await sleep(500);
+  await shot(page, 2.5);                      // pipeline steps + recognised activities
 
   await page.evaluate(() => window.scrollTo(0, 0));
-  await sleep(300);
-  await shot(page, 1);
+  await sleep(400);
 
   // ── 2. UPLOAD VIDEO ───────────────────────────────────────────────────────
-  console.log('[2/6] Uploading video...');
-  // Hover dropzone to show active state
+  console.log('[2/7] Uploading video...');
+  // Hover dropzone to show active border
   try {
-    const dz = page.locator('label, [class*="drop"], [class*="upload-zone"]').first();
+    const dz = page.locator('.upload-zone, label[class*="upload"], [class*="dropzone"]').first();
     await dz.hover({ timeout: 3000 });
-    await sleep(400);
-    await shot(page, 1.5);
+    await sleep(500);
+    await shot(page, 1.5);                    // hover state
   } catch { await shot(page, 1); }
 
-  // Set the file on the hidden input
-  const fileInput = page.locator('input[type="file"]');
-  await fileInput.setInputFiles(UPLOAD_FILE);
-  await sleep(600);
-  await shot(page, 1.5);                       // show file selected state
+  // Trigger file upload via hidden input
+  await page.locator('input[type="file"]').setInputFiles(UPLOAD_FILE);
+  await sleep(500);
+  await shot(page, 1.5);                      // file selected / transitioning
 
-  // ── 3. ANALYSING SCREEN ───────────────────────────────────────────────────
-  console.log('[3/6] Analysing... (live capture until results appear)');
+  // ── 3. ANALYSING SCREEN (live capture) ───────────────────────────────────
+  console.log('[3/7] Analysing screen...');
+  // Wait for .analyzing class to appear (AnalyzingProgress component)
   try {
-    await page.waitForSelector(
-      '[class*="analyz"], [class*="progress"], [class*="Processing"]',
-      { timeout: 8000 }
-    );
-  } catch { /* might transition fast */ }
+    await page.waitForSelector('.analyzing', { timeout: 8000 });
+    console.log('  → Analyzing screen detected');
+  } catch { console.log('  → Analyzing screen not found, continuing...'); }
 
-  // Capture live frames — up to 90s — until results page appears
-  const start = Date.now();
-  while (Date.now() - start < 90_000) {
+  // Live capture until .results appears — up to 90s
+  const analysisStart = Date.now();
+  while (Date.now() - analysisStart < 90_000) {
     const buf = await page.screenshot({ type: 'png' });
     writeFileSync(join(FRAMES_DIR, `frame_${String(frameN++).padStart(6, '0')}.png`), buf);
     await sleep(40);
-    const done = await page.locator(
-      '[class*="result"], [class*="workflow"], [class*="step"], h2'
-    ).count();
-    if (done > 0 && Date.now() - start > 5000) { console.log('  → Results detected'); break; }
+    // Only exit when .results div is present (exact class from VideoResults.tsx)
+    const resultsReady = await page.locator('div.results').count();
+    if (resultsReady > 0 && Date.now() - analysisStart > 5000) {
+      console.log('  → Results page (.results) detected');
+      break;
+    }
   }
-  await sleep(800);
+  await sleep(1000);
 
   // ── 4. RESULTS PAGE ───────────────────────────────────────────────────────
-  console.log('[4/6] Results page...');
-  await shot(page, 3);                         // top of results with video
+  console.log('[4/7] Results page...');
+  await shot(page, 3);                        // top: video player + summary
 
-  await page.evaluate(() => window.scrollBy(0, 350));
+  await page.evaluate(() => window.scrollBy(0, 380));
   await sleep(500);
-  await shot(page, 2.5);                       // classified steps list
+  await shot(page, 2.5);                      // classified workflow steps
 
-  await page.evaluate(() => window.scrollBy(0, 350));
+  await page.evaluate(() => window.scrollBy(0, 380));
   await sleep(400);
-  await shot(page, 2);                         // more steps
+  await shot(page, 2);                        // more steps
 
   await page.evaluate(() => window.scrollTo(0, 0));
-  await sleep(300);
+  await sleep(400);
 
   // ── 5. MODEL COMPARISON ───────────────────────────────────────────────────
-  console.log('[5/6] Model comparison...');
-  // Try clicking a Models / Comparison tab
-  const modelTab = page.locator(
-    'button:has-text("Model"), button:has-text("Comparison"), [role="tab"]:has-text("Model")'
-  ).first();
-  if (await modelTab.count() > 0) {
-    await modelTab.scrollIntoViewIfNeeded();
-    await sleep(300);
-    await shot(page, 1);
-    await modelTab.click();
-    await sleep(800);
-    await shot(page, 3);
-    // Scroll through comparison table
+  console.log('[5/7] Model comparison...');
+  // Button text from VideoResults.tsx: "▼ Show Model Comparison (N classifiers)"
+  const compBtn = page.locator('button:has-text("Show Model Comparison")').first();
+  if (await compBtn.count() > 0) {
+    await compBtn.scrollIntoViewIfNeeded();
+    await sleep(400);
+    await shot(page, 1);                      // button visible before click
+    await compBtn.click();
+    await sleep(600);
+    await shot(page, 3);                      // comparison table expanded
     await page.evaluate(() => window.scrollBy(0, 300));
     await sleep(400);
-    await shot(page, 2);
+    await shot(page, 2.5);                    // scroll through table rows
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await sleep(300);
   } else {
-    // Scroll to wherever model comparison is rendered on the page
-    await page.evaluate(() => window.scrollBy(0, 600));
-    await sleep(500);
+    console.log('  → Comparison button not found, scrolling to find it');
+    await page.evaluate(() => window.scrollBy(0, 500));
+    await sleep(400);
     await shot(page, 3);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await sleep(300);
+  }
+
+  // ── 6. SOP GENERATION ────────────────────────────────────────────────────
+  console.log('[6/7] SOP generation...');
+  // Scroll down to KnowledgePanel — button text: "Generate SOP"
+  const sopBtn = page.locator('button:has-text("Generate SOP")').first();
+  if (await sopBtn.count() > 0) {
+    await sopBtn.scrollIntoViewIfNeeded();
+    await sleep(400);
+    await shot(page, 1.5);                    // Generate SOP button visible
+    await sopBtn.click();
+    console.log('  → SOP generating... (live capture up to 20s)');
+    await liveCapture(page, 12000);           // live capture while LLM writes
+    await sleep(500);
+    await shot(page, 3);                      // SOP document shown
+    // Scroll through the SOP content
     await page.evaluate(() => window.scrollBy(0, 400));
     await sleep(400);
-    await shot(page, 2);
+    await shot(page, 2.5);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await sleep(300);
+  } else {
+    console.log('  → SOP button not found, skipping');
   }
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await sleep(300);
 
-  // ── 6. HISTORY PAGE ───────────────────────────────────────────────────────
-  console.log('[6/6] History page...');
+  // ── 7. HISTORY PAGE ───────────────────────────────────────────────────────
+  console.log('[7/7] History page...');
   try {
     await page.click('text=History', { timeout: 5000 });
   } catch {
-    try { await page.locator('nav a, .nav a').last().click({ timeout: 3000 }); } catch { /* skip */ }
+    try {
+      await page.locator('nav a, .nav a').last().click({ timeout: 3000 });
+    } catch { console.log('  → History nav click failed, continuing'); }
   }
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  await sleep(1200);
-  await shot(page, 4);                         // history table with newly analysed video
+  await sleep(1500);
+  await shot(page, 4);                        // history table with newly analysed video
 
   await browser.close();
-  console.log(`\nTotal frames: ${frameN} (~${Math.round(frameN / 25)}s video)`);
+  const durationSec = Math.round(frameN / 25);
+  console.log(`\nTotal frames: ${frameN} (~${durationSec}s / ${Math.round(durationSec/60)}m${durationSec%60}s video)`);
 
   // ── ENCODE ────────────────────────────────────────────────────────────────
   console.log('Encoding with ffmpeg...');
