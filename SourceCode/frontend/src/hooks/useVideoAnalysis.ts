@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AnalysisResult, Screen } from '../types/analysis';
-import { analyzeVideo, getMockHistory, fetchHistory, AnalyzeHandle } from '../services/api/analysisService';
+import { analyzeVideo, fetchHistory, AnalyzeHandle } from '../services/api/analysisService';
 
 export function useVideoAnalysis(analysisSeconds = 3) {
   const [screen, setScreen] = useState<Screen>('upload');
@@ -9,7 +9,7 @@ export function useVideoAnalysis(analysisSeconds = 3) {
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState('');
   const [current, setCurrent] = useState<AnalysisResult | null>(null);
-  const [history, setHistory] = useState<AnalysisResult[]>(() => getMockHistory());
+  const [history, setHistory] = useState<AnalysisResult[]>([]);
   const handleRef = useRef<AnalyzeHandle | null>(null);
 
   useEffect(() => {
