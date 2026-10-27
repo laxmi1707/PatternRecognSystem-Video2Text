@@ -210,21 +210,54 @@ export function analyzeVideo(
 export async function fetchHistory(): Promise<AnalysisResult[]> {
   try {
     const videos = await apiGet<VideoResponse[]>('/videos/');
-    return videos.map((v) => ({
-      id: String(v.id),
-      name: v.original_filename,
-      date: 'Earlier',
-      duration: v.duration_seconds ? formatSeconds(v.duration_seconds) : '--',
-      stepCount: 0,
-      status: 'Complete' as const,
-      videoUrl: null,
-      summary: '',
-      steps: [],
-      modelComparison: [],
-      bestModel: null,
-      allResults: {},
-    }));
+    const results = await Promise.all(
+      videos.map(async (v) => {
+        let jobId: string | null = null;
+        let steps: WorkflowStep[] = [];
+        let modelComparison: ModelSummary[] = [];
+        let bestModel: string | null = null;
+        let allResults: Record<string, WorkflowStep[]> = {};
+
+        try {
+          const job = await apiGet<{ id: number; status: string }>(`/jobs/by-video/${v.id}`);
+          jobId = String(job.id);
+          const jobResults = await apiGet<JobResultsResponse>(`/jobs/${job.id}/results`);
+          const grouped = groupResultsByModel(jobResults.results);
+          const bestKey = jobResults.best_model ?? Object.keys(grouped)[0] ?? '';
+          const bestResults = grouped[bestKey] ?? jobResults.results;
+          steps = mapResultsToSteps(bestResults);
+          for (const [model, modelResults] of Object.entries(grouped)) {
+            allResults[model] = mapResultsToSteps(modelResults);
+          }
+          modelComparison = (jobResults.model_comparison ?? []).map((m) => ({
+            model_name: m.model_name, tier: m.tier,
+            avg_confidence: m.avg_confidence, latency_ms: m.latency_ms,
+          }));
+          bestModel = jobResults.best_model ?? null;
+        } catch {
+          // job not found or no results — leave empty
+        }
+
+        return {
+          id: String(v.id),
+          jobId: jobId ?? undefined,
+          name: v.original_filename,
+          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          duration: v.duration_seconds ? formatSeconds(v.duration_seconds) : '--',
+          stepCount: steps.length,
+          status: 'Complete' as const,
+          videoUrl: null,
+          summary: steps.length > 0 ? `${steps.length} activities classified` : 'No classification results available',
+          steps,
+          modelComparison,
+          bestModel,
+          allResults,
+        };
+      })
+    );
+    return results;
   } catch {
     return [];
   }
 }
+
