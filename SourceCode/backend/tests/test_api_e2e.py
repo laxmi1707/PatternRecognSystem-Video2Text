@@ -34,6 +34,20 @@ async def client(monkeypatch):
     await engine.dispose()
 
 
+@pytest.fixture
+def svm_model(monkeypatch):
+    # The pipeline only runs models that have a .pkl in model_dir, and CI has none
+    # (no S3 access, no local models). Give it one SVM fitted on synthetic data.
+    from app.services import classification_service
+    from app.services.ml_service import ml_service
+
+    if "svm" not in ml_service._trained_models:
+        X, y = ml_service._get_synth_data(n_samples=200)
+        ml_service.get_model("svm").fit(X, y)
+        monkeypatch.setattr(ml_service, "_trained_models", ml_service._trained_models | {"svm"})
+    monkeypatch.setattr(classification_service, "_get_available_models", lambda: ["svm"])
+
+
 @pytest.mark.asyncio
 async def test_health(client: AsyncClient):
     r = await client.get("/health")
@@ -53,7 +67,7 @@ async def test_list_models(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_upload_and_classify_flow(client: AsyncClient):
+async def test_upload_and_classify_flow(client: AsyncClient, svm_model):
     dummy_video = b"\x00" * 1024
     r = await client.post(
         "/api/v1/videos/upload",
@@ -126,7 +140,7 @@ async def test_list_videos(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_sop_and_runbook_titles_from_labels(client: AsyncClient):
+async def test_sop_and_runbook_titles_from_labels(client: AsyncClient, svm_model):
     # "video.mp4" is a generic name and there is no action log, so both endpoints
     # fall back to a title derived from the predicted labels. The runbook endpoint
     # used to raise NameError here (_title_from_labels was local to generate_sop).
@@ -154,7 +168,7 @@ def test_title_from_labels_uses_dominant_label():
 
 
 @pytest.mark.asyncio
-async def test_sop_with_action_log_has_one_step_per_action(client: AsyncClient, tmp_path, monkeypatch):
+async def test_sop_with_action_log_has_one_step_per_action(client: AsyncClient, tmp_path, monkeypatch, svm_model):
     import json
 
     import cv2

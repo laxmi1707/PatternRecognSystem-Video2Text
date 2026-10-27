@@ -17,11 +17,12 @@ Desktop screen recordings contain expert knowledge that is impossible to search 
 | Metric | Value |
 |--------|-------|
 | Dataset | 277 tasks · 8 apps · ~2.3 GB (VideoCUA subset) |
-| Activity classes | 17 (coding, debugging, media editing, diagram design, …) |
-| Best model (v3) | Stacking ensemble — F1 **0.89** |
-| vs. v2 baseline | +76% macro-F1 improvement (KNN 0.51 → Stacking 0.89) |
+| Activity classes | 8 effective classes (docker, kubernetes, terraform, aws_console, jenkins, coding, debugging, documentation) |
+| Best model (v3b) | Voting ensemble — F1 **0.884** |
+| 2nd best (v3b) | Stacking ensemble — F1 **0.869** |
+| vs. v2 baseline | +73% macro-F1 improvement (KNN 0.51 → Voting 0.884) |
 | Feature vector | 1,391 dims (OCR + UI + CNN-visual + interaction) |
-| Models trained | 6 — SVM, KNN, Random Forest (Tier 1) · LSTM, CNN1D (Tier 2) · Stacking (Tier 3) |
+| Models trained | 13 — SVM, KNN, Decision Tree, Random Forest, Naive Bayes, XGBoost, LightGBM (Tier 1) · MLP, CNN1D, LSTM, Transformer (Tier 2) · Voting, Stacking (Tier 3) |
 
 **System components:**
 
@@ -68,15 +69,8 @@ cd PatternRecognSystem-Video2Text
 docker compose up -d
 
 # Access
-# Frontend:  http://localhost:5173
+# Frontend:  https://main.d2tjfo3h4t5uox.amplifyapp.com/
 # API docs:  http://localhost:8000/docs
-```
-
-**Demo credentials:**
-
-```
-Username: demo
-Password: demo1234
 ```
 
 * * *

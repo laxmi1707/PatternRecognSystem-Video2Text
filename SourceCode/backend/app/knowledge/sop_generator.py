@@ -20,6 +20,10 @@ _LABEL_DESCRIPTIONS: dict[str, str] = {
     "terraform_iac":    "Provision infrastructure using Terraform",
     "jenkins_ci_cd":    "Configure or trigger CI/CD pipelines",
     "documentation":    "Write or update documentation",
+    "diagram_design":   "Create or edit diagrams, flowcharts, or visual designs",
+    "media_editing":    "Edit video, audio, or multimedia content",
+    "file_management":  "Manage files and directories in the file system",
+    "image_editing":    "Edit or process images using a graphics tool",
     "other":            "Perform general screen activity",
     "cloud_storage":            "Work with storage in the AWS console (S3, EBS, EFS)",
     "cloud_compute":            "Manage compute in the AWS console (EC2, Lambda, ECS)",
@@ -77,6 +81,8 @@ class SOPStep:
     delay_s: float | None = None
     screen_output: list[str] = field(default_factory=list)  # text that appeared
     screen_removed: list[str] = field(default_factory=list)  # text that disappeared
+    risk_level: str = "none"   # "high" | "medium" | "none"
+    risk_reason: str = ""
 
 
 # Keywords that indicate meaningful UI actions — matched against OCR text.
@@ -166,7 +172,51 @@ _TERMINAL_COMMANDS: set[str] = {
     "curl", "wget", "ssh", "scp", "tar", "zip", "unzip", "apt", "yum", "brew",
     "export", "source", "chmod", "sudo", "bash", "sh", "zsh", "vim", "nano",
     "ps", "kill", "top", "df", "du", "mount", "ping", "ifconfig", "netstat",
+    "aws", "terraform", "helm", "ansible", "systemctl", "service", "journalctl",
 }
+
+
+# Risk rules: (activity_labels, ocr_keywords, risk_level, reason)
+# Applied in order — first match wins.
+_RISK_RULES: list[tuple[set[str], list[str], str, str]] = [
+    # Destructive filesystem / DB commands — label-agnostic
+    (set(), ["rm -rf", "rm -r /", "drop table", "drop database", "truncate table",
+             "chmod 777", "sudo rm"],
+     "high", "Destructive command visible on screen"),
+    # Infrastructure destroy — label-agnostic (catches terraform even when misclassified)
+    (set(), ["terraform destroy", "terraform apply -destroy", "terminate-instances",
+             "delete-cluster", "kubectl delete ns", "kubectl delete namespace"],
+     "high", "Irreversible infrastructure change detected"),
+    # Force operations and credential exposure — label-agnostic
+    (set(), ["--force", "--hard", "force-push", "force push",
+             "aws_secret_access_key", "aws_access_key_id", "password=",
+             "private_key", "credentials", "access_key"],
+     "high", "Sensitive operation or credential visible on screen"),
+    # Destructive cloud operations
+    ({"aws_console"}, ["delete", "terminate", "destroy", "purge", "deregister", "detach"],
+     "high", "Destructive AWS operation detected"),
+    # Infrastructure destroy (label-specific fallback)
+    ({"terraform_iac", "kubernetes_ops"}, ["destroy", "drain", "force-delete", "delete ns"],
+     "high", "Irreversible infrastructure change detected"),
+    # Container removal — label-agnostic for common patterns
+    (set(), ["docker rmi", "docker rm -f", "docker system prune"],
+     "medium", "Potentially destructive container operation"),
+    # Errors and crashes in debugging sessions
+    ({"debugging"}, ["exception", "crash", "fatal", "killed", "error", "traceback", "segfault"],
+     "medium", "Error or crash detected during debugging"),
+]
+
+
+def _assess_risk(label: str, ocr_text: str) -> tuple[str, str]:
+    """Return (risk_level, risk_reason) for a segment given its activity label and OCR text."""
+    if not ocr_text:
+        return "none", ""
+    text_lower = ocr_text.lower()
+    for labels, keywords, level, reason in _RISK_RULES:
+        label_match = (not labels) or (label in labels)
+        if label_match and any(kw in text_lower for kw in keywords):
+            return level, reason
+    return "none", ""
 
 
 _UI_NOISE_PATTERN = re.compile(
@@ -193,18 +243,18 @@ def _extract_terminal_command(text: str) -> str:
             continue
         if _UI_NOISE_PATTERN.search(candidate):
             continue
+        # Reject garbled OCR: require printable ASCII only
+        if not re.match(r'^[\x20-\x7E]+$', candidate):
+            continue
         tokens = candidate.split()
         if len(tokens) > 10:
             continue
         first = tokens[0].lower().lstrip("'\"") if tokens else ""
         is_known = first in _TERMINAL_COMMANDS and len(candidate) > len(first)
-        # Prefer known commands, but accept any text after $ or # prompt
-        if is_known and not best_is_known:
+        # Only accept text whose first word is a known command — rejects OCR garbage
+        if is_known and (not best_is_known or len(candidate) > len(best_cmd)):
             best_cmd = candidate[:80]
             best_is_known = True
-        elif is_known == best_is_known and len(candidate) > len(best_cmd):
-            best_cmd = candidate[:80]
-            best_is_known = is_known
 
     return best_cmd
 
@@ -243,16 +293,23 @@ def _step_description(label: str, platform: str, ocr: str, keyword_action: str =
     return f"{base}."
 
 
+_MAX_STEP_DURATION_S = 12.0  # cap per merged step so long same-label runs split into readable steps
+
+
 def _merge_consecutive_segments(
     segments: list[dict],
     ocr_texts: list[str],
 ) -> tuple[list[dict], list[str]]:
-    """Merge consecutive segments with the same activity label into one step."""
+    """Merge consecutive segments with the same label, capped at _MAX_STEP_DURATION_S each."""
     if not segments:
         return [], []
 
     merged_segs: list[dict] = []
     merged_ocr: list[str] = []
+
+    def _flush(cur, parts):
+        merged_segs.append(cur)
+        merged_ocr.append(" · ".join(p for p in parts if p))
 
     cur = dict(segments[0])
     cur_ocr_parts = [ocr_texts[0]] if ocr_texts else [""]
@@ -260,21 +317,19 @@ def _merge_consecutive_segments(
     for i in range(1, len(segments)):
         seg = segments[i]
         ocr = ocr_texts[i] if i < len(ocr_texts) else ""
-        if seg["predicted_label"] == cur["predicted_label"]:
-            # Extend current segment
+        same_label = seg["predicted_label"] == cur["predicted_label"]
+        cur_duration = (cur.get("end_time") or 0) - (cur.get("start_time") or 0)
+        if same_label and cur_duration < _MAX_STEP_DURATION_S:
             cur["end_time"] = seg["end_time"]
             cur["confidence"] = max(cur["confidence"], seg.get("confidence", 0))
             if ocr and ocr not in cur_ocr_parts:
                 cur_ocr_parts.append(ocr)
         else:
-            merged_segs.append(cur)
-            merged_ocr.append(" · ".join(p for p in cur_ocr_parts if p)[:200])
+            _flush(cur, cur_ocr_parts)
             cur = dict(seg)
             cur_ocr_parts = [ocr]
 
-    merged_segs.append(cur)
-    merged_ocr.append(" · ".join(p for p in cur_ocr_parts if p)[:200])
-
+    _flush(cur, cur_ocr_parts)
     return merged_segs, merged_ocr
 
 
@@ -351,9 +406,8 @@ class SOPGenerator:
         # 1. Collect raw OCR for whole-document keyword/platform detection
         all_raw_ocr = " ".join(ocr_texts).lower()
 
-        # 2. Use each segment as its own step (no merging — preserves time ranges)
-        merged_segs = segments
-        merged_raw_ocr = list(ocr_texts)
+        # 2. Merge consecutive same-label segments — prevents 3 identical "Coding Editing" steps
+        merged_segs, merged_raw_ocr = _merge_consecutive_segments(segments, ocr_texts)
 
         # 4. Detect platform from OCR (overrides "Screen Recording" fallback)
         detected_platform = platform
@@ -392,15 +446,24 @@ class SOPGenerator:
             else:
                 # Run keyword matching on RAW ocr (multi-word phrases intact, not split by · )
                 keyword_action = _extract_keywords(raw_ocr)
+                # Don't let a generic platform keyword ("Navigate VS Code") override a specific
+                # activity label (git_operations, debugging, etc.) — use the label instead
+                _generic_platform_actions = {"Navigate VS Code", "Navigate Eclipse IDE", "Navigate IntelliJ / PyCharm"}
+                _specific_labels = {"git_operations", "debugging", "docker_workflow", "aws_console", "kubernetes_ops", "terminal_ops"}
+                if keyword_action in _generic_platform_actions and label in _specific_labels:
+                    keyword_action = ""
                 step_title = keyword_action if keyword_action else label.replace("_", " ").title()
                 description = _step_description(label, detected_platform, raw_ocr, keyword_action)
 
+            risk_level, risk_reason = _assess_risk(label, raw_ocr)
             steps.append(SOPStep(
                 number=i + 1,
                 title=step_title,
                 description=description,
                 time_range=f"{start:.1f}s - {end:.1f}s",
                 detected_text=raw_ocr,
+                risk_level=risk_level,
+                risk_reason=risk_reason,
             ))
 
         # 4. Prerequisites driven by OCR content (more reliable than model labels on F1=0.29)

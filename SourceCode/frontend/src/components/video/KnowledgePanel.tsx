@@ -1,16 +1,30 @@
 import { useState, useEffect } from 'react';
-import { apiPost } from '../../services/api/client';
+import { apiPost, ApiError } from '../../services/api/client';
 
 interface SOPStep {
   number: number;
   title: string;
   description: string;
   time_range: string;
-  // Set when the SOP was built from an action log: what the screen showed after the step.
   delay_s?: number | null;
   screen_output?: string[];
   screen_removed?: string[];
+  risk_level?: 'high' | 'medium' | 'none';
+  risk_reason?: string;
 }
+
+const riskBadgeStyle: Record<string, React.CSSProperties> = {
+  high: {
+    display: 'inline-block', marginLeft: 8, padding: '1px 8px',
+    borderRadius: 4, fontSize: 11, fontWeight: 700,
+    background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5',
+  },
+  medium: {
+    display: 'inline-block', marginLeft: 8, padding: '1px 8px',
+    borderRadius: 4, fontSize: 11, fontWeight: 700,
+    background: '#fffbeb', color: '#d97706', border: '1px solid #fcd34d',
+  },
+};
 
 interface SOPResponse {
   title: string;
@@ -57,7 +71,16 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
   const [loading, setLoading] = useState<'sop' | 'runbook' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { generateSOP(); }, [jobId]);
+  useEffect(() => { setSop(null); setRunbook(null); setError(null); }, [jobId]);
+
+  function errorMessage(e: unknown, action: string): string {
+    if (e instanceof ApiError) {
+      if (e.status === 404) return `Analysis job not found — this recording may be from a previous session. Upload it again to generate a ${action}.`;
+      if (e.status >= 500) return `Server error (${e.status}): ${e.detail}`;
+      return e.detail;
+    }
+    return `Failed to generate ${action}. Is the backend running?`;
+  }
 
   async function generateSOP() {
     setLoading('sop');
@@ -66,7 +89,7 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
       const result = await apiPost<SOPResponse>(`/knowledge/sop/${jobId}`);
       setSop(result);
     } catch (e) {
-      setError('Failed to generate SOP. Is the backend running?');
+      setError(errorMessage(e, 'SOP'));
     } finally {
       setLoading(null);
     }
@@ -79,7 +102,7 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
       const result = await apiPost<RunbookResponse>(`/knowledge/runbook/${jobId}`);
       setRunbook(result);
     } catch (e) {
-      setError('Failed to generate Runbook. Is the backend running?');
+      setError(errorMessage(e, 'Runbook'));
     } finally {
       setLoading(null);
     }
@@ -168,15 +191,23 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
               <strong>Generated:</strong> {sop.generated_at}
             </p>
           )}
-          <p><strong>Purpose:</strong> {sop.purpose}</p>
-          <p><strong>Prerequisites:</strong></p>
-          <ul>{sop.prerequisites.map((p, i) => <li key={i}>{p}</li>)}</ul>
           <p><strong>Procedure:</strong></p>
           <ol>
             {sop.steps.map((step) => (
               <li key={step.number} style={{ marginBottom: 8 }}>
                 <strong>{step.title}</strong>
                 {step.time_range && <span className="text-muted" style={{ fontSize: 12, marginLeft: 8 }}>[{step.time_range}]</span>}
+                {(step.risk_level === 'high' || step.risk_level === 'medium') && (
+                  <span style={riskBadgeStyle[step.risk_level]} title={step.risk_reason}>
+                    {step.risk_level === 'high' ? '⚠ HIGH RISK' : '⚠ MEDIUM RISK'}
+                  </span>
+                )}
+                <br />
+                {(step.risk_level === 'high' || step.risk_level === 'medium') && step.risk_reason && (
+                  <span style={{ fontSize: 12, color: step.risk_level === 'high' ? '#dc2626' : '#d97706' }}>
+                    {step.risk_reason}
+                  </span>
+                )}
                 <br />
                 <span style={{ fontSize: 14 }}>{step.description}</span>
                 {step.screen_output && step.screen_output.length > 0 && (
@@ -190,13 +221,6 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
               </li>
             ))}
           </ol>
-          <p><strong>Expected Outcome:</strong> {sop.expected_outcome}</p>
-          {sop.troubleshooting.length > 0 && (
-            <>
-              <p><strong>Troubleshooting:</strong></p>
-              <ul>{sop.troubleshooting.map((t, i) => <li key={i}>{t}</li>)}</ul>
-            </>
-          )}
         </div>
       )}
 

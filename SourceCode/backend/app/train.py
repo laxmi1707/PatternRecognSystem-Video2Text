@@ -253,6 +253,12 @@ def main() -> None:
         except Exception as e:
             logger.warning(f"  [{m_idx}/{total_models}] {clf_name:20s} | FAILED: {e}")
 
+    # Save label names so inference can map class indices back to activity names
+    import json as _json
+    label_names_path = model_dir / "label_names.json"
+    _json.dump(mapped_labels, open(str(label_names_path), "w"))
+    logger.info(f"Label names saved to {label_names_path}: {mapped_labels}")
+
     logger.info(f"Models saved to {model_dir.resolve()}")
 
     # 7. Print summary

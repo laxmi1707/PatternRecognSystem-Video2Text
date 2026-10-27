@@ -54,6 +54,23 @@ def _build_model_comparison(results) -> tuple[list[ModelSummary], str | None]:
     return comparison, best
 
 
+@router.get("/by-video/{video_id}", response_model=JobResponse)
+async def get_job_by_video(video_id: int, db: AsyncSession = Depends(get_db)):
+    job = await job_service.get_latest_job_for_video(db, video_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="No job found for this video")
+    return JobResponse(
+        id=job.id,
+        video_id=job.video_id,
+        status=job.status,
+        job_type=job.job_type,
+        model_name=job.model_name,
+        progress_pct=job.progress_pct,
+        progress_stage=job.progress_stage or "",
+        error_message=job.error_message,
+    )
+
+
 @router.get("/{job_id}", response_model=JobResponse)
 async def get_job(job_id: int, db: AsyncSession = Depends(get_db)):
     job = await job_service.get_job(db, job_id)

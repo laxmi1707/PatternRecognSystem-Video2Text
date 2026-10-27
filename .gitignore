@@ -23,6 +23,8 @@ SourceCode/backend/uploads/
 
 # Datasets
 dataset/
+!dataset/demo-videos/
+!dataset/demo-videos/*.mp4
 
 # Terraform state and secrets
 *.tfstate

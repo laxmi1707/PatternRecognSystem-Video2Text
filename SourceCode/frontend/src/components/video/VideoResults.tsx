@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BASE_URL } from '../../services/api/client';
 import type { AnalysisResult } from '../../types/analysis';
 import { WorkflowSteps } from './WorkflowSteps';
 import { KnowledgePanel } from './KnowledgePanel';
@@ -43,8 +44,8 @@ export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
       <div className="results-head">
         <div>
           <h6 style={{ color: 'var(--color-accent-700)' }}>Analysis complete</h6>
-          <h1 style={{ marginBottom: 4 }}>{result.name}</h1>
-          <p className="text-muted" style={{ margin: 0 }}>
+          <h1 style={{ marginBottom: 4, fontSize: 22, wordBreak: 'break-all' }}>{result.name}</h1>
+          <p style={{ margin: 0, fontSize: 13, color: '#4b5563' }}>
             {result.date} &middot; {result.duration} &middot; {result.stepCount} steps
             {displayLabel && <> &middot; Viewing: <strong>{displayLabel}</strong></>}
           </p>
@@ -101,15 +102,18 @@ export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
         <>
           <div className="results-grid">
             <div>
-              {result.videoUrl ? (
-                <video src={result.videoUrl} controls className="results-video" />
-              ) : (
-                <div className="halftone results-video-placeholder">
-                  <span className="text-muted" style={{ fontFamily: 'monospace', fontSize: 11 }}>
-                    original recording not stored
-                  </span>
-                </div>
-              )}
+              {(() => {
+                const src = result.videoUrl ?? (result.id ? `${BASE_URL}/videos/${result.id}/stream` : null);
+                return src ? (
+                  <video src={src} controls className="results-video" />
+                ) : (
+                  <div className="halftone results-video-placeholder">
+                    <span className="text-muted" style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                      original recording not available
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
             <WorkflowSteps steps={displaySteps} />
           </div>

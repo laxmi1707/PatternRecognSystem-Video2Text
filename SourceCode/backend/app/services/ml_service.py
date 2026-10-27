@@ -65,7 +65,7 @@ class MLService:
             mlp, CNN1DClassifier(num_classes=nc), LSTMClassifier(num_classes=nc), TransformerClassifier(num_classes=nc),
             # Tier 3 — Ensemble / multimodal fusion (RQ2: fusion vs individual modalities)
             VotingClassifier(estimators=[svm, rf, mlp], voting="soft"),
-            StackingClassifier(base_estimators=[svm, rf, mlp]),
+            StackingClassifier(base_estimators=[rf, mlp]),
             LateFusionClassifier(branches=[SVMClassifier(), RandomForestClassifier()]),
             #
             # ── Level 3: Workflow Recognition ─────────────────────────────────────
@@ -105,9 +105,10 @@ class MLService:
 
     def _ensure_trained(self, model_name: str) -> None:
         if model_name not in self._trained_models:
-            X, y = self._get_training_data(prefer_real=True)
-            self._registry.get(model_name).fit(X, y)
-            self._trained_models.add(model_name)
+            raise FileNotFoundError(
+                f"Model '{model_name}' is not loaded. "
+                f"Loaded models: {sorted(self._trained_models)}"
+            )
 
     def train_all(self, X: np.ndarray, y: np.ndarray) -> None:
         for clf in self._registry.all():
@@ -180,7 +181,15 @@ class MLService:
         result = clf.predict(features)
 
         n_classes = result.probabilities.shape[1] if result.probabilities.ndim > 1 else len(ACTIVITY_LABELS)
-        labels_for_model = [lbl for lbl in ACTIVITY_LABELS if lbl != "terraform_iac"][:n_classes] if n_classes < len(ACTIVITY_LABELS) else ACTIVITY_LABELS
+        # Prefer saved label names from training (handles non-contiguous remaps)
+        import json as _json
+        _label_names_path = Path(self._config.model_dir) / "label_names.json"
+        if _label_names_path.exists():
+            labels_for_model = _json.loads(_label_names_path.read_text())
+        elif n_classes < len(ACTIVITY_LABELS):
+            labels_for_model = [lbl for lbl in ACTIVITY_LABELS if lbl != "terraform_iac"][:n_classes]
+        else:
+            labels_for_model = list(ACTIVITY_LABELS)
 
         predictions = []
         for i in range(len(result.labels)):

@@ -10,25 +10,35 @@ export function HistoryPage({ history, onView }: HistoryPageProps) {
     <div className="page page-medium">
       <h6 style={{ color: 'var(--color-accent-700)' }}>Past analyses</h6>
       <h1>History</h1>
-      <table className="table" style={{ marginTop: 'var(--space-4)' }}>
-        <thead>
-          <tr><th>File</th><th>Analyzed</th><th>Duration</th><th>Steps</th><th>Status</th><th></th></tr>
-        </thead>
-        <tbody>
-          {history.map(item => (
-            <tr key={item.id}>
-              <td>{item.name}</td>
-              <td>{item.date}</td>
-              <td>{item.duration}</td>
-              <td>{item.stepCount}</td>
-              <td><span className="tag tag-accent">{item.status}</span></td>
-              <td style={{ textAlign: 'right' }}>
-                <button className="btn btn-ghost" onClick={() => onView(item)}>View</button>
-              </td>
+      {history.length === 0 ? (
+        <p style={{ color: '#6b7280', marginTop: '2rem' }}>
+          No analyses yet. Upload a screen recording to get started.
+        </p>
+      ) : (
+        <table className="table" style={{ marginTop: 'var(--space-4)' }}>
+          <thead>
+            <tr>
+              {['File', 'Analyzed', 'Duration', 'Steps', 'Status', ''].map(h => (
+                <th key={h} style={{ color: '#374151', fontWeight: 700 }}>{h}</th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {history.map(item => (
+              <tr key={item.id}>
+                <td style={{ fontWeight: 500 }}>{item.name}</td>
+                <td style={{ color: '#374151' }}>{item.date}</td>
+                <td style={{ color: '#374151' }}>{item.duration}</td>
+                <td style={{ color: '#374151' }}>{item.stepCount}</td>
+                <td><span className="tag tag-accent">{item.status}</span></td>
+                <td style={{ textAlign: 'right' }}>
+                  <button className="btn btn-ghost" onClick={() => onView(item)}>View</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

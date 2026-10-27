@@ -56,14 +56,20 @@ def _extract_features(
     return X_full[:10], segments, False
 
 
-ALL_MODELS = [
-    # Tier 1
-    "svm", "naive_bayes", "decision_tree", "random_forest", "knn", "xgboost", "lightgbm",
-    # Tier 2
-    "mlp", "cnn1d", "lstm", "transformer", "workflow_lstm", "workflow_transformer",
-    # Tier 3
-    "voting", "stacking", "late_fusion",
-]
+def _get_available_models() -> list[str]:
+    """Return only models that have a .pkl file in the configured model dir."""
+    from pathlib import Path
+    from app.ml.config import MLConfig
+    model_dir = Path(MLConfig().model_dir)
+    if not model_dir.exists():
+        return []
+    order = ["svm", "knn", "random_forest", "cnn1d", "lstm", "stacking"]
+    available = {p.stem for p in model_dir.glob("*.pkl")}
+    # Return in tier order, only those present
+    ordered = [m for m in order if m in available]
+    # Append any extras not in the fixed order
+    ordered += sorted(available - set(order))
+    return ordered
 
 # The final per-segment label is stored as an extra result row under this model name.
 DECISION_MODEL = "decision"
@@ -127,7 +133,7 @@ async def _classify_all_models(
     db=None, job_id: int | None = None,
 ) -> dict[str, list[dict]]:
     all_results: dict[str, list[dict]] = {}
-    models = list(ALL_MODELS)
+    models = _get_available_models()
     total = len(models)
     for idx, model_name in enumerate(models):
         if db and job_id:
@@ -158,9 +164,35 @@ async def run_classification_job(
     try:
         await update_job_status(db, job.id, "processing", 10.0, "extracting video segments and keyframes")
 
-        X, segments, used_yolo = await asyncio.to_thread(
-            _extract_features, video_path, action_log_path
-        )
+        # Heartbeat: tick progress 10→55 while feature extraction runs in thread
+        async def _feature_extraction_heartbeat(stop_event: asyncio.Event) -> None:
+            steps = [
+                (15.0, "running OCR on keyframes"),
+                (25.0, "running OCR on keyframes"),
+                (35.0, "extracting CNN visual features"),
+                (45.0, "extracting CNN visual features"),
+                (55.0, "engineering features"),
+            ]
+            for pct, msg in steps:
+                await asyncio.sleep(8)
+                if stop_event.is_set():
+                    return
+                await update_job_status(db, job.id, "processing", pct, msg)
+
+        stop_heartbeat = asyncio.Event()
+        heartbeat_task = asyncio.create_task(_feature_extraction_heartbeat(stop_heartbeat))
+
+        try:
+            X, segments, used_yolo = await asyncio.to_thread(
+                _extract_features, video_path, action_log_path
+            )
+        finally:
+            stop_heartbeat.set()
+            heartbeat_task.cancel()
+            try:
+                await heartbeat_task
+            except asyncio.CancelledError:
+                pass
         n_segments = X.shape[0]
         n_features = X.shape[1]
 

@@ -10,6 +10,16 @@ async def get_job(db: AsyncSession, job_id: int) -> AnalysisJob | None:
     return result.scalar_one_or_none()
 
 
+async def get_latest_job_for_video(db: AsyncSession, video_id: int) -> AnalysisJob | None:
+    result = await db.execute(
+        select(AnalysisJob)
+        .where(AnalysisJob.video_id == video_id)
+        .order_by(AnalysisJob.id.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
 async def get_job_results(db: AsyncSession, job_id: int) -> list[ClassificationResult]:
     result = await db.execute(
         select(ClassificationResult)
