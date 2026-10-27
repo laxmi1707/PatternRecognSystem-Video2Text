@@ -37,6 +37,7 @@ const NORMAL_VIDEO = [
 ].map(p => resolve(__dirname, p)).find(existsSync);
 
 const ANOMALY_VIDEO = [
+  'dataset/demo-videos/risk_test_video.mp4',       // purpose-built: rm -rf, force-push, chmod 777, AWS key
   'dataset/demo-videos/demo_docker_risk.mp4',
   'dataset/demo-videos/demo_git_credential_leak.mp4',
   'dataset/demo-videos/demo_terraform_destroy.mp4',
