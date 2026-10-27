@@ -37,6 +37,7 @@ export function UploadPage({ onFileSelected }: UploadPageProps) {
               A Multimodal Pattern Recognition Framework<br />
               for <mark className="upload-highlight">Screen Activity Understanding</mark> and <mark className="upload-highlight">Knowledge Extraction</mark>
             </p>
+            <p className="upload-anomaly-tag">⚠ with real-time risk &amp; anomaly detection</p>
             <p className="upload-desc">
               Drop a screen recording and the pipeline automatically recognises developer
               activities, extracts structured workflows, and generates SOP + Runbook documents.

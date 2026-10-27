@@ -101,6 +101,13 @@
   padding: 0 4px;
   font-weight: 600;
 }
+.upload-anomaly-tag {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fb923c;
+  letter-spacing: 0.03em;
+  margin: -8px 0 16px 0;
+}
 .upload-desc {
   font-size: 14px;
   line-height: 1.6;
