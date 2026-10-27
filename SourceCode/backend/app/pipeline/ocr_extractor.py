@@ -171,8 +171,9 @@ class OCRExtractor:
         all_confidences: list[float] = []
 
         for kf in keyframes:
-            # Upscale to full resolution before OCR — resized (640x480) frames produce noise
-            img = self._upscale_for_ocr(kf.image)
+            # Read the full-resolution copy; resized (640x480) frames produce noise
+            ocr_image = getattr(kf, "ocr_image", None)
+            img = ocr_image if ocr_image is not None else self._upscale_for_ocr(kf.image)
             result = self.extract_with_fallback(img)
             if result.full_text:
                 all_text_parts.append(result.full_text)
