@@ -371,7 +371,7 @@
   color: #f1f5f9;
 }
 .app-shell:has(.upload-page) .nav-subtitle {
-  color: rgba(203,213,225,0.85);
+  opacity: 0.75;
 }
 .app-shell:has(.upload-page) .nav a {
   color: rgba(203,213,225,0.9);
