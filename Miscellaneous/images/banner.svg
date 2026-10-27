@@ -5,12 +5,12 @@
       <stop offset="100%" style="stop-color:#1a2d45;stop-opacity:1" />
     </linearGradient>
     <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#00c6ff;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#0072ff;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#00e676;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00b248;stop-opacity:1" />
     </linearGradient>
     <linearGradient id="pill" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#00c6ff;stop-opacity:0.15" />
-      <stop offset="100%" style="stop-color:#0072ff;stop-opacity:0.15" />
+      <stop offset="0%" style="stop-color:#00e676;stop-opacity:0.15" />
+      <stop offset="100%" style="stop-color:#00b248;stop-opacity:0.15" />
     </linearGradient>
     <filter id="glow">
       <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
@@ -40,59 +40,59 @@
   <!-- Pipeline icons: Screen → Brain → Document (right side) -->
   <!-- Screen recording icon -->
   <g transform="translate(820, 90)">
-    <rect x="0" y="0" width="72" height="52" rx="6" fill="none" stroke="#00c6ff" stroke-width="2" opacity="0.7"/>
-    <rect x="28" y="52" width="16" height="8" fill="#00c6ff" opacity="0.5"/>
-    <rect x="18" y="60" width="36" height="4" rx="2" fill="#00c6ff" opacity="0.4"/>
+    <rect x="0" y="0" width="72" height="52" rx="6" fill="none" stroke="#00e676" stroke-width="2" opacity="0.7"/>
+    <rect x="28" y="52" width="16" height="8" fill="#00e676" opacity="0.5"/>
+    <rect x="18" y="60" width="36" height="4" rx="2" fill="#00e676" opacity="0.4"/>
     <circle cx="62" cy="10" r="7" fill="#ff4d4d" opacity="0.9"/>
     <circle cx="62" cy="10" r="4" fill="#ff4d4d"/>
-    <text x="36" y="32" font-family="monospace" font-size="11" fill="#00c6ff" opacity="0.8" text-anchor="middle">REC</text>
+    <text x="36" y="32" font-family="monospace" font-size="11" fill="#00e676" opacity="0.8" text-anchor="middle">REC</text>
   </g>
 
   <!-- Arrow 1 -->
   <g transform="translate(910, 112)">
     <line x1="0" y1="0" x2="28" y2="0" stroke="url(#accent)" stroke-width="2" opacity="0.8"/>
-    <polygon points="28,0 21,-5 21,5" fill="#0072ff" opacity="0.8"/>
+    <polygon points="28,0 21,-5 21,5" fill="#00b248" opacity="0.8"/>
   </g>
 
   <!-- Neural / brain icon -->
   <g transform="translate(946, 88)">
-    <circle cx="36" cy="28" r="28" fill="none" stroke="#0072ff" stroke-width="2" opacity="0.7"/>
-    <circle cx="36" cy="28" r="10" fill="none" stroke="#00c6ff" stroke-width="1.5" opacity="0.6"/>
-    <line x1="36" y1="0" x2="36" y2="18" stroke="#00c6ff" stroke-width="1.5" opacity="0.6"/>
-    <line x1="36" y1="38" x2="36" y2="56" stroke="#00c6ff" stroke-width="1.5" opacity="0.6"/>
-    <line x1="8" y1="28" x2="26" y2="28" stroke="#00c6ff" stroke-width="1.5" opacity="0.6"/>
-    <line x1="46" y1="28" x2="64" y2="28" stroke="#00c6ff" stroke-width="1.5" opacity="0.6"/>
-    <line x1="16" y1="8" x2="28" y2="20" stroke="#00c6ff" stroke-width="1.5" opacity="0.5"/>
-    <line x1="56" y1="8" x2="44" y2="20" stroke="#00c6ff" stroke-width="1.5" opacity="0.5"/>
-    <line x1="16" y1="48" x2="28" y2="36" stroke="#00c6ff" stroke-width="1.5" opacity="0.5"/>
-    <line x1="56" y1="48" x2="44" y2="36" stroke="#00c6ff" stroke-width="1.5" opacity="0.5"/>
+    <circle cx="36" cy="28" r="28" fill="none" stroke="#00b248" stroke-width="2" opacity="0.7"/>
+    <circle cx="36" cy="28" r="10" fill="none" stroke="#00e676" stroke-width="1.5" opacity="0.6"/>
+    <line x1="36" y1="0" x2="36" y2="18" stroke="#00e676" stroke-width="1.5" opacity="0.6"/>
+    <line x1="36" y1="38" x2="36" y2="56" stroke="#00e676" stroke-width="1.5" opacity="0.6"/>
+    <line x1="8" y1="28" x2="26" y2="28" stroke="#00e676" stroke-width="1.5" opacity="0.6"/>
+    <line x1="46" y1="28" x2="64" y2="28" stroke="#00e676" stroke-width="1.5" opacity="0.6"/>
+    <line x1="16" y1="8" x2="28" y2="20" stroke="#00e676" stroke-width="1.5" opacity="0.5"/>
+    <line x1="56" y1="8" x2="44" y2="20" stroke="#00e676" stroke-width="1.5" opacity="0.5"/>
+    <line x1="16" y1="48" x2="28" y2="36" stroke="#00e676" stroke-width="1.5" opacity="0.5"/>
+    <line x1="56" y1="48" x2="44" y2="36" stroke="#00e676" stroke-width="1.5" opacity="0.5"/>
   </g>
 
   <!-- Arrow 2 -->
   <g transform="translate(1020, 112)">
     <line x1="0" y1="0" x2="28" y2="0" stroke="url(#accent)" stroke-width="2" opacity="0.8"/>
-    <polygon points="28,0 21,-5 21,5" fill="#0072ff" opacity="0.8"/>
+    <polygon points="28,0 21,-5 21,5" fill="#00b248" opacity="0.8"/>
   </g>
 
   <!-- Document / SOP icon (52px tall, aligned with screen icon) -->
   <g transform="translate(1056, 90)">
-    <rect x="0" y="0" width="60" height="52" rx="4" fill="none" stroke="#00c6ff" stroke-width="2" opacity="0.7"/>
-    <rect x="8" y="16" width="40" height="3" rx="1.5" fill="#00c6ff" opacity="0.5"/>
-    <rect x="8" y="25" width="32" height="3" rx="1.5" fill="#00c6ff" opacity="0.4"/>
-    <rect x="8" y="34" width="36" height="3" rx="1.5" fill="#00c6ff" opacity="0.4"/>
-    <rect x="8" y="43" width="24" height="3" rx="1.5" fill="#00c6ff" opacity="0.3"/>
-    <polygon points="44,0 60,16 44,16" fill="#1a2d45" stroke="#00c6ff" stroke-width="1.5" opacity="0.7"/>
+    <rect x="0" y="0" width="60" height="52" rx="4" fill="none" stroke="#00e676" stroke-width="2" opacity="0.7"/>
+    <rect x="8" y="16" width="40" height="3" rx="1.5" fill="#00e676" opacity="0.5"/>
+    <rect x="8" y="25" width="32" height="3" rx="1.5" fill="#00e676" opacity="0.4"/>
+    <rect x="8" y="34" width="36" height="3" rx="1.5" fill="#00e676" opacity="0.4"/>
+    <rect x="8" y="43" width="24" height="3" rx="1.5" fill="#00e676" opacity="0.3"/>
+    <polygon points="44,0 60,16 44,16" fill="#1a2d45" stroke="#00e676" stroke-width="1.5" opacity="0.7"/>
     <!-- SOP step numbers -->
-    <text x="4" y="20" font-family="monospace" font-size="7" fill="#00c6ff" opacity="0.6">1.</text>
-    <text x="4" y="29" font-family="monospace" font-size="7" fill="#00c6ff" opacity="0.5">2.</text>
-    <text x="4" y="38" font-family="monospace" font-size="7" fill="#00c6ff" opacity="0.5">3.</text>
-    <text x="4" y="47" font-family="monospace" font-size="7" fill="#00c6ff" opacity="0.4">4.</text>
+    <text x="4" y="20" font-family="monospace" font-size="7" fill="#00e676" opacity="0.6">1.</text>
+    <text x="4" y="29" font-family="monospace" font-size="7" fill="#00e676" opacity="0.5">2.</text>
+    <text x="4" y="38" font-family="monospace" font-size="7" fill="#00e676" opacity="0.5">3.</text>
+    <text x="4" y="47" font-family="monospace" font-size="7" fill="#00e676" opacity="0.4">4.</text>
   </g>
 
   <!-- Labels under icons — all at same y, bottoms aligned at y=142 + 26px gap -->
-  <text x="856" y="168" font-family="Arial,sans-serif" font-size="11" fill="#00c6ff" opacity="0.7" text-anchor="middle">Screen Recording</text>
-  <text x="982" y="168" font-family="Arial,sans-serif" font-size="11" fill="#00c6ff" opacity="0.7" text-anchor="middle">ML Recognition</text>
-  <text x="1086" y="168" font-family="Arial,sans-serif" font-size="11" fill="#00c6ff" opacity="0.7" text-anchor="middle">SOP / Runbook</text>
+  <text x="856" y="168" font-family="Arial,sans-serif" font-size="11" fill="#00e676" opacity="0.7" text-anchor="middle">Screen Recording</text>
+  <text x="982" y="168" font-family="Arial,sans-serif" font-size="11" fill="#00e676" opacity="0.7" text-anchor="middle">ML Recognition</text>
+  <text x="1086" y="168" font-family="Arial,sans-serif" font-size="11" fill="#00e676" opacity="0.7" text-anchor="middle">SOP / Runbook</text>
 
   <!-- Main title: TRACE -->
   <text x="60" y="130" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="88" fill="url(#accent)" filter="url(#glow)" letter-spacing="8">TRACE</text>
@@ -106,17 +106,17 @@
   <!-- Tier badges -->
   <g transform="translate(62, 200)">
     <!-- Tier 1 -->
-    <rect x="0" y="0" width="108" height="26" rx="13" fill="url(#pill)" stroke="#00c6ff" stroke-width="1" stroke-opacity="0.4"/>
-    <text x="54" y="17" font-family="Arial,sans-serif" font-size="11" fill="#00c6ff" text-anchor="middle">Tier 1 · Classical ML</text>
+    <rect x="0" y="0" width="108" height="26" rx="13" fill="url(#pill)" stroke="#00e676" stroke-width="1" stroke-opacity="0.4"/>
+    <text x="54" y="17" font-family="Arial,sans-serif" font-size="11" fill="#00e676" text-anchor="middle">Tier 1 · Classical ML</text>
     <!-- Tier 2 -->
-    <rect x="118" y="0" width="108" height="26" rx="13" fill="url(#pill)" stroke="#00c6ff" stroke-width="1" stroke-opacity="0.4"/>
-    <text x="172" y="17" font-family="Arial,sans-serif" font-size="11" fill="#00c6ff" text-anchor="middle">Tier 2 · Deep Learning</text>
+    <rect x="118" y="0" width="108" height="26" rx="13" fill="url(#pill)" stroke="#00e676" stroke-width="1" stroke-opacity="0.4"/>
+    <text x="172" y="17" font-family="Arial,sans-serif" font-size="11" fill="#00e676" text-anchor="middle">Tier 2 · Deep Learning</text>
     <!-- Tier 3 -->
-    <rect x="236" y="0" width="108" height="26" rx="13" fill="url(#pill)" stroke="#00c6ff" stroke-width="1" stroke-opacity="0.4"/>
-    <text x="290" y="17" font-family="Arial,sans-serif" font-size="11" fill="#00c6ff" text-anchor="middle">Tier 3 · Ensemble</text>
+    <rect x="236" y="0" width="108" height="26" rx="13" fill="url(#pill)" stroke="#00e676" stroke-width="1" stroke-opacity="0.4"/>
+    <text x="290" y="17" font-family="Arial,sans-serif" font-size="11" fill="#00e676" text-anchor="middle">Tier 3 · Ensemble</text>
     <!-- 6 Modalities -->
-    <rect x="354" y="0" width="118" height="26" rx="13" fill="url(#pill)" stroke="#00c6ff" stroke-width="1" stroke-opacity="0.4"/>
-    <text x="413" y="17" font-family="Arial,sans-serif" font-size="11" fill="#00c6ff" text-anchor="middle">6 Modalities · 9K Tasks</text>
+    <rect x="354" y="0" width="118" height="26" rx="13" fill="url(#pill)" stroke="#00e676" stroke-width="1" stroke-opacity="0.4"/>
+    <text x="413" y="17" font-family="Arial,sans-serif" font-size="11" fill="#00e676" text-anchor="middle">6 Modalities · 9K Tasks</text>
   </g>
 
   <!-- Bottom info bar -->
