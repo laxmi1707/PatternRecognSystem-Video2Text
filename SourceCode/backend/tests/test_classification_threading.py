@@ -75,7 +75,7 @@ async def test_classification_runs_off_the_event_loop(monkeypatch):
         return {"results": [{"label": "other", "model_name": model_name}]}
 
     monkeypatch.setattr(cs, "_classify_locked", slow_classify)
-    monkeypatch.setattr(cs, "ALL_MODELS", ["svm", "mlp"])
+    monkeypatch.setattr(cs, "_get_available_models", lambda: ["svm", "mlp"])
 
     ticks, results = await _count_ticks_while(cs._classify_all_models(np.zeros((1, 4))))
 
@@ -91,7 +91,7 @@ async def test_failed_model_is_skipped_not_raised(monkeypatch):
         return {"results": [{"label": "other"}]}
 
     monkeypatch.setattr(cs, "_classify_locked", flaky_classify)
-    monkeypatch.setattr(cs, "ALL_MODELS", ["svm", "mlp"])
+    monkeypatch.setattr(cs, "_get_available_models", lambda: ["svm", "mlp"])
 
     results = await cs._classify_all_models(np.zeros((1, 4)))
 
