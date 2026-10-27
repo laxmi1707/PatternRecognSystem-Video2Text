@@ -5,6 +5,7 @@ from pathlib import Path
 
 import aiofiles
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
+from fastapi.responses import FileResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -128,6 +129,21 @@ async def get_video(video_id: int, db: AsyncSession = Depends(get_db)):
         duration_seconds=video.duration_seconds,
         status=video.status,
     )
+
+
+@router.get("/{video_id}/stream")
+async def stream_video(video_id: int, db: AsyncSession = Depends(get_db)):
+    video = await video_service.get_video(db, video_id)
+    if video is None:
+        raise HTTPException(status_code=404, detail="Video not found")
+    if not video.file_path:
+        raise HTTPException(status_code=404, detail="Video file path not recorded")
+    path = Path(video.file_path)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Video file no longer exists on server")
+    ext = path.suffix.lower()
+    media_type = {"mp4": "video/mp4", "mov": "video/quicktime", "webm": "video/webm"}.get(ext.lstrip("."), "application/octet-stream")
+    return FileResponse(path, media_type=media_type, filename=video.original_filename)
 
 
 @router.get("/", response_model=list[VideoResponse])

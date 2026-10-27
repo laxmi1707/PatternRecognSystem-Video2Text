@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BASE_URL } from '../../services/api/client';
 import type { AnalysisResult } from '../../types/analysis';
 import { WorkflowSteps } from './WorkflowSteps';
 import { KnowledgePanel } from './KnowledgePanel';
@@ -101,15 +102,18 @@ export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
         <>
           <div className="results-grid">
             <div>
-              {result.videoUrl ? (
-                <video src={result.videoUrl} controls className="results-video" />
-              ) : (
-                <div className="halftone results-video-placeholder">
-                  <span className="text-muted" style={{ fontFamily: 'monospace', fontSize: 11 }}>
-                    original recording not stored
-                  </span>
-                </div>
-              )}
+              {(() => {
+                const src = result.videoUrl ?? (result.id ? `${BASE_URL}/videos/${result.id}/stream` : null);
+                return src ? (
+                  <video src={src} controls className="results-video" />
+                ) : (
+                  <div className="halftone results-video-placeholder">
+                    <span className="text-muted" style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                      original recording not available
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
             <WorkflowSteps steps={displaySteps} />
           </div>
