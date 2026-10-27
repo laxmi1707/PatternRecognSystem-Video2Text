@@ -33,6 +33,11 @@ export function UploadPage({ onFileSelected }: UploadPageProps) {
             </div>
             <span className="upload-badge">Pattern Recognition System</span>
             <h1 className="upload-title">TRACE</h1>
+            <p className="upload-engine-tag">
+              A Multimodal Pattern Recognition Framework<br />
+              for <mark className="upload-highlight">Screen Activity Understanding</mark> and <mark className="upload-highlight">Knowledge Extraction</mark>
+            </p>
+            <p className="upload-anomaly-tag">⚠ with real-time risk &amp; anomaly detection</p>
             <p className="upload-desc">
               Drop a screen recording and the pipeline automatically recognises developer
               activities, extracts structured workflows, and generates SOP + Runbook documents.
@@ -87,7 +92,7 @@ export function UploadPage({ onFileSelected }: UploadPageProps) {
               {['MP4', 'MOV', 'WebM'].map(f => (
                 <span key={f} className="format-badge">{f}</span>
               ))}
-              <span className="format-limit">Up to 500 MB</span>
+              <span className="format-limit">Up to 100 MB</span>
             </div>
           </div>
 

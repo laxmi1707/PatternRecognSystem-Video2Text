@@ -182,9 +182,6 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
               <strong>Generated:</strong> {sop.generated_at}
             </p>
           )}
-          <p><strong>Purpose:</strong> {sop.purpose}</p>
-          <p><strong>Prerequisites:</strong></p>
-          <ul>{sop.prerequisites.map((p, i) => <li key={i}>{p}</li>)}</ul>
           <p><strong>Procedure:</strong></p>
           <ol>
             {sop.steps.map((step) => (
@@ -215,13 +212,6 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
               </li>
             ))}
           </ol>
-          <p><strong>Expected Outcome:</strong> {sop.expected_outcome}</p>
-          {sop.troubleshooting.length > 0 && (
-            <>
-              <p><strong>Troubleshooting:</strong></p>
-              <ul>{sop.troubleshooting.map((t, i) => <li key={i}>{t}</li>)}</ul>
-            </>
-          )}
         </div>
       )}
 
