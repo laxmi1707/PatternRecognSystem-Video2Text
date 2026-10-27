@@ -32,7 +32,6 @@ export function UploadPage({ onFileSelected }: UploadPageProps) {
               <span className="nus-iss-course">Master of Technology in AI Systems</span>
             </div>
             <span className="upload-badge">Pattern Recognition System</span>
-            <h1 className="upload-title">TRACE</h1>
             <p className="upload-engine-tag">
               A Multimodal Pattern Recognition Framework<br />
               for <mark className="upload-highlight">Screen Activity Understanding</mark> and <mark className="upload-highlight">Knowledge Extraction</mark>
