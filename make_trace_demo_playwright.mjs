@@ -164,15 +164,23 @@ async function liveCapture(page, ms) {
 
   // ── Scene 8: History page ────────────────────────────────────────────────
   console.log('[8/9] History page...');
-  await page.click('text=History');
+  try {
+    await page.click('text=History', { timeout: 5000 });
+  } catch {
+    try { await page.locator('nav a:last-child, .nav a:last-child').click({ timeout: 3000 }); } catch { /* skip */ }
+  }
   await page.waitForLoadState('networkidle');
   await sleep(1200);
   await shot(page, 3);
 
   // ── Scene 9: Outro — back to upload ─────────────────────────────────────
   console.log('[9/9] Outro...');
-  await page.click('text=Upload');
-  await page.waitForLoadState('networkidle');
+  try {
+    await page.click('text=Upload', { timeout: 5000 });
+  } catch {
+    // Try nav link fallback
+    try { await page.locator('nav a, .nav a').first().click({ timeout: 3000 }); } catch { /* already there */ }
+  }
   await sleep(800);
   await shot(page, 3);
 
