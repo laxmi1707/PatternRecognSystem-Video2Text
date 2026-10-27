@@ -1,11 +1,8 @@
 /**
  * TRACE Demo Video — Playwright screenshot capture
- * Visits the live app, uploads a real video, waits for analysis,
- * then captures every step into an MP4.
+ * Order: Landing → Upload → Analysing → Results → Model Comparison → History
  *
- * Usage:
- *   node make_trace_demo_playwright.mjs
- *
+ * Usage:  node make_trace_demo_playwright.mjs
  * Output: dataset/demo-videos/TRACE_demo_video.mp4
  */
 
@@ -22,18 +19,14 @@ const OUT_VIDEO = resolve(__dirname, 'dataset/demo-videos/TRACE_demo_video.mp4')
 const FRAMES_DIR = join(tmpdir(), 'trace_demo_frames');
 const W = 1280, H = 800;
 
-// Pick a demo video to upload — prefer a coding/safe one for the demo
 const DEMO_CANDIDATES = [
   'dataset/demo-videos/demo_safe_coding_workflow.mp4',
   'dataset/demo-videos/demo_cicd_pipeline.mp4',
   'dataset/demo-videos/demo_kubernetes_ops.mp4',
 ];
 const UPLOAD_FILE = DEMO_CANDIDATES.map(p => resolve(__dirname, p)).find(existsSync);
-if (!UPLOAD_FILE) {
-  console.error('No demo video found in dataset/demo-videos/ to upload. Add one first.');
-  process.exit(1);
-}
-console.log(`Using upload file: ${UPLOAD_FILE}`);
+if (!UPLOAD_FILE) { console.error('No demo video found.'); process.exit(1); }
+console.log(`Upload file: ${UPLOAD_FILE}`);
 
 mkdirSync(FRAMES_DIR, { recursive: true });
 mkdirSync(resolve(__dirname, 'dataset/demo-videos'), { recursive: true });
@@ -41,19 +34,18 @@ mkdirSync(resolve(__dirname, 'dataset/demo-videos'), { recursive: true });
 let frameN = 0;
 
 async function shot(page, holdSeconds = 2) {
-  const frames = Math.round(holdSeconds * 25);
   const buf = await page.screenshot({ type: 'png' });
-  for (let i = 0; i < frames; i++) {
+  const frames = Math.round(holdSeconds * 25);
+  for (let i = 0; i < frames; i++)
     writeFileSync(join(FRAMES_DIR, `frame_${String(frameN++).padStart(6, '0')}.png`), buf);
-  }
 }
 
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function liveCapture(page, ms) {
   const interval = 40; // 25 fps
-  const steps = Math.round(ms / interval);
-  for (let i = 0; i < steps; i++) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
     const buf = await page.screenshot({ type: 'png' });
     writeFileSync(join(FRAMES_DIR, `frame_${String(frameN++).padStart(6, '0')}.png`), buf);
     await sleep(interval);
@@ -66,128 +58,117 @@ async function liveCapture(page, ms) {
   const ctx = await browser.newContext({ viewport: { width: W, height: H } });
   const page = await ctx.newPage();
 
-  // ── Scene 1: Landing page — 4s ──────────────────────────────────────────
-  console.log('[1/9] Landing page...');
-  await page.goto(APP_URL, { waitUntil: 'networkidle' });
+  // ── 1. LANDING PAGE ──────────────────────────────────────────────────────
+  console.log('[1/6] Landing page...');
+  await page.goto(APP_URL, { waitUntil: 'networkidle', timeout: 60000 });
   await sleep(800);
-  await shot(page, 3);
+  await shot(page, 3);                         // hold on hero
 
-  // Scroll to show pipeline steps panel on right
-  await page.evaluate(() => window.scrollBy(0, 280));
+  await page.evaluate(() => window.scrollBy(0, 300));
   await sleep(400);
-  await shot(page, 2);
+  await shot(page, 2);                         // show pipeline steps panel
+
   await page.evaluate(() => window.scrollTo(0, 0));
   await sleep(300);
+  await shot(page, 1);
 
-  // ── Scene 2: Hover over dropzone ────────────────────────────────────────
-  console.log('[2/9] Dropzone hover...');
+  // ── 2. UPLOAD VIDEO ───────────────────────────────────────────────────────
+  console.log('[2/6] Uploading video...');
+  // Hover dropzone to show active state
   try {
-    const dz = page.locator('label[for], .upload-zone, [class*="dropzone"], [class*="drop"]').first();
+    const dz = page.locator('label, [class*="drop"], [class*="upload-zone"]').first();
     await dz.hover({ timeout: 3000 });
-    await sleep(300);
+    await sleep(400);
     await shot(page, 1.5);
   } catch { await shot(page, 1); }
 
-  // ── Scene 3: Upload a real video file ───────────────────────────────────
-  console.log('[3/9] Uploading video...');
+  // Set the file on the hidden input
   const fileInput = page.locator('input[type="file"]');
   await fileInput.setInputFiles(UPLOAD_FILE);
   await sleep(600);
-  await shot(page, 1.5);
+  await shot(page, 1.5);                       // show file selected state
 
-  // ── Scene 4: Analyzing progress screen — live capture up to 90s ─────────
-  console.log('[4/9] Analyzing... (this may take a while)');
-  // Wait for the analyzing screen to appear
+  // ── 3. ANALYSING SCREEN ───────────────────────────────────────────────────
+  console.log('[3/6] Analysing... (live capture until results appear)');
   try {
-    await page.waitForSelector('[class*="analyzing"], [class*="progress"], text=Analysing', { timeout: 8000 });
-  } catch { /* already past that screen or different class */ }
+    await page.waitForSelector(
+      '[class*="analyz"], [class*="progress"], [class*="Processing"]',
+      { timeout: 8000 }
+    );
+  } catch { /* might transition fast */ }
 
-  // Capture live frames during analysis (up to 90 seconds)
-  const analysisStart = Date.now();
-  const MAX_ANALYSIS_MS = 90_000;
-  while (Date.now() - analysisStart < MAX_ANALYSIS_MS) {
+  // Capture live frames — up to 90s — until results page appears
+  const start = Date.now();
+  while (Date.now() - start < 90_000) {
     const buf = await page.screenshot({ type: 'png' });
     writeFileSync(join(FRAMES_DIR, `frame_${String(frameN++).padStart(6, '0')}.png`), buf);
     await sleep(40);
-    // Check if results page appeared
-    const onResults = await page.locator('[class*="results"], [class*="workflow"], h2:has-text("Classified")').count();
-    if (onResults > 0) { console.log('  → Results page detected'); break; }
-    // Also check for result indicators
-    const hasSteps = await page.locator('[class*="step"], [class*="timeline"]').count();
-    if (hasSteps > 0 && Date.now() - analysisStart > 5000) { console.log('  → Steps detected'); break; }
+    const done = await page.locator(
+      '[class*="result"], [class*="workflow"], [class*="step"], h2'
+    ).count();
+    if (done > 0 && Date.now() - start > 5000) { console.log('  → Results detected'); break; }
   }
-  await sleep(1000);
-  await shot(page, 1);
+  await sleep(800);
 
-  // ── Scene 5: Results page — video + classified steps ────────────────────
-  console.log('[5/9] Results page...');
-  await shot(page, 3);
+  // ── 4. RESULTS PAGE ───────────────────────────────────────────────────────
+  console.log('[4/6] Results page...');
+  await shot(page, 3);                         // top of results with video
 
-  // Scroll through the step list
   await page.evaluate(() => window.scrollBy(0, 350));
   await sleep(500);
-  await shot(page, 2);
+  await shot(page, 2.5);                       // classified steps list
+
   await page.evaluate(() => window.scrollBy(0, 350));
-  await sleep(500);
-  await shot(page, 2);
+  await sleep(400);
+  await shot(page, 2);                         // more steps
+
   await page.evaluate(() => window.scrollTo(0, 0));
   await sleep(300);
 
-  // ── Scene 6: Generate SOP ────────────────────────────────────────────────
-  console.log('[6/9] Generate SOP...');
-  const sopBtn = page.locator('button:has-text("Generate SOP"), button:has-text("SOP")').first();
-  if (await sopBtn.count() > 0) {
-    await sopBtn.scrollIntoViewIfNeeded();
-    await sleep(400);
+  // ── 5. MODEL COMPARISON ───────────────────────────────────────────────────
+  console.log('[5/6] Model comparison...');
+  // Try clicking a Models / Comparison tab
+  const modelTab = page.locator(
+    'button:has-text("Model"), button:has-text("Comparison"), [role="tab"]:has-text("Model")'
+  ).first();
+  if (await modelTab.count() > 0) {
+    await modelTab.scrollIntoViewIfNeeded();
+    await sleep(300);
     await shot(page, 1);
-    await sopBtn.click();
-    await liveCapture(page, 10000); // live capture while LLM generates
+    await modelTab.click();
+    await sleep(800);
     await shot(page, 3);
-    // Scroll to read the SOP
+    // Scroll through comparison table
     await page.evaluate(() => window.scrollBy(0, 300));
     await sleep(400);
     await shot(page, 2);
   } else {
+    // Scroll to wherever model comparison is rendered on the page
+    await page.evaluate(() => window.scrollBy(0, 600));
+    await sleep(500);
+    await shot(page, 3);
+    await page.evaluate(() => window.scrollBy(0, 400));
+    await sleep(400);
     await shot(page, 2);
   }
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await sleep(300);
 
-  // ── Scene 7: Generate Runbook ────────────────────────────────────────────
-  console.log('[7/9] Generate Runbook...');
-  const runbookBtn = page.locator('button:has-text("Runbook"), button:has-text("Generate Runbook")').first();
-  if (await runbookBtn.count() > 0) {
-    await runbookBtn.scrollIntoViewIfNeeded();
-    await sleep(300);
-    await runbookBtn.click();
-    await liveCapture(page, 8000);
-    await shot(page, 2.5);
-  }
-
-  // ── Scene 8: History page ────────────────────────────────────────────────
-  console.log('[8/9] History page...');
+  // ── 6. HISTORY PAGE ───────────────────────────────────────────────────────
+  console.log('[6/6] History page...');
   try {
     await page.click('text=History', { timeout: 5000 });
   } catch {
-    try { await page.locator('nav a:last-child, .nav a:last-child').click({ timeout: 3000 }); } catch { /* skip */ }
+    try { await page.locator('nav a, .nav a').last().click({ timeout: 3000 }); } catch { /* skip */ }
   }
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await sleep(1200);
-  await shot(page, 3);
-
-  // ── Scene 9: Outro — back to upload ─────────────────────────────────────
-  console.log('[9/9] Outro...');
-  try {
-    await page.click('text=Upload', { timeout: 5000 });
-  } catch {
-    // Try nav link fallback
-    try { await page.locator('nav a, .nav a').first().click({ timeout: 3000 }); } catch { /* already there */ }
-  }
-  await sleep(800);
-  await shot(page, 3);
+  await shot(page, 4);                         // history table with newly analysed video
 
   await browser.close();
   console.log(`\nTotal frames: ${frameN} (~${Math.round(frameN / 25)}s video)`);
 
-  // ── Encode MP4 ────────────────────────────────────────────────────────────
+  // ── ENCODE ────────────────────────────────────────────────────────────────
   console.log('Encoding with ffmpeg...');
   execSync(
     `ffmpeg -y -framerate 25 -i "${FRAMES_DIR}/frame_%06d.png" ` +
