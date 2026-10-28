@@ -5,9 +5,18 @@ import type { DetectedStep, DetectionJob } from '../../types/detection';
 const BASE = import.meta.env.VITE_SOP_DETECTOR_URL ?? '/sop-detector';
 export const DETECTOR_URL = BASE;
 
-/** Whether this build expects a detector (dev server or docker compose). A deployment
- *  without one (no VITE_SOP_DETECTOR_URL) shows no detector panel at all. */
-export const DETECTOR_EXPECTED = Boolean(import.meta.env.DEV || import.meta.env.VITE_SOP_DETECTOR_URL);
+/** The SOP detector is switched off unless the build sets VITE_SOP_DETECTOR_ENABLED=true:
+ *  then videos are not sent to it, and no "Steps read from the video" panel is shown.
+ *  Read on each call, so tests can switch it with vi.stubEnv. */
+export function detectorEnabled(): boolean {
+  return import.meta.env.VITE_SOP_DETECTOR_ENABLED === 'true';
+}
+
+/** Whether this build expects a running detector: switched on, and a dev server or a build
+ *  with VITE_SOP_DETECTOR_URL. Otherwise an unreachable detector shows no panel at all. */
+export function detectorExpected(): boolean {
+  return detectorEnabled() && Boolean(import.meta.env.DEV || import.meta.env.VITE_SOP_DETECTOR_URL);
+}
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -15,6 +24,7 @@ const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  *  A detector that answers "not ready" (502/503, e.g. behind a proxy while it starts)
  *  gets a few more tries; no answer at all means it is not running. */
 export async function startDetection(file: File, attempts = 4, waitMs = 5000): Promise<string | null> {
+  if (!detectorEnabled()) return null;
   for (let i = 0; i < attempts; i++) {
     if (i > 0) await pause(waitMs);
     try {

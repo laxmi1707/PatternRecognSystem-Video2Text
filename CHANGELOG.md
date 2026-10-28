@@ -8,6 +8,9 @@ with the pull request that brought them into `main` where there was one.
 ## [Unreleased]
 
 ### Changed
+- SOP detector switched off by default: uploads are not sent to it and the "Steps read from the
+  video" panel is hidden unless the frontend is built with `VITE_SOP_DETECTOR_ENABLED=true`;
+  docker compose starts it only with `--profile sop-detector` (see HowToRun.md) — Lakshmi
 - `models/v3` is the default model version everywhere (`MODEL_S3_PREFIX`, `.env.example`, Terraform,
   docs). Production already ran v3 through the ECS task's environment, but `main` still defaulted to
   v2, so a `terraform apply` or a fresh setup would have gone back to v2 — Lakshmi

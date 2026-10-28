@@ -69,7 +69,9 @@ describe('analyzeVideo', () => {
     expect(result.name).toBe('clip.mp4');
     expect(result.jobId).toBe('42');
     expect(result.bestModel).toBe('svm');
-    expect(result.detectorJobId).toBe('det-1');
+    // the SOP detector is switched off by default: the video is not sent to it
+    expect(result.detectorJobId).toBeNull();
+    expect(vi.mocked(globalThis.fetch).mock.calls.some(([url]) => String(url).includes('/sop-detector'))).toBe(false);
     expect(result.steps).toHaveLength(2);
     expect(result.steps[0].title).toBe('Performed Git operations');
     expect(result.steps[1].title).toBe('Edited code in the editor');
