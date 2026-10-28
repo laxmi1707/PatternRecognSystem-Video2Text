@@ -53,7 +53,7 @@ Rollback: set the prefix back. Don't overwrite an existing version prefix.
 ```bash
 B=video2knowledge-dev-model-artifacts-984263476980
 for f in models/*.pkl; do sha256sum "$f" | awk '{print $1}' > "${f%.pkl}.sha256"; done
-aws s3 cp models/ s3://$B/models/v2/ --recursive --exclude "*" --include "*.pkl" --include "*.sha256"
+aws s3 cp models/ s3://$B/models/v3/ --recursive --exclude "*" --include "*.pkl" --include "*.sha256"
 ```
 
 ## Backend startup sync
@@ -67,7 +67,7 @@ Settings (`app/config.py`, env vars; see `SourceCode/backend/.env.example`):
 | Env var | Default | Meaning |
 |---------|---------|---------|
 | `MODEL_S3_BUCKET` | `video2knowledge-dev-model-artifacts-984263476980` | Empty (`MODEL_S3_BUCKET=`) → skip S3, local models only |
-| `MODEL_S3_PREFIX` | `models/v2` | Version prefix |
+| `MODEL_S3_PREFIX` | `models/v3` | Version prefix; also names the local folder (`./models/v3`) unless `MODEL_DIR` is set |
 | `MODEL_S3_REGION` | `ap-southeast-1` | boto3 region |
 | `MODEL_S3_REQUIRE_CHECKSUM` | `false` | `true` → skip any model without a `.sha256` |
 
@@ -96,7 +96,7 @@ Also verified against the real bucket: `models/v2` downloads 7/7 with checksums 
    `terraform.tfvars`, applied 2026-10-17). The role must also be set as the service's instance role
    (`aws apprunner update-service --instance-configuration InstanceRoleArn=...`). Without that the sync logs
    `AccessDenied`, no models load, and `_ensure_trained()` fits models on the fly per request.
-   Local dev with AWS credentials will also overwrite `./models/*.pkl` with `models/v2` at startup; set
+   Local dev with AWS credentials will also overwrite `./models/v3/*.pkl` with `models/v3` at startup; set
    `MODEL_S3_BUCKET=` in `.env` to keep locally trained models.
 2. **Missing models are trained silently:** `MLService.classify()` → `_ensure_trained()` fits any model without
    a loaded artifact during the request, on real data or a synthetic fallback. Video analysis runs all 14 models

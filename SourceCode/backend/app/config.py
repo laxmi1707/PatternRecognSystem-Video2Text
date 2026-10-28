@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.ml.config import MODEL_VERSION_PREFIX
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
@@ -16,7 +18,7 @@ class Settings(BaseSettings):
     # model directory (which is also the fallback on any S3 failure).
     # Set MODEL_S3_BUCKET to an empty string to skip S3 and use local models only.
     model_s3_bucket: str | None = "video2knowledge-dev-model-artifacts-984263476980"
-    model_s3_prefix: str = "models/v2"
+    model_s3_prefix: str = MODEL_VERSION_PREFIX
     model_s3_region: str | None = "ap-southeast-1"
     model_s3_require_checksum: bool = False
 

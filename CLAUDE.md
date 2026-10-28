@@ -5,7 +5,7 @@ This file is the project and domain context: what we are building, why, and what
 For repo and harness conventions (agents, skills, commands, rules), see `SourceCode/CLAUDE.md`.
 For the implemented pipeline, see `Architecture/PIPELINE.md`. For the target AWS design, see `Architecture/README.md`.
 Trained models are stored in the private S3 bucket
-`s3://video2knowledge-dev-model-artifacts-984263476980/models/v2/` (region `ap-southeast-1`, versioned `models/vN/`).
+`s3://video2knowledge-dev-model-artifacts-984263476980/models/v3/` (region `ap-southeast-1`, versioned `models/vN/`).
 The backend downloads them at startup (S3 sync with local `./models` fallback); these are the defaults in
 `SourceCode/backend/app/config.py`, overridable via `MODEL_S3_BUCKET` / `MODEL_S3_PREFIX` / `MODEL_S3_REGION`.
 See `Architecture/MODEL_ARTIFACTS.md`.

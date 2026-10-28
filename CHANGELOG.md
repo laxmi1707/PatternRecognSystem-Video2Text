@@ -7,6 +7,14 @@ with the pull request that brought them into `main` where there was one.
 
 ## [Unreleased]
 
+### Changed
+- `models/v3` is the default model version everywhere (`MODEL_S3_PREFIX`, `.env.example`, Terraform,
+  docs). Production already ran v3 through the ECS task's environment, but `main` still defaulted to
+  v2, so a `terraform apply` or a fresh setup would have gone back to v2 — Lakshmi
+- The local model folder is named after the version (`./models/v3`, from `MODEL_S3_PREFIX`) unless
+  `MODEL_DIR` is set. It was always `./models/v2`, so v3 was downloaded into a folder named v2, and a
+  laptop that still held v2 models loaded the v2-only ones next to v3 — Lakshmi
+
 ## 2026-10-28 — Demo readiness: SOP quality, speed, SOP detector
 
 ### Added
