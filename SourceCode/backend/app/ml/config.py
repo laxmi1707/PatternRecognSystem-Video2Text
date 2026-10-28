@@ -25,12 +25,21 @@ ACTIVITY_LABELS = [
 NUM_CLASSES = len(ACTIVITY_LABELS)
 
 
+# Model version served by default: the S3 prefix the backend downloads (MODEL_S3_PREFIX)
+MODEL_VERSION_PREFIX = "models/v3"
+
+
+def _default_model_dir() -> str:
+    """MODEL_DIR, else ./<MODEL_S3_PREFIX>, so the local folder is named after the version in it."""
+    return os.environ.get("MODEL_DIR") or f"./{os.environ.get('MODEL_S3_PREFIX', MODEL_VERSION_PREFIX)}"
+
+
 @dataclass(frozen=True)
 class MLConfig:
     seed: int = 42
     test_size: float = 0.2
     cv_folds: int = 5
-    model_dir: str = os.environ.get("MODEL_DIR", "./models/v2")
+    model_dir: str = _default_model_dir()
     num_classes: int = NUM_CLASSES
     # n_features is dynamic: 151 for hog backend, 1391 for cnn backend
     # Actual value resolved at runtime from TOTAL_FEATURES in feature_assembler
