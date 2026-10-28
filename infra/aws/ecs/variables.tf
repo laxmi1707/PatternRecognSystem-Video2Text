@@ -77,9 +77,14 @@ variable "task_memory" {
 }
 
 variable "desired_count" {
-  description = "Running tasks. Keep 1: SQLite lives inside each task. Set 0 to stop paying for compute"
+  description = "Running tasks. Exactly 1: SQLite lives inside each task, and a running task keeps the models, the OCR reader and the feature cache warm (no cold start)"
   type        = number
   default     = 1
+
+  validation {
+    condition     = var.desired_count == 1
+    error_message = "desired_count must be 1: 0 means a cold start for the next user, and >1 splits the SQLite data between tasks."
+  }
 }
 
 variable "allowed_origins" {

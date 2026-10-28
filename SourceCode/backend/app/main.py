@@ -4,6 +4,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -32,7 +33,16 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["30/minute"])
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    # Load the models and the OCR reader in the background: /health answers at once,
+    # and the first job finds them ready instead of loading them itself.
+    warmup_task = None
+    if settings.warmup_on_startup:
+        from app.services.warmup import warm_up
+
+        warmup_task = asyncio.create_task(asyncio.to_thread(warm_up))
     yield
+    if warmup_task is not None and not warmup_task.done():
+        warmup_task.cancel()
 
 
 app = FastAPI(

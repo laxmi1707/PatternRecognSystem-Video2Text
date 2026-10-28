@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     model_s3_region: str | None = "ap-southeast-1"
     model_s3_require_checksum: bool = False
 
+    # Load the models and the OCR reader when the app starts, not on the first job
+    warmup_on_startup: bool = True
+
     # API key authentication (empty string = auth disabled, for local dev)
     api_key: str = ""
 

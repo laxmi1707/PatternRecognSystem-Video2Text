@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from dataclasses import dataclass, field
 
 import cv2
@@ -9,6 +10,16 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 OCR_FEATURE_DIM = 50
+
+# A keyframe whose mean pixel difference from the last frame read is at most this
+# (0-255 grey levels, on a 320x240 thumbnail) shows the same screen: reuse its text.
+DUPLICATE_FRAME_DIFF = 1.0
+OCR_BATCH_SIZE = 16
+
+# Loading EasyOCR's models takes ~10 s, so one reader per process is shared by all jobs.
+# The lock keeps two jobs from running OCR at once; they would only compete for the CPU.
+_READERS: dict[tuple, object] = {}
+_READER_LOCK = threading.Lock()
 
 
 @dataclass
@@ -61,17 +72,30 @@ class OCRExtractor:
         self._easyocr_reader = None
         self._tfidf = None
         self._fitted = False
+        # Thumbnail and result of the last frame actually read, to skip unchanged screens
+        self._last_thumb: np.ndarray | None = None
+        self._last_result: OCRResult | None = None
+        self.frames_read = 0
+        self.frames_reused = 0
 
     def _get_reader(self):
         if self._easyocr_reader is None:
-            try:
-                import easyocr
-                self._easyocr_reader = easyocr.Reader(
-                    self._languages, gpu=self._use_gpu, verbose=False
-                )
-            except ImportError:
-                logger.warning("easyocr not installed, OCR will return empty results")
+            key = (tuple(self._languages), self._use_gpu)
+            with _READER_LOCK:
+                if key not in _READERS:
+                    try:
+                        import easyocr
+                        _READERS[key] = easyocr.Reader(self._languages, gpu=self._use_gpu, verbose=False)
+                    except ImportError:
+                        logger.warning("easyocr not installed, OCR will return empty results")
+                        return None
+                self._easyocr_reader = _READERS[key]
         return self._easyocr_reader
+
+    @staticmethod
+    def _thumbnail(image: np.ndarray) -> np.ndarray:
+        grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
+        return cv2.resize(grey, (320, 240), interpolation=cv2.INTER_AREA).astype(np.int16)
 
     def extract_text(self, image: np.ndarray) -> OCRResult:
         reader = self._get_reader()
@@ -84,7 +108,8 @@ class OCRExtractor:
             else:
                 rgb = image
 
-            results = reader.readtext(rgb)
+            with _READER_LOCK:
+                results = reader.readtext(rgb, batch_size=OCR_BATCH_SIZE)
 
             regions: list[TextRegion] = []
             for bbox_points, text, conf in results:
@@ -171,9 +196,20 @@ class OCRExtractor:
         all_confidences: list[float] = []
 
         for kf in keyframes:
-            # Upscale to full resolution before OCR — resized (640x480) frames produce noise
-            img = self._upscale_for_ocr(kf.image)
-            result = self.extract_with_fallback(img)
+            # Screen recordings often hold still: reuse the text of an unchanged frame
+            thumb = self._thumbnail(kf.image)
+            if (
+                self._last_result is not None
+                and np.abs(thumb - self._last_thumb).mean() <= DUPLICATE_FRAME_DIFF
+            ):
+                result = self._last_result
+                self.frames_reused += 1
+            else:
+                # Upscale to full resolution before OCR — resized (640x480) frames produce noise
+                img = self._upscale_for_ocr(kf.image)
+                result = self.extract_with_fallback(img)
+                self._last_thumb, self._last_result = thumb, result
+                self.frames_read += 1
             if result.full_text:
                 all_text_parts.append(result.full_text)
                 print(f"[OCR-DEBUG] frame OCR len={len(result.full_text)} conf={result.mean_confidence:.2f} text={repr(result.full_text[:100])}", flush=True)

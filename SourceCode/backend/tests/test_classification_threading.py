@@ -51,7 +51,7 @@ def no_db(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_feature_extraction_runs_off_the_event_loop(monkeypatch, no_db):
-    def slow_extract(video_path, action_log_path):
+    def slow_extract(video_path, action_log_path, on_progress=None):
         time.sleep(BLOCK_S)
         return np.zeros((2, 4)), [{"start_time": 0.0, "end_time": 1.0}] * 2, False
 
