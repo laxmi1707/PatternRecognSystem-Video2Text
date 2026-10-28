@@ -4,14 +4,6 @@ interface UploadPageProps {
   onFileSelected: (file: File) => void;
 }
 
-const PIPELINE_STEPS = [
-  { icon: '🎬', label: 'Frame Extraction', detail: 'Keyframe sampling via OpenCV' },
-  { icon: '🔍', label: 'OCR + UI Detection', detail: 'EasyOCR + element recognition' },
-  { icon: '🧠', label: 'Feature Engineering', detail: 'HOG + CNN visual embeddings' },
-  { icon: '⚡', label: 'Activity Classification', detail: 'Ensemble ML classifiers' },
-  { icon: '📄', label: 'Knowledge Export', detail: 'SOP + Runbook generation' },
-];
-
 const SUPPORTED_ACTIVITIES = [
   'Git operations', 'Docker workflows', 'Kubernetes ops',
   'AWS Console', 'CI/CD pipelines', 'Coding & debugging',
@@ -47,26 +39,6 @@ export function UploadPage({ onFileSelected }: UploadPageProps) {
 
         {/* Right column: info cards */}
         <div className="upload-sidebar">
-
-          {/* Pipeline card */}
-          <div className="info-card">
-            <div className="info-card-header">
-              <span className="info-card-icon">⚙️</span>
-              <span className="info-card-title">Processing Pipeline</span>
-            </div>
-            <ol className="pipeline-list">
-              {PIPELINE_STEPS.map((s, i) => (
-                <li key={i} className="pipeline-step">
-                  <span className="pipeline-step-num">{i + 1}</span>
-                  <span className="pipeline-step-icon">{s.icon}</span>
-                  <span className="pipeline-step-body">
-                    <span className="pipeline-step-label">{s.label}</span>
-                    <span className="pipeline-step-detail">{s.detail}</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </div>
 
           {/* Recognised activities card */}
           <div className="info-card">

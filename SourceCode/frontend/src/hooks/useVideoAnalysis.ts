@@ -33,9 +33,11 @@ export function useVideoAnalysis(analysisSeconds = 3) {
 
   // Called by AnalyzingProgress after its task animation finishes
   const onAnimationDone = useCallback(() => {
-    if (pendingResultRef.current) {
-      setCurrent(pendingResultRef.current);
-      setHistory((h: AnalysisResult[]) => [pendingResultRef.current!, ...h]);
+    // Read the ref once: the setHistory updater runs later, after the ref is cleared
+    const result = pendingResultRef.current;
+    if (result) {
+      setCurrent(result);
+      setHistory((h: AnalysisResult[]) => [result, ...h]);
       setScreen('results');
       pendingResultRef.current = null;
       setAnalysisReady(false);

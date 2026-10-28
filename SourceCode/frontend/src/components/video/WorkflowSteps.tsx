@@ -29,7 +29,7 @@ export function WorkflowSteps({ steps }: WorkflowStepsProps) {
   return (
     <div className="workflow-steps">
       <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>
-        {riskySteps.length} anomaly{riskySteps.length > 1 ? 'ies' : ''} detected
+        {riskySteps.length} {riskySteps.length > 1 ? 'anomalies' : 'anomaly'} detected
       </p>
       {riskySteps.map(step => {
         const badge = RISK_BADGE[step.risk_level!];

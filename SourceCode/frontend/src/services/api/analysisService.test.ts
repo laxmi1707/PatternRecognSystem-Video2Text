@@ -1,10 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { analyzeVideo, getMockHistory, fetchHistory, SCREEN_RECORDING_STEPS } from './analysisService';
 
-function mockFetchSequence(responses: Array<{ status: number; body: unknown }>) {
-  let callIndex = 0;
-  return vi.fn(() => {
-    const resp = responses[callIndex++] ?? { status: 500, body: { detail: 'unexpected call' } };
+// Answers each request by its method and path; anything unrouted gets a 500.
+function mockFetchRoutes(routes: Record<string, { status: number; body: unknown }>) {
+  return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    const method = init?.method ?? 'GET';
+    const key = Object.keys(routes).find((k) => {
+      const [m, path] = k.split(' ');
+      return m === method && url.endsWith(path);
+    });
+    const resp = key ? routes[key] : { status: 500, body: { detail: 'unexpected call' } };
     return Promise.resolve({
       ok: resp.status >= 200 && resp.status < 300,
       status: resp.status,
@@ -31,22 +37,25 @@ describe('analyzeVideo', () => {
     vi.restoreAllMocks();
   });
 
-  it('calls upload then run, maps results to WorkflowSteps, and completes', async () => {
-    const uploadResponse = {
-      id: 1, filename: 'abc_clip.mp4', original_filename: 'clip.mp4', status: 'uploaded', job_id: 42,
-    };
-    const runResponse = {
-      job_id: 42,
-      status: 'completed',
-      results: [
-        { label: 'git_operations', confidence: 0.92, probabilities: {}, model_name: 'svm', latency_ms: 5 },
-        { label: 'coding_editing', confidence: 0.87, probabilities: {}, model_name: 'svm', latency_ms: 3 },
-      ],
-    };
-    globalThis.fetch = mockFetchSequence([
-      { status: 201, body: uploadResponse },
-      { status: 200, body: runResponse },
-    ]);
+  it('uploads, runs, polls the job, maps the best model\'s results to steps, and completes', async () => {
+    const results = [
+      { label: 'git_operations', confidence: 0.92, probabilities: {}, model_name: 'svm', latency_ms: 5, start_time: 0, end_time: 5 },
+      { label: 'coding_editing', confidence: 0.87, probabilities: {}, model_name: 'svm', latency_ms: 3, start_time: 5, end_time: 10 },
+      { label: 'coding_editing', confidence: 0.6, probabilities: {}, model_name: 'knn', latency_ms: 2, start_time: 0, end_time: 10 },
+    ];
+    globalThis.fetch = mockFetchRoutes({
+      'POST /sop-detector/jobs': { status: 200, body: { job_id: 'det-1' } },
+      'POST /videos/upload': {
+        status: 201,
+        body: { id: 1, filename: 'abc_clip.mp4', original_filename: 'clip.mp4', status: 'uploaded', job_id: 42 },
+      },
+      'POST /jobs/42/run': { status: 200, body: { job_id: 42, status: 'processing' } },
+      'GET /jobs/42': { status: 200, body: { id: 42, status: 'completed', progress_pct: 100, progress_stage: 'analysis complete' } },
+      'GET /jobs/42/results': {
+        status: 200,
+        body: { job_id: 42, status: 'completed', results, model_comparison: [], best_model: 'svm' },
+      },
+    });
 
     const file = new File(['x'], 'clip.mp4', { type: 'video/mp4' });
     const onProgress = vi.fn();
@@ -55,18 +64,21 @@ describe('analyzeVideo', () => {
 
     await vi.advanceTimersByTimeAsync(1500);
 
-    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
     expect(onComplete).toHaveBeenCalledTimes(1);
     const result = onComplete.mock.calls[0][0];
     expect(result.name).toBe('clip.mp4');
+    expect(result.jobId).toBe('42');
+    expect(result.bestModel).toBe('svm');
+    expect(result.detectorJobId).toBe('det-1');
     expect(result.steps).toHaveLength(2);
     expect(result.steps[0].title).toBe('Performed Git operations');
     expect(result.steps[1].title).toBe('Edited code in the editor');
+    expect(Object.keys(result.allResults).sort()).toEqual(['knn', 'svm']);
     expect(result.status).toBe('Complete');
-    expect(onProgress).toHaveBeenLastCalledWith(100);
+    expect(onProgress).toHaveBeenLastCalledWith(100, 'analysis complete');
   });
 
-  it('falls back to mock steps when the API fails', async () => {
+  it('falls back to example steps and reports the backend error when the API fails', async () => {
     globalThis.fetch = vi.fn(() => Promise.reject(new Error('Network error')));
 
     const file = new File(['x'], 'clip.mp4', { type: 'video/mp4' });
@@ -79,7 +91,9 @@ describe('analyzeVideo', () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
     const result = onComplete.mock.calls[0][0];
     expect(result.steps).toHaveLength(SCREEN_RECORDING_STEPS.length);
-    expect(result.summary).toContain('Offline fallback');
+    expect(result.summary).toContain('Backend error — Network error');
+    expect(result.detectorJobId).toBeNull();
+    expect(onProgress).toHaveBeenLastCalledWith(100, 'offline fallback');
   });
 
   it('cancel aborts the fetch and stops progress', async () => {
