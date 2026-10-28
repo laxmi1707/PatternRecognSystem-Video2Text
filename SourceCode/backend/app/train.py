@@ -45,6 +45,28 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
+def cached_label_names(model_dir: Path) -> list[str]:
+    """Activity names of the class indices stored in the feature cache (y_train/y_test.npy).
+
+    The cache holds labels already renumbered to 0..N-1, so they are not indices into
+    ACTIVITY_LABELS. feature_labels.json, written with the cache, names them. Older caches
+    have none: fall back to the label_names.json saved with the models, else stop, because
+    guessing ACTIVITY_LABELS[i] gives every class the wrong name (as happened to models/v3).
+    """
+    import json as _json
+
+    for name in ("feature_labels.json", "label_names.json"):
+        path = model_dir / name
+        if path.exists():
+            if name != "feature_labels.json":
+                logger.warning(f"No feature_labels.json in {model_dir}; naming the cached classes from {name}")
+            return _json.loads(path.read_text())
+    raise SystemExit(
+        f"--load-features: no feature_labels.json or label_names.json in {model_dir}, so the cached "
+        f"class indices cannot be named. Write the names, in class order, to {model_dir / 'feature_labels.json'}."
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train Video2Knowledge classifiers")
     parser.add_argument("--dataset-root", default="./dataset", help="Path to dataset directory")
@@ -89,12 +111,14 @@ def main() -> None:
         y_test  = np.load(str(feature_cache["y_test"]))
         logger.info(f"  X_train={X_train.shape}, X_test={X_test.shape}")
 
-        # Remap to contiguous 0..N-1 — required by XGBoost/LightGBM and ensembles
+        # Remap to contiguous 0..N-1 — required by XGBoost/LightGBM and ensembles.
+        # The cached indices are already renumbered; name them from the cache, not ACTIVITY_LABELS.
+        cached_names = cached_label_names(model_dir)
         all_labels = np.unique(np.concatenate([y_train, y_test]))
         label_map = {old: new for new, old in enumerate(all_labels)}
         y_train = np.array([label_map[y] for y in y_train], dtype=np.int64)
         y_test  = np.array([label_map[y] for y in y_test],  dtype=np.int64)
-        mapped_labels = [ACTIVITY_LABELS[int(i)] if int(i) < len(ACTIVITY_LABELS) else str(i) for i in all_labels]
+        mapped_labels = [cached_names[int(i)] for i in all_labels]
         logger.info(f"Label distribution in cache: {Counter(y_train.tolist())}")
         logger.info(f"Remapped {len(all_labels)} classes: {mapped_labels}")
 
@@ -177,6 +201,9 @@ def main() -> None:
         np.save(str(feature_cache["X_test"]),  X_test)
         np.save(str(feature_cache["y_train"]), y_train)
         np.save(str(feature_cache["y_test"]),  y_test)
+        # Names of the cached (renumbered) class indices, for --load-features
+        import json as _json
+        (model_dir / "feature_labels.json").write_text(_json.dumps(mapped_labels))
         # Save segment→task mapping so relabel.py can regenerate y without re-extraction
         np.save(str(model_dir / "task_ids_train.npy"), meta_train["task_ids"])
         np.save(str(model_dir / "task_ids_test.npy"),  meta_test["task_ids"])

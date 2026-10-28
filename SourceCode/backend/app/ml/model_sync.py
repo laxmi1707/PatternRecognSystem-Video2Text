@@ -19,7 +19,8 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-MODEL_SUFFIXES = (".pkl",)
+# .json: label_names.json maps each model's class index to its activity name
+MODEL_SUFFIXES = (".pkl", ".json")
 CHECKSUM_SUFFIX = ".sha256"
 
 
