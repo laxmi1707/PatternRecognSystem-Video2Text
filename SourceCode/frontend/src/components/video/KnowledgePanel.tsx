@@ -15,19 +15,6 @@ interface SOPStep {
   risk_reason?: string;
 }
 
-const riskBadgeStyle: Record<string, React.CSSProperties> = {
-  high: {
-    display: 'inline-block', marginLeft: 8, padding: '1px 8px',
-    borderRadius: 4, fontSize: 11, fontWeight: 700,
-    background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5',
-  },
-  medium: {
-    display: 'inline-block', marginLeft: 8, padding: '1px 8px',
-    borderRadius: 4, fontSize: 11, fontWeight: 700,
-    background: '#fffbeb', color: '#d97706', border: '1px solid #fcd34d',
-  },
-};
-
 interface SOPResponse {
   title: string;
   purpose: string;
@@ -203,17 +190,7 @@ export function KnowledgePanel({ jobId, detectedSteps }: KnowledgePanelProps) {
                 <li key={step.number} style={{ marginBottom: 8 }}>
                   <strong>{step.title}</strong>
                   {step.time_range && <span className="text-muted" style={{ fontSize: 12, marginLeft: 8 }}>[{step.time_range}]</span>}
-                  {(step.risk_level === 'high' || step.risk_level === 'medium') && (
-                    <span style={riskBadgeStyle[step.risk_level]} title={step.risk_reason}>
-                      {step.risk_level === 'high' ? '⚠ HIGH RISK' : '⚠ MEDIUM RISK'}
-                    </span>
-                  )}
-                  <br />
-                  {(step.risk_level === 'high' || step.risk_level === 'medium') && step.risk_reason && (
-                    <span style={{ fontSize: 12, color: step.risk_level === 'high' ? '#dc2626' : '#d97706' }}>
-                      {step.risk_reason}
-                    </span>
-                  )}
+                  {/* The SOP is the procedure only; risks and anomalies are shown in the anomaly timeline */}
                   <br />
                   <span style={{ fontSize: 14 }}>{step.description}</span>
                   {step.screen_output && step.screen_output.length > 0 && (
