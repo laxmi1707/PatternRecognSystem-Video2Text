@@ -14,7 +14,7 @@ const TASKS = [
   { icon: '📤', label: 'Uploading video',                minPct: 0,  maxPct: 4  },
   { icon: '🎬', label: 'Preparing video analysis',       minPct: 5,  maxPct: 9  },
   { icon: '🔍', label: 'Extracting segments & keyframes',minPct: 10, maxPct: 59 },
-  { icon: '🧠', label: 'Engineering features',           minPct: 60, maxPct: 64 },
+  { icon: '🧠', label: 'Engineering features',           minPct: 60, maxPct: 64, highlight: true },
   { icon: '⚡', label: 'Classifying activities',         minPct: 65, maxPct: 95 },
   { icon: '💾', label: 'Saving results',                 minPct: 96, maxPct: 100 },
 ];
@@ -114,7 +114,21 @@ export function AnalyzingProgress({
         <span style={{ fontSize: 26, animation: 'spin 2s linear infinite', display: 'inline-block' }}>⏳</span>
         <h3 style={{ margin: 0 }}>Analysing your recording</h3>
       </div>
-      <p className="text-muted" style={{ fontSize: 13, marginBottom: 14 }}>{fileName}</p>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+        <span
+          title={fileName}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            maxWidth: 420, padding: '6px 14px',
+            border: '1px solid rgba(239,124,0,0.35)', borderRadius: 999,
+            background: 'rgba(239,124,0,0.08)',
+            fontSize: 15, fontWeight: 700, color: '#111827',
+          }}
+        >
+          <span aria-hidden>🎞️</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</span>
+        </span>
+      </div>
 
       {/* Overall progress bar */}
       <div className="progress-track">
@@ -140,6 +154,8 @@ export function AnalyzingProgress({
           return (
             <div key={task.label} style={{
               borderBottom: isLast ? 'none' : '1px solid rgba(0,0,0,0.06)',
+              borderLeft: 'highlight' in task ? '3px solid #EF7C00' : undefined,
+              background: 'highlight' in task ? 'rgba(239,124,0,0.06)' : undefined,
               position: 'relative',
               overflow: 'hidden',
             }}>
@@ -169,9 +185,10 @@ export function AnalyzingProgress({
                 </span>
                 <span style={{ fontSize: 15, flexShrink: 0 }}>{task.icon}</span>
                 <span style={{
-                  fontSize: 13,
-                  fontWeight: status === 'active' ? 700 : 400,
-                  color: status === 'done'   ? '#6b7280'
+                  fontSize: 'highlight' in task ? 14 : 13,
+                  fontWeight: status === 'active' || 'highlight' in task ? 700 : 400,
+                  color: 'highlight' in task ? '#111827'
+                       : status === 'done'   ? '#6b7280'
                        : status === 'active' ? '#111827'
                        :                      '#9ca3af',
                   flex: 1,
