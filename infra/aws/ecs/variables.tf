@@ -94,9 +94,9 @@ variable "allowed_origins" {
 }
 
 variable "model_s3_prefix" {
-  description = "S3 prefix of the model version to load (models/v1 = Tier 1 only, models/v2 = all tiers)"
+  description = "S3 prefix of the model version to load (models/v1 = Tier 1 only, models/v2 = all tiers, models/v3 = 6 retrained models)"
   type        = string
-  default     = "models/v2"
+  default     = "models/v3"
 }
 
 variable "log_retention_days" {
