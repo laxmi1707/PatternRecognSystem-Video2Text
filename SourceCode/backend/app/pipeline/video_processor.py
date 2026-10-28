@@ -7,12 +7,25 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+# OCR reads its own copy of each frame: at 640x480 screen text is a third of its size and
+# squashed to 4:3, which EasyOCR turns into noise. Wider captures (Retina) are scaled
+# down to this width, which still leaves their text larger than on a 1080p screen.
+OCR_MAX_WIDTH = 1920
+
+
+def _ocr_copy(frame: np.ndarray) -> np.ndarray:
+    h, w = frame.shape[:2]
+    if w <= OCR_MAX_WIDTH:
+        return frame
+    return cv2.resize(frame, (OCR_MAX_WIDTH, round(h * OCR_MAX_WIDTH / w)), interpolation=cv2.INTER_AREA)
+
 
 @dataclass
 class FrameData:
     frame_index: int
     timestamp: float
-    image: np.ndarray  # (H, W, 3) BGR
+    image: np.ndarray  # (H, W, 3) BGR, resized to target_size
+    ocr_image: np.ndarray | None = None  # (H, W, 3) BGR, near full resolution, for OCR
 
 
 @dataclass
@@ -60,9 +73,10 @@ class VideoProcessor:
             ret, frame = cap.read()
             if not ret:
                 return None
+            ocr_image = _ocr_copy(frame)
             frame = cv2.resize(frame, self._target_size)
             frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
-            return FrameData(frame_index=frame_idx, timestamp=timestamp, image=frame)
+            return FrameData(frame_index=frame_idx, timestamp=timestamp, image=frame, ocr_image=ocr_image)
         finally:
             cap.release()
 
@@ -132,9 +146,10 @@ class VideoProcessor:
                         cap.set(cv2.CAP_PROP_POS_MSEC, ts * 1000)
                         ret, frame = cap.read()
                         if ret:
+                            ocr_image = _ocr_copy(frame)
                             frame = cv2.resize(frame, self._target_size)
                             frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
-                            keyframes.append(FrameData(frame_index=frame_idx, timestamp=ts, image=frame))
+                            keyframes.append(FrameData(frame_index=frame_idx, timestamp=ts, image=frame, ocr_image=ocr_image))
                     segments.append(SegmentData(segment_index=i, start_time=start, end_time=end, keyframes=keyframes, actions=[]))
             finally:
                 cap.release()
@@ -155,10 +170,11 @@ class VideoProcessor:
                     cap.set(cv2.CAP_PROP_POS_MSEC, ts * 1000)
                     ret, frame = cap.read()
                     if ret:
+                        ocr_image = _ocr_copy(frame)
                         frame = cv2.resize(frame, self._target_size)
                         frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
                         keyframes.append(
-                            FrameData(frame_index=frame_idx, timestamp=ts, image=frame)
+                            FrameData(frame_index=frame_idx, timestamp=ts, image=frame, ocr_image=ocr_image)
                         )
             finally:
                 cap.release()

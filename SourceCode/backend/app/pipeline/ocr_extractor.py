@@ -11,9 +11,13 @@ logger = logging.getLogger(__name__)
 
 OCR_FEATURE_DIM = 50
 
-# A keyframe whose mean pixel difference from the last frame read is at most this
-# (0-255 grey levels, on a 320x240 thumbnail) shows the same screen: reuse its text.
-DUPLICATE_FRAME_DIFF = 1.0
+# A keyframe shows the same screen as the last frame read when at most this many pixels
+# (of the 640x480 keyframe) changed by more than CHANGED_PIXEL_LEVEL grey levels; then its
+# text is reused. Counting pixels, not averaging them: a new terminal line changes only a
+# thin strip (400-900 px), which barely moves the mean, while a blinking cursor or a moved
+# pointer changes a few dozen.
+CHANGED_PIXEL_LEVEL = 30
+MAX_UNCHANGED_PIXELS = 50
 OCR_BATCH_SIZE = 16
 
 # Loading EasyOCR's models takes ~10 s, so one reader per process is shared by all jobs.
@@ -34,6 +38,32 @@ class OCRResult:
     regions: list[TextRegion] = field(default_factory=list)
     full_text: str = ""
     mean_confidence: float = 0.0
+
+
+def _regions_to_lines(regions: list[TextRegion]) -> str:
+    """Join EasyOCR's word regions into the screen's lines: words by spaces, lines by newlines.
+
+    Regions whose vertical centres lie within half a text height belong to one line, read
+    left to right. Keeping the line breaks lets a terminal command be told apart from the
+    output printed under it; the words themselves (and so the TF-IDF features) are unchanged.
+    """
+    if not regions:
+        return ""
+    heights = sorted(r.bbox[3] - r.bbox[1] for r in regions)
+    tolerance = max(4.0, heights[len(heights) // 2] * 0.5)
+    lines: list[list[TextRegion]] = []
+    centres: list[float] = []
+    for r in sorted(regions, key=lambda r: (r.bbox[1] + r.bbox[3]) / 2):
+        cy = (r.bbox[1] + r.bbox[3]) / 2
+        if lines and abs(cy - centres[-1]) <= tolerance:
+            lines[-1].append(r)
+        else:
+            lines.append([r])
+            centres.append(cy)
+    return "\n".join(
+        " ".join(r.text for r in sorted(line, key=lambda r: r.bbox[0]) if r.text.strip())
+        for line in lines
+    ).strip()
 
 
 def _similarity(a: str, b: str) -> float:
@@ -62,7 +92,7 @@ def _deduplicate_ocr(parts: list[str], threshold: float = 0.6) -> str:
             continue
         if all(_similarity(part, k) < threshold for k in kept):
             kept.append(part)
-    return " ".join(kept)
+    return "\n".join(kept)
 
 
 class OCRExtractor:
@@ -72,8 +102,8 @@ class OCRExtractor:
         self._easyocr_reader = None
         self._tfidf = None
         self._fitted = False
-        # Thumbnail and result of the last frame actually read, to skip unchanged screens
-        self._last_thumb: np.ndarray | None = None
+        # Grey image and result of the last frame actually read, to skip unchanged screens
+        self._last_grey: np.ndarray | None = None
         self._last_result: OCRResult | None = None
         self.frames_read = 0
         self.frames_reused = 0
@@ -93,9 +123,15 @@ class OCRExtractor:
         return self._easyocr_reader
 
     @staticmethod
-    def _thumbnail(image: np.ndarray) -> np.ndarray:
+    def _grey(image: np.ndarray) -> np.ndarray:
         grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
-        return cv2.resize(grey, (320, 240), interpolation=cv2.INTER_AREA).astype(np.int16)
+        return grey.astype(np.int16)
+
+    @staticmethod
+    def _screen_changed(grey: np.ndarray, last: np.ndarray | None) -> bool:
+        if last is None or grey.shape != last.shape:
+            return True
+        return int((np.abs(grey - last) > CHANGED_PIXEL_LEVEL).sum()) > MAX_UNCHANGED_PIXELS
 
     def extract_text(self, image: np.ndarray) -> OCRResult:
         reader = self._get_reader()
@@ -118,7 +154,7 @@ class OCRExtractor:
                 bbox = (min(x_coords), min(y_coords), max(x_coords), max(y_coords))
                 regions.append(TextRegion(text=text, bbox=bbox, confidence=float(conf)))
 
-            full_text = " ".join(r.text for r in regions)
+            full_text = _regions_to_lines(regions)
             mean_conf = float(np.mean([r.confidence for r in regions])) if regions else 0.0
 
             return OCRResult(regions=regions, full_text=full_text, mean_confidence=mean_conf)
@@ -197,18 +233,16 @@ class OCRExtractor:
 
         for kf in keyframes:
             # Screen recordings often hold still: reuse the text of an unchanged frame
-            thumb = self._thumbnail(kf.image)
-            if (
-                self._last_result is not None
-                and np.abs(thumb - self._last_thumb).mean() <= DUPLICATE_FRAME_DIFF
-            ):
+            grey = self._grey(kf.image)
+            if self._last_result is not None and not self._screen_changed(grey, self._last_grey):
                 result = self._last_result
                 self.frames_reused += 1
             else:
-                # Upscale to full resolution before OCR — resized (640x480) frames produce noise
-                img = self._upscale_for_ocr(kf.image)
+                # Read the full-resolution copy; resized (640x480) frames produce noise
+                ocr_image = getattr(kf, "ocr_image", None)
+                img = ocr_image if ocr_image is not None else self._upscale_for_ocr(kf.image)
                 result = self.extract_with_fallback(img)
-                self._last_thumb, self._last_result = thumb, result
+                self._last_grey, self._last_result = grey, result
                 self.frames_read += 1
             if result.full_text:
                 all_text_parts.append(result.full_text)
