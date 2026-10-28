@@ -33,7 +33,27 @@ def test_unchanged_keyframes_reuse_the_text_instead_of_running_ocr_again():
     assert reader.calls == 2
     assert (ocr.frames_read, ocr.frames_reused) == (2, 3)
     assert text == "text 1"
-    assert text2 == "text 1 text 2"
+    assert text2 == "text 1\ntext 2"
+
+
+def test_a_new_terminal_line_is_read_again_although_most_of_the_screen_is_unchanged():
+    # risk_test_video: each new command adds one thin line of text (400-900 changed pixels
+    # of 640x480), too little to move a whole-screen average but more than a blinking cursor.
+    ocr = OCRExtractor()
+    reader = _CountingReader()
+    ocr._easyocr_reader = reader
+
+    before = _frame(30)
+    after_typing = _frame(30)
+    after_typing.image[100:108, 20:120] = 220  # an 8 x 100 px line of new text
+    cursor_blink = _frame(30)
+    cursor_blink.image[100:106, 20:24] = 220  # a 6 x 4 px cursor
+
+    ocr.extract_segment([before, cursor_blink])
+    assert reader.calls == 1
+
+    ocr.extract_segment([after_typing])
+    assert reader.calls == 2
 
 
 def test_second_run_of_the_same_video_comes_from_the_feature_cache(tmp_path, monkeypatch):

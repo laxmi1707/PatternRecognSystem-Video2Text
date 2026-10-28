@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 ProgressFn = Callable[[int, int], None]
 
 # Bump when feature extraction changes, so stale cached features are not reused.
-FEATURE_CACHE_VERSION = "1"
+FEATURE_CACHE_VERSION = "2"  # 2: full-resolution OCR in lines, changed-pixel duplicate check
 
 
 def _feature_cache_path(video_path: Path, action_log_path: Path | None) -> Path:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+from difflib import SequenceMatcher
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
@@ -173,7 +174,7 @@ _RISK_RULES: list[tuple[set[str], list[str], str, str]] = [
              "delete-cluster", "kubectl delete ns", "kubectl delete namespace"],
      "high", "Irreversible infrastructure change detected"),
     # Force operations and credential exposure — label-agnostic
-    (set(), ["--force", "--hard", "force-push", "force push",
+    (set(), ["--force", "--hard", "force-push", "force push", "push force", "push -f ",
              "aws_secret_access_key", "aws_access_key_id", "password=",
              "private_key", "credentials", "access_key"],
      "high", "Sensitive operation or credential visible on screen"),
@@ -242,6 +243,57 @@ def _extract_terminal_command(text: str) -> str:
             best_is_known = True
 
     return best_cmd
+
+
+# A shell prompt at the start of a line as OCR reads it: "ubuntu@server:~$", "user@host ~ %",
+# "root@box#" - and "ubuntudserver~$", since OCR often reads "@" as "d"
+_PROMPT_RE = re.compile(r"^\s*\S+\s*[:~]*\s*[$#%](?=\s|$)", re.MULTILINE)
+
+# Common OCR misreads inside commands: "~rf" for "-rf", "Ivar/" or "[etc/" for "/var/", "/etc/"
+_FLAG_MISREAD = re.compile(r"(?<=\s)~(?=-?[A-Za-z])")
+_ROOT_MISREAD = re.compile(r"(?<=\s)[Il\[|](?=(?:var|etc|usr|home|tmp|opt|bin|root|srv|mnt|data)\b)")
+
+
+def _fix_ocr_command(cmd: str) -> str:
+    cmd = _FLAG_MISREAD.sub("-", f" {cmd}")
+    cmd = _ROOT_MISREAD.sub("/", cmd)
+    return " ".join(cmd.split())
+
+
+def _same_command(a: str, b: str) -> bool:
+    """Two OCR readings of one command ("ls -la Ivarldatal" and "ls -la /var/datal" from two
+    frames of the same line): the first two words match and the letters and digits are at
+    least 90% alike. "git push ..." and "git pull ..." differ in the second word, so stay apart."""
+    if a.split()[:2] != b.split()[:2]:
+        return False
+    key_a = re.sub(r"[^a-z0-9]", "", a.lower())
+    key_b = re.sub(r"[^a-z0-9]", "", b.lower())
+    return SequenceMatcher(None, key_a, key_b).ratio() >= 0.9
+
+
+def _extract_terminal_commands(text: str) -> list[str]:
+    """Every command typed at a shell prompt in OCR text, in screen order, without repeats.
+
+    Needs the OCR's line breaks: the command is the rest of the prompt's line, so the output
+    printed below it ("Removing ... done.") is not taken as part of the command.
+    """
+    commands: list[str] = []
+    for line in (text or "").splitlines():
+        parts = re.split(r"[$#%]\s+", line)
+        if len(parts) < 2 or not _PROMPT_RE.search(line):
+            continue
+        candidate = re.split(r"\s{3,}", parts[-1])[0].strip()
+        if len(candidate) < 2 or _UI_NOISE_PATTERN.search(candidate):
+            continue
+        if not re.match(r"^[\x20-\x7E]+$", candidate):
+            continue
+        tokens = candidate.split()
+        if not tokens or len(tokens) > 12 or tokens[0].lower() not in _TERMINAL_COMMANDS:
+            continue
+        cmd = _fix_ocr_command(candidate)[:120]
+        if not any(_same_command(cmd, c) for c in commands):
+            commands.append(cmd)
+    return commands
 
 
 def _clean_ocr(text: str) -> str:
@@ -394,10 +446,15 @@ class SOPGenerator:
         # 2. Merge consecutive same-label segments — prevents 3 identical "Coding Editing" steps
         merged_segs, merged_raw_ocr = _merge_consecutive_segments(segments, ocr_texts)
 
+        # A shell prompt on screen: the steps are the commands typed, whatever the label says
+        terminal_screen = any(_extract_terminal_commands(o) for o in ocr_texts if o)
+
         # 4. Detect platform from OCR (overrides "Screen Recording" fallback)
         detected_platform = platform
         if platform == "Screen Recording":
-            if any(kw in all_raw_ocr for kw in [
+            if terminal_screen:
+                detected_platform = "Bash Terminal"
+            elif any(kw in all_raw_ocr for kw in [
                 "eclipse", "echpse", "echpze", "ccliosc", "ccipre", "idipre",
                 "worecpece", "worerpace", "woricpoce", "worespece", "window help",
             ]):
@@ -409,10 +466,37 @@ class SOPGenerator:
 
         # 5. Build steps
         steps: list[SOPStep] = []
+        seen_commands: set[str] = set()
         for i, (seg, raw_ocr) in enumerate(zip(merged_segs, merged_raw_ocr)):
             label = seg.get("predicted_label", "other")
             start = seg.get("start_time", 0)
             end = seg.get("end_time", 0)
+
+            if terminal_screen:
+                # The terminal keeps its history on screen, so a step is what is new in it
+                new = [
+                    c for c in _extract_terminal_commands(raw_ocr)
+                    if not any(_same_command(c, s) for s in seen_commands)
+                ]
+                seen_commands.update(new)
+                if new:
+                    step_title = f"Typed `{new[0]}`" + (f" (+{len(new) - 1} more)" if len(new) > 1 else "")
+                    description = "Typed and ran in the terminal: " + "; ".join(f"`{c}`" for c in new) + "."
+                    risk_level, risk_reason = _assess_risk(label, " ".join(new))
+                else:
+                    step_title = "Reviewed the terminal output"
+                    description = "No new command; the screen shows the output of the commands above."
+                    risk_level, risk_reason = "none", ""
+                steps.append(SOPStep(
+                    number=i + 1,
+                    title=step_title,
+                    description=description,
+                    time_range=f"{start:.1f}s - {end:.1f}s",
+                    detected_text=raw_ocr,
+                    risk_level=risk_level,
+                    risk_reason=risk_reason,
+                ))
+                continue
 
             # For terminal segments, try to extract actual command from OCR first
             terminal_cmd = _extract_terminal_command(raw_ocr) if label in ("terminal_ops", "debugging", "git_operations", "docker_workflow") else ""
@@ -446,7 +530,7 @@ class SOPGenerator:
         # 4. Prerequisites driven by OCR content (more reliable than model labels on F1=0.29)
         prerequisites = [f"Access to {detected_platform}"]
         # Only add tool-specific prerequisites when OCR actually shows those tools
-        if any(kw in all_raw_ocr for kw in ["terminal", "bash", "shell", "wcrkepacc"]):
+        if terminal_screen or any(kw in all_raw_ocr for kw in ["terminal", "bash", "shell", "wcrkepacc"]):
             prerequisites.append("Terminal or shell access")
         if any(kw in all_raw_ocr for kw in ["commit", "push", "branch", "merge", "git"]):
             prerequisites.append("Git installed and repository cloned")
@@ -459,7 +543,9 @@ class SOPGenerator:
         # 6. Purpose — use detected_platform and most frequent OCR keyword action
         keyword_actions = [_extract_keywords(o) for o in merged_raw_ocr if o]
         dominant_action = max(set(keyword_actions), key=keyword_actions.count) if keyword_actions else ""
-        if dominant_action:
+        if terminal_screen:
+            purpose = f"Step-by-step procedure for the commands typed in {detected_platform}."
+        elif dominant_action:
             if detected_platform.lower() in dominant_action.lower():
                 purpose = f"Step-by-step procedure to perform: {dominant_action}."
             else:
