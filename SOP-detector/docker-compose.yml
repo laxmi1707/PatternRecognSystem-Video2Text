@@ -1,0 +1,18 @@
+# The SOP detector on http://localhost:8100/sop-detector/health
+#     docker compose up --build
+# The TRACE frontend on http://localhost:5173 may call it (ALLOWED_ORIGINS).
+services:
+  sop-detector:
+    build: .
+    image: sop-detector:latest
+    environment:
+      SOP_DETECTOR_THREADS: "4"
+      ALLOWED_ORIGINS: '["http://localhost:5173","http://127.0.0.1:5173"]'
+    ports:
+      - "8100:8000"
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 8g
+    restart: unless-stopped

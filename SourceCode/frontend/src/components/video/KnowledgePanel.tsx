@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiPost, ApiError } from '../../services/api/client';
+import { describeStep, stepsInRange } from '../../services/api/sopDetector';
+import type { DetectedStep } from '../../types/detection';
 
 interface SOPStep {
   number: number;
@@ -63,9 +65,11 @@ interface RunbookResponse {
 
 interface KnowledgePanelProps {
   jobId: string;
+  /** clicks and typing the SOP detector read from the video, listed under the SOP step they fall in */
+  detectedSteps?: DetectedStep[];
 }
 
-export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
+export function KnowledgePanel({ jobId, detectedSteps }: KnowledgePanelProps) {
   const [sop, setSop] = useState<SOPResponse | null>(null);
   const [runbook, setRunbook] = useState<RunbookResponse | null>(null);
   const [loading, setLoading] = useState<'sop' | 'runbook' | null>(null);
@@ -193,33 +197,52 @@ export function KnowledgePanel({ jobId }: KnowledgePanelProps) {
           )}
           <p><strong>Procedure:</strong></p>
           <ol>
-            {sop.steps.map((step) => (
-              <li key={step.number} style={{ marginBottom: 8 }}>
-                <strong>{step.title}</strong>
-                {step.time_range && <span className="text-muted" style={{ fontSize: 12, marginLeft: 8 }}>[{step.time_range}]</span>}
-                {(step.risk_level === 'high' || step.risk_level === 'medium') && (
-                  <span style={riskBadgeStyle[step.risk_level]} title={step.risk_reason}>
-                    {step.risk_level === 'high' ? '⚠ HIGH RISK' : '⚠ MEDIUM RISK'}
-                  </span>
-                )}
-                <br />
-                {(step.risk_level === 'high' || step.risk_level === 'medium') && step.risk_reason && (
-                  <span style={{ fontSize: 12, color: step.risk_level === 'high' ? '#dc2626' : '#d97706' }}>
-                    {step.risk_reason}
-                  </span>
-                )}
-                <br />
-                <span style={{ fontSize: 14 }}>{step.description}</span>
-                {step.screen_output && step.screen_output.length > 0 && (
-                  <pre style={screenTextStyle}>{step.screen_output.join('\n')}</pre>
-                )}
-                {step.screen_removed && step.screen_removed.length > 0 && (
-                  <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
-                    <em>No longer shown:</em> {step.screen_removed.join(' · ')}
-                  </div>
-                )}
-              </li>
-            ))}
+            {sop.steps.map((step, i) => {
+              const actions = detectedSteps ? stepsInRange(detectedSteps, step.time_range, i === sop.steps.length - 1) : [];
+              return (
+                <li key={step.number} style={{ marginBottom: 8 }}>
+                  <strong>{step.title}</strong>
+                  {step.time_range && <span className="text-muted" style={{ fontSize: 12, marginLeft: 8 }}>[{step.time_range}]</span>}
+                  {(step.risk_level === 'high' || step.risk_level === 'medium') && (
+                    <span style={riskBadgeStyle[step.risk_level]} title={step.risk_reason}>
+                      {step.risk_level === 'high' ? '⚠ HIGH RISK' : '⚠ MEDIUM RISK'}
+                    </span>
+                  )}
+                  <br />
+                  {(step.risk_level === 'high' || step.risk_level === 'medium') && step.risk_reason && (
+                    <span style={{ fontSize: 12, color: step.risk_level === 'high' ? '#dc2626' : '#d97706' }}>
+                      {step.risk_reason}
+                    </span>
+                  )}
+                  <br />
+                  <span style={{ fontSize: 14 }}>{step.description}</span>
+                  {step.screen_output && step.screen_output.length > 0 && (
+                    <pre style={screenTextStyle}>{step.screen_output.join('\n')}</pre>
+                  )}
+                  {step.screen_removed && step.screen_removed.length > 0 && (
+                    <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
+                      <em>No longer shown:</em> {step.screen_removed.join(' · ')}
+                    </div>
+                  )}
+                  {actions.length > 0 && (
+                    <div style={{
+                      margin: '8px 0 4px', padding: '8px 12px', borderRadius: 8,
+                      background: '#fff4e8', border: '1px solid #f6c78f',
+                    }}>
+                      <div style={{
+                        fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                        color: '#b45d00', marginBottom: 4,
+                      }}>
+                        Detected in the video · SOP detector
+                      </div>
+                      <ul data-testid="sop-step-actions" style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: '#1f2937' }}>
+                        {actions.map((a, k) => <li key={k}>{describeStep(a)}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ol>
         </div>
       )}
