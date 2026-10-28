@@ -12,7 +12,8 @@ export const DETECTOR_EXPECTED = Boolean(import.meta.env.DEV || import.meta.env.
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Send the video to the detector. Returns null if the service is not running.
- *  A detector that is still starting (no answer, or 502/503) gets a few more tries. */
+ *  A detector that answers "not ready" (502/503, e.g. behind a proxy while it starts)
+ *  gets a few more tries; no answer at all means it is not running. */
 export async function startDetection(file: File, attempts = 4, waitMs = 5000): Promise<string | null> {
   for (let i = 0; i < attempts; i++) {
     if (i > 0) await pause(waitMs);
@@ -24,9 +25,9 @@ export async function startDetection(file: File, attempts = 4, waitMs = 5000): P
         const body = await res.json();
         return typeof body.job_id === 'string' ? body.job_id : null;
       }
-      if (res.status < 500) return null;           // a real answer that is not a job: give up
+      if (res.status !== 502 && res.status !== 503) return null;
     } catch {
-      // not reachable (yet): try again
+      return null;
     }
   }
   return null;
