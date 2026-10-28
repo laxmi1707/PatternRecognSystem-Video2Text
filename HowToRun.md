@@ -23,7 +23,12 @@ Once the services are running:
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:8000/docs
 - **Health check**: http://localhost:8000/health
-- **SOP detector**: http://localhost:8100/docs (steps read from the video; see [SOP-detector/README.md](SOP-detector/README.md))
+
+The SOP detector (`SOP-detector/`, clicks and typing read from the video) is **switched off**:
+docker compose does not start it, and the frontend does not send videos to it. To switch it on,
+start it with `docker compose --profile sop-detector up` and build the frontend with
+`VITE_SOP_DETECTOR_ENABLED=true` (in `docker-compose.yml`, or in the environment for `npm run dev`);
+it then answers at http://localhost:8100/docs.
 
 ### Upload and Analyze
 
@@ -31,7 +36,7 @@ Once the services are running:
 2. Drop a screen recording video (MP4, MOV, or WebM)
 3. Wait for analysis — all 14 classifiers run on your video
 4. View the Model Comparison table and workflow steps
-5. Under **Steps read from the video**, the SOP detector lists the clicks and typing it found (a few minutes for a new video; the recordings in `SOP-detector/samples/` are answered at once). Select a step's time to play the video from there; **Generate SOP** lists the detected actions under each SOP step
+5. With the SOP detector switched on (see above), **Steps read from the video** lists the clicks and typing it found (a few minutes for a new video; the recordings in `SOP-detector/samples/` are answered at once). Select a step's time to play the video from there; **Generate SOP** lists the detected actions under each SOP step
 
 ### Stop
 
@@ -97,7 +102,7 @@ Local development uses SQLite by default (no setup needed). Docker uses PostgreS
 | Frontend | 5173 | React UI (Vite dev / nginx in Docker) |
 | Backend | 8000 | FastAPI + ML pipeline |
 | Database | 5434 | PostgreSQL 16 + pgvector (Docker only) |
-| SOP detector | 8100 | Clicks and typing read from the video (`SOP-detector/`) |
+| SOP detector | 8100 | Clicks and typing read from the video (`SOP-detector/`); off by default, `--profile sop-detector` |
 
 ## Architecture
 

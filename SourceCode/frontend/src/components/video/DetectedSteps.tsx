@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { DetectedStep, DetectionJob } from '../../types/detection';
-import { DETECTOR_EXPECTED, DETECTOR_URL, formatClock } from '../../services/api/sopDetector';
+import { DETECTOR_URL, detectorExpected, formatClock } from '../../services/api/sopDetector';
 
 interface DetectedStepsProps {
   /** undefined: no detection for this result; null: the detector service was not reachable */
@@ -68,7 +68,7 @@ function Pill({ children, fg, bg }: { children: ReactNode; fg: string; bg: strin
 }
 
 export function DetectedSteps({
-  jobId, job, error, onSeek, currentTime, expected = DETECTOR_EXPECTED,
+  jobId, job, error, onSeek, currentTime, expected = detectorExpected(),
 }: DetectedStepsProps) {
   // undefined: a history entry, no panel. null: the detector was not reachable - say so where
   // one is expected (dev server, docker compose); a deployment without one shows no panel.

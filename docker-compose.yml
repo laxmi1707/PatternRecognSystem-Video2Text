@@ -42,7 +42,10 @@ services:
           memory: 6g
 
   sop-detector:
-    # SOP steps (clicks and typing) read from the video alone; see SOP-detector/README.md
+    # SOP steps (clicks and typing) read from the video alone; see SOP-detector/README.md.
+    # Switched off: started only with `docker compose --profile sop-detector up`, and the
+    # frontend uses it only when built with VITE_SOP_DETECTOR_ENABLED=true.
+    profiles: ["sop-detector"]
     build: ./SOP-detector
     environment:
       SOP_DETECTOR_THREADS: "4"
@@ -60,12 +63,12 @@ services:
       context: ./SourceCode/frontend
       args:
         VITE_API_BASE_URL: http://localhost:8000/api/v1
+        VITE_SOP_DETECTOR_ENABLED: "false"
         VITE_SOP_DETECTOR_URL: http://localhost:8100/sop-detector
     ports:
       - "5173:5173"
     depends_on:
       - backend
-      - sop-detector
 
 volumes:
   pgdata:

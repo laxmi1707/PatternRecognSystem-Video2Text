@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { describeStep, formatClock, parseTimeRange, startDetection, stepsInRange } from './sopDetector';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { describeStep, detectorEnabled, detectorExpected, formatClock, parseTimeRange, startDetection, stepsInRange } from './sopDetector';
 import type { DetectedStep } from '../../types/detection';
 
 const steps: DetectedStep[] = [
@@ -38,8 +38,25 @@ describe('formatting', () => {
   });
 });
 
-describe('startDetection', () => {
+describe('switched off (the default)', () => {
   afterEach(() => vi.restoreAllMocks());
+
+  it('sends nothing to the detector and expects no panel', async () => {
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock;
+    expect(detectorEnabled()).toBe(false);
+    expect(detectorExpected()).toBe(false);
+    expect(await startDetection(new File(['x'], 'clip.mp4'))).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('startDetection', () => {
+  beforeEach(() => vi.stubEnv('VITE_SOP_DETECTOR_ENABLED', 'true'));
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
 
   it('returns the job id', async () => {
     globalThis.fetch = vi.fn(() =>
