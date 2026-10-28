@@ -34,3 +34,19 @@ def test_warm_up_does_not_raise_when_a_load_fails(monkeypatch):
     monkeypatch.setattr(ocr_extractor.OCRExtractor, "_get_reader", broken)
 
     warm_up()  # logged as a warning; the first job loads the reader itself
+
+
+def test_warm_up_loads_the_cnn_model_only_for_the_cnn_backend(monkeypatch):
+    from app.pipeline import cnn_features, feature_assembler
+
+    monkeypatch.setattr(ocr_extractor.OCRExtractor, "_get_reader", lambda self: object())
+    loaded = []
+    monkeypatch.setattr(cnn_features.CNNFeatureExtractor, "_load_model", lambda self: loaded.append(self))
+
+    monkeypatch.setattr(feature_assembler, "FEATURE_BACKEND", "hog")
+    warm_up()
+    assert loaded == []
+
+    monkeypatch.setattr(feature_assembler, "FEATURE_BACKEND", "cnn")
+    warm_up()
+    assert len(loaded) == 1
