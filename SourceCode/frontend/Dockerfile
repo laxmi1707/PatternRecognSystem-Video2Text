@@ -5,8 +5,11 @@ RUN npm ci
 COPY . .
 ARG VITE_API_BASE_URL=http://localhost:8000/api/v1
 ARG VITE_API_KEY=
+# Where the SOP detector service answers (SOP-detector/); unreachable -> no detector panel
+ARG VITE_SOP_DETECTOR_URL=/sop-detector
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_API_KEY=$VITE_API_KEY
+ENV VITE_SOP_DETECTOR_URL=$VITE_SOP_DETECTOR_URL
 RUN npm run build
 
 FROM nginx:alpine

@@ -19,10 +19,11 @@ docker compose up --build
 
 First build takes 10-15 minutes (downloads PyTorch, YOLO, EasyOCR models).
 
-Once you see all three services running:
+Once the services are running:
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:8000/docs
 - **Health check**: http://localhost:8000/health
+- **SOP detector**: http://localhost:8100/docs (steps read from the video; see [SOP-detector/README.md](SOP-detector/README.md))
 
 ### Upload and Analyze
 
@@ -30,6 +31,7 @@ Once you see all three services running:
 2. Drop a screen recording video (MP4, MOV, or WebM)
 3. Wait for analysis — all 14 classifiers run on your video
 4. View the Model Comparison table and workflow steps
+5. Under **Steps read from the video**, the SOP detector lists the clicks and typing it found (a few minutes for a new video; the recordings in `SOP-detector/samples/` are answered at once). Select a step's time to play the video from there; **Generate SOP** lists the detected actions under each SOP step
 
 ### Stop
 
@@ -95,6 +97,7 @@ Local development uses SQLite by default (no setup needed). Docker uses PostgreS
 | Frontend | 5173 | React UI (Vite dev / nginx in Docker) |
 | Backend | 8000 | FastAPI + ML pipeline |
 | Database | 5434 | PostgreSQL 16 + pgvector (Docker only) |
+| SOP detector | 8100 | Clicks and typing read from the video (`SOP-detector/`) |
 
 ## Architecture
 

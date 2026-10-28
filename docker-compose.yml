@@ -41,15 +41,31 @@ services:
         limits:
           memory: 6g
 
+  sop-detector:
+    # SOP steps (clicks and typing) read from the video alone; see SOP-detector/README.md
+    build: ./SOP-detector
+    environment:
+      SOP_DETECTOR_THREADS: "4"
+      ALLOWED_ORIGINS: '["http://localhost:5173","http://127.0.0.1:5173"]'
+    ports:
+      - "8100:8000"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 8g
+
   frontend:
     build:
       context: ./SourceCode/frontend
       args:
         VITE_API_BASE_URL: http://localhost:8000/api/v1
+        VITE_SOP_DETECTOR_URL: http://localhost:8100/sop-detector
     ports:
       - "5173:5173"
     depends_on:
       - backend
+      - sop-detector
 
 volumes:
   pgdata:

@@ -1,0 +1,30 @@
+{
+  "video": "video.mp4",
+  "app": "Bash",
+  "app_confidence": 0.717,
+  "duration": 20.966666666666665,
+  "seconds_taken": 189.8,
+  "seconds_clicks": 12.5,
+  "steps": [
+    {
+      "t": 1.6,
+      "action": "Click",
+      "text": "user@workstation-shauryas-matnoozx:",
+      "x": 477,
+      "y": 214,
+      "score": 0.654
+    },
+    {
+      "t": 6.0,
+      "action": "Type",
+      "text": "sudo userdell",
+      "score": 0.921
+    },
+    {
+      "t": 10.0,
+      "action": "Type",
+      "text": "sudo userdel shauryal",
+      "score": 0.943
+    }
+  ]
+}

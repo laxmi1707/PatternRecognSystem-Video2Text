@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+# downloaded on first use (YOLOv8n, ResNet-18)
+weights/
+# uploads and job files of a running service
+cache/sop_service/
+# Terraform working files and state
+deploy/aws/terraform/.terraform/
+deploy/aws/terraform/*.tfstate*
+deploy/aws/terraform/*.tfvars
+deploy/aws/terraform/.terraform.lock.hcl
+~$*

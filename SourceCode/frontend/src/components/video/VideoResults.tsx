@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { BASE_URL } from '../../services/api/client';
 import type { AnalysisResult } from '../../types/analysis';
 import { WorkflowSteps } from './WorkflowSteps';
 import { KnowledgePanel } from './KnowledgePanel';
 import { ModelComparison } from './ModelComparison';
 import { ReportView } from './ReportView';
+import { DetectedSteps } from './DetectedSteps';
+import { useDetection } from '../../hooks/useDetection';
 
 interface VideoResultsProps {
   result: AnalysisResult;
@@ -17,6 +19,22 @@ export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
   const [selectedModel, setSelectedModel] = useState<string | null>(result.bestModel);
   const [showComparison, setShowComparison] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('screen');
+  const detection = useDetection(result.detectorJobId);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoTime, setVideoTime] = useState<number | undefined>(undefined);
+
+  // a detected step's time: play the recording from there, with the video in view
+  const seek = (t: number) => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.currentTime = t;
+    setVideoTime(t);
+    v.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    void v.play?.()?.catch?.(() => undefined);
+  };
+
+  // the upload's own object URL, or the backend's stream when it is gone (history)
+  const videoSrc = result.videoUrl ?? (result.id ? `${BASE_URL}/videos/${result.id}/stream` : null);
 
   const displaySteps =
     selectedModel && result.allResults[selectedModel]
@@ -102,23 +120,34 @@ export function VideoResults({ result, onAnalyzeAnother }: VideoResultsProps) {
         <>
           <div className="results-grid">
             <div>
-              {(() => {
-                const src = result.videoUrl ?? (result.id ? `${BASE_URL}/videos/${result.id}/stream` : null);
-                return src ? (
-                  <video src={src} controls className="results-video" />
-                ) : (
-                  <div className="halftone results-video-placeholder">
-                    <span className="text-muted" style={{ fontFamily: 'monospace', fontSize: 11 }}>
-                      original recording not available
-                    </span>
-                  </div>
-                );
-              })()}
+              {videoSrc ? (
+                <video
+                  ref={videoRef}
+                  src={videoSrc}
+                  controls
+                  className="results-video"
+                  onTimeUpdate={e => setVideoTime(e.currentTarget.currentTime)}
+                />
+              ) : (
+                <div className="halftone results-video-placeholder">
+                  <span className="text-muted" style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                    original recording not available
+                  </span>
+                </div>
+              )}
             </div>
             <WorkflowSteps steps={displaySteps} />
           </div>
 
-          <KnowledgePanel jobId={result.jobId || result.id} />
+          <DetectedSteps
+            jobId={result.detectorJobId}
+            job={detection.job}
+            error={detection.error}
+            onSeek={videoSrc ? seek : undefined}
+            currentTime={videoTime}
+          />
+
+          <KnowledgePanel jobId={result.jobId || result.id} detectedSteps={detection.job?.result?.steps} />
         </>
       )}
     </div>
