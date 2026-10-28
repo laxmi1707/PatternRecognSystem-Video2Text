@@ -17,7 +17,7 @@ Desktop screen recordings contain expert knowledge that is impossible to search 
 | Metric | Value |
 |--------|-------|
 | Dataset | 277 tasks · 8 apps · ~2.3 GB (VideoCUA subset) |
-| Activity classes | 8 effective classes (docker, kubernetes, terraform, aws_console, jenkins, coding, debugging, documentation) |
+| Activity classes | 5 classes from 8 apps: `coding_editing`, `media_editing`, `web_browsing`, `diagram_design`, `terminal_ops` |
 | Best model (v3b) | Voting ensemble — F1 **0.884** |
 | 2nd best (v3b) | Stacking ensemble — F1 **0.869** |
 | vs. v2 baseline | +73% macro-F1 improvement (KNN 0.51 → Voting 0.884) |
@@ -29,8 +29,9 @@ Desktop screen recordings contain expert knowledge that is impossible to search 
 - **Ingestion** — video upload, frame extraction, action log parsing
 - **Feature extraction** — EfficientNet-B0 CNN visual features, EasyOCR, YOLO UI detection, interaction statistics
 - **Multi-tier classifier** — classical ML → deep learning → ensemble fusion
+- **Anomaly detection** — OCR-based rule engine flags destructive commands, privilege escalation, and risky SQL in recorded sessions
 - **Knowledge generation** — Rule-based SOP, runbook, and timeline generation from pattern recognition output
-- **Dashboard** — React frontend for upload, activity timeline, and knowledge retrieval
+- **Dashboard** — React frontend for upload, activity timeline, anomaly alerts, and knowledge retrieval
 
 * * *
 
