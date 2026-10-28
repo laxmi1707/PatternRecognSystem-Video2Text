@@ -55,3 +55,4 @@ infra/aws/iam/merged-boundary.json
 
 # Action-classifier outputs (models, feature cache) - publish to S3, not git
 SourceCode/backend/models/actions/
+presentation/
