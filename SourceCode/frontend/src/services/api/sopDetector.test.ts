@@ -46,8 +46,17 @@ describe('startDetection', () => {
       Promise.resolve({ ok: true, json: () => Promise.resolve({ job_id: 'abc' }) } as Response));
     expect(await startDetection(new File(['x'], 'clip.mp4'))).toBe('abc');
   });
-  it('returns null when the service is not running', async () => {
-    globalThis.fetch = vi.fn(() => Promise.reject(new Error('connection refused')));
-    expect(await startDetection(new File(['x'], 'clip.mp4'))).toBeNull();
+  it('returns null at once when the service is not running', async () => {
+    const fetchMock = vi.fn(() => Promise.reject(new Error('connection refused')));
+    globalThis.fetch = fetchMock;
+    expect(await startDetection(new File(['x'], 'clip.mp4'), 3, 0)).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+  it('waits for a detector that answers "not ready"', async () => {
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 502 } as Response)
+      .mockResolvedValueOnce({ ok: false, status: 503 } as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ job_id: 'late' }) } as Response);
+    expect(await startDetection(new File(['x'], 'clip.mp4'), 4, 0)).toBe('late');
   });
 });

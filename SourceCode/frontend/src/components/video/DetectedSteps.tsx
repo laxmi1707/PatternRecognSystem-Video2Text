@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react';
 import type { DetectedStep, DetectionJob } from '../../types/detection';
-import { formatClock } from '../../services/api/sopDetector';
+import { DETECTOR_EXPECTED, DETECTOR_URL, formatClock } from '../../services/api/sopDetector';
 
 interface DetectedStepsProps {
   /** undefined: no detection for this result; null: the detector service was not reachable */
   jobId: string | null | undefined;
+  /** whether a detector should be running here (default: dev server or docker compose build) */
+  expected?: boolean;
   job: DetectionJob | null;
   error: string | null;
   /** jump the video to this many seconds */
@@ -65,13 +67,25 @@ function Pill({ children, fg, bg }: { children: ReactNode; fg: string; bg: strin
   );
 }
 
-export function DetectedSteps({ jobId, job, error, onSeek, currentTime }: DetectedStepsProps) {
-  // undefined: a history entry; null: the detector service was not reachable (for example a
-  // deployment without it). Either way the page shows no detector panel.
-  if (jobId === undefined || jobId === null) return null;
+export function DetectedSteps({
+  jobId, job, error, onSeek, currentTime, expected = DETECTOR_EXPECTED,
+}: DetectedStepsProps) {
+  // undefined: a history entry, no panel. null: the detector was not reachable - say so where
+  // one is expected (dev server, docker compose); a deployment without one shows no panel.
+  if (jobId === undefined) return null;
+  if (jobId === null && !expected) return null;
 
   let body: JSX.Element;
-  if (error || job?.status === 'failed') {
+  if (jobId === null) {
+    body = (
+      <p data-testid="detector-unreachable" style={{ color: MUTED, fontSize: 14, margin: 0 }}>
+        The SOP detector did not answer at <code>{DETECTOR_URL}</code>, so no steps were read from this
+        video. Start it with <code>docker compose up sop-detector</code> (the first build takes about
+        15-20 minutes; it is ready when its log shows <code>Uvicorn running</code>), then upload the
+        video again.
+      </p>
+    );
+  } else if (error || job?.status === 'failed') {
     body = <p style={{ color: 'var(--color-error, #b91c1c)', fontSize: 14, margin: 0 }}>{error ?? job?.error}</p>;
   } else if (!job || job.status === 'running') {
     const pct = Math.round(job?.progress_pct ?? 0);
