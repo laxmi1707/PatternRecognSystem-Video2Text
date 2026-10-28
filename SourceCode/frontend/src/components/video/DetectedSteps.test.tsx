@@ -21,8 +21,13 @@ describe('DetectedSteps', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows nothing when the detector was not reachable', () => {
-    const { container } = render(<DetectedSteps jobId={null} job={null} error={null} />);
+  it('says how to start the detector when one is expected but did not answer', () => {
+    render(<DetectedSteps jobId={null} job={null} error={null} expected />);
+    expect(screen.getByTestId('detector-unreachable')).toHaveTextContent('docker compose up sop-detector');
+  });
+
+  it('shows nothing on a deployment without a detector', () => {
+    const { container } = render(<DetectedSteps jobId={null} job={null} error={null} expected={false} />);
     expect(container).toBeEmptyDOMElement();
   });
 
