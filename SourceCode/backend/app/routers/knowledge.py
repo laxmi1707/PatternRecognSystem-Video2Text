@@ -249,9 +249,11 @@ async def generate_sop(job_id: int, db: AsyncSession = Depends(get_db)):
                 ocr = "; ".join(actions_text)
             ocr_texts.append(ocr)
 
+        # Without an action log the platform is unknown; read it from the screen text,
+        # as the runbook and report do (e.g. a "user@host:~$" prompt -> Bash Terminal).
         sop = sop_gen.generate_from_segments(
             task_instruction=task_instruction,
-            platform=platform,
+            platform=_detect_platform(ocr_texts, platform),
             segments=segments,
             ocr_texts=ocr_texts,
         )
