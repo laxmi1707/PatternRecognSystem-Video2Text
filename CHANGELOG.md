@@ -7,6 +7,12 @@ with the pull request that brought them into `main` where there was one.
 
 ## [Unreleased]
 
+### Fixed
+- Production extracted 151 HOG features while the v3 models expect 1391 CNN features, so SVM, KNN,
+  Random Forest and Stacking failed on every job ("X has 151 features, but SVC is expecting 1391")
+  and CNN1D/LSTM ran on the wrong input. The ECS task now sets `FEATURE_BACKEND` (Terraform
+  variable `feature_backend`, default `cnn`) — Lakshmi
+
 ### Changed
 - SOP detector switched off by default: uploads are not sent to it and the "Steps read from the
   video" panel is hidden unless the frontend is built with `VITE_SOP_DETECTOR_ENABLED=true`;

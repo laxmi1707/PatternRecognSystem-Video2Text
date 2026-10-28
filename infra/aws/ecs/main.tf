@@ -190,6 +190,8 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "ALLOWED_ORIGINS", value = jsonencode(var.allowed_origins) },
         # Model version downloaded from S3 at startup (app/ml/model_sync.py).
         { name = "MODEL_S3_PREFIX", value = var.model_s3_prefix },
+        # Visual features the models were trained on (app/pipeline/feature_assembler.py).
+        { name = "FEATURE_BACKEND", value = var.feature_backend },
       ]
       logConfiguration = {
         logDriver = "awslogs"

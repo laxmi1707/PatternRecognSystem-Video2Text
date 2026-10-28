@@ -93,6 +93,17 @@ variable "allowed_origins" {
   default     = ["https://main.d2tjfo3h4t5uox.amplifyapp.com"]
 }
 
+variable "feature_backend" {
+  description = "Visual features extracted per segment; must match what the models were trained on: cnn (EfficientNet-B0, 1391 features: models/v2, models/v3) or hog (151 features)"
+  type        = string
+  default     = "cnn"
+
+  validation {
+    condition     = contains(["cnn", "hog"], var.feature_backend)
+    error_message = "feature_backend must be \"cnn\" or \"hog\"."
+  }
+}
+
 variable "model_s3_prefix" {
   description = "S3 prefix of the model version to load (models/v1 = Tier 1 only, models/v2 = all tiers, models/v3 = 6 retrained models)"
   type        = string
