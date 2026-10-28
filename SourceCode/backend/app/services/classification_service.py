@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
+import os
 import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -17,9 +20,52 @@ from app.services.job_service import update_job_status
 
 logger = logging.getLogger(__name__)
 
+# Called from the extraction thread after each segment with (segments done, total).
+ProgressFn = Callable[[int, int], None]
+
+# Bump when feature extraction changes, so stale cached features are not reused.
+FEATURE_CACHE_VERSION = "1"
+
+
+def _feature_cache_path(video_path: Path, action_log_path: Path | None) -> Path:
+    """Cache file for this video's features: same bytes, log and backend give the same features."""
+    from app.config import settings
+    from app.pipeline.feature_assembler import FEATURE_BACKEND
+
+    h = hashlib.sha256(f"v{FEATURE_CACHE_VERSION}|{FEATURE_BACKEND}|".encode())
+    with open(video_path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    if action_log_path and action_log_path.exists():
+        h.update(b"|log|" + action_log_path.read_bytes())
+    return Path(settings.upload_dir) / "feature_cache" / f"{h.hexdigest()}.npz"
+
+
+def _load_cached_features(path: Path) -> tuple[np.ndarray, list[dict]] | None:
+    try:
+        with np.load(path, allow_pickle=False) as data:
+            return data["X"], json.loads(str(data["segments"]))
+    except FileNotFoundError:
+        return None
+    except Exception as e:  # unreadable or old-format entry: extract again
+        logger.warning(f"Ignoring feature cache {path.name}: {e}")
+        return None
+
+
+def _save_cached_features(path: Path, X: np.ndarray, segments: list[dict]) -> None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.stem + ".tmp.npz")
+        np.savez_compressed(tmp, X=X, segments=np.array(json.dumps(segments)))
+        os.replace(tmp, path)
+    except Exception as e:  # the cache is an optimisation; never fail the job over it
+        logger.warning(f"Could not write feature cache {path.name}: {e}")
+
 
 def _extract_features(
-    video_path: Path | None, action_log_path: Path | None
+    video_path: Path | None,
+    action_log_path: Path | None,
+    on_progress: ProgressFn | None = None,
 ) -> tuple[np.ndarray, list[dict], bool]:
     """Returns (features, segments, used_yolo)."""
     from app.pipeline.feature_assembler import TOTAL_FEATURES
@@ -27,7 +73,16 @@ def _extract_features(
     if video_path and video_path.exists():
         from app.pipeline.temporal_encoder import TemporalEncoder
         try:
-            X, segments = _extract_real_features(video_path, action_log_path)
+            cache_path = _feature_cache_path(video_path, action_log_path)
+            cached = _load_cached_features(cache_path)
+            if cached is not None:
+                X, segments = cached
+                logger.info(f"Feature cache hit for {video_path.name}: {X.shape[0]} segments")
+                if on_progress:
+                    on_progress(len(segments), len(segments))
+                return X, segments, True
+
+            X, segments = _extract_real_features(video_path, action_log_path, on_progress)
             if X.shape[0] > 1:
                 encoder = TemporalEncoder(window_size=1)
                 X = encoder.encode_sequence(X)
@@ -35,6 +90,7 @@ def _extract_features(
                 f"Real pipeline: {video_path.name} → {X.shape[0]} segments, "
                 f"{X.shape[1]} features"
             )
+            _save_cached_features(cache_path, X, segments)
             return X, segments, True
         except Exception as e:
             print(f"[OCR-DEBUG] Real feature extraction FAILED: {e}", flush=True)
@@ -119,27 +175,32 @@ async def run_classification_job(
     try:
         await update_job_status(db, job.id, "processing", 10.0, "extracting video segments and keyframes")
 
-        # Heartbeat: tick progress 10→55 while feature extraction runs in thread
+        # The extraction thread records how many segments are done; the heartbeat reports
+        # that as 10→59% so the bar follows the real work instead of stopping at a guess.
+        seg_progress = {"done": 0, "total": 0}
+
+        def _on_segment(done: int, total: int) -> None:
+            seg_progress["done"], seg_progress["total"] = done, total
+
         async def _feature_extraction_heartbeat(stop_event: asyncio.Event) -> None:
-            steps = [
-                (15.0, "running OCR on keyframes"),
-                (25.0, "running OCR on keyframes"),
-                (35.0, "extracting CNN visual features"),
-                (45.0, "extracting CNN visual features"),
-                (55.0, "engineering features"),
-            ]
-            for pct, msg in steps:
-                await asyncio.sleep(8)
-                if stop_event.is_set():
-                    return
-                await update_job_status(db, job.id, "processing", pct, msg)
+            reported = (0, 0)
+            while not stop_event.is_set():
+                await asyncio.sleep(2)
+                done, total = seg_progress["done"], seg_progress["total"]
+                if stop_event.is_set() or total == 0 or (done, total) == reported:
+                    continue
+                reported = (done, total)
+                await update_job_status(
+                    db, job.id, "processing", 10.0 + 49.0 * done / total,
+                    f"reading screen text and features: segment {done} of {total}",
+                )
 
         stop_heartbeat = asyncio.Event()
         heartbeat_task = asyncio.create_task(_feature_extraction_heartbeat(stop_heartbeat))
 
         try:
             X, segments, used_yolo = await asyncio.to_thread(
-                _extract_features, video_path, action_log_path
+                _extract_features, video_path, action_log_path, _on_segment
             )
         finally:
             stop_heartbeat.set()
@@ -196,7 +257,7 @@ async def run_classification_job(
 
 
 def _extract_real_features(
-    video_path: Path, action_log_path: Path | None = None
+    video_path: Path, action_log_path: Path | None = None, on_progress: ProgressFn | None = None
 ) -> tuple[np.ndarray, list[dict]]:
     from app.pipeline.feature_assembler import get_default_assembler
     from app.pipeline.video_processor import VideoProcessor
@@ -210,10 +271,12 @@ def _extract_real_features(
     assembler = get_default_assembler()
     processor = VideoProcessor()
     segments = processor.extract_segments(video_path, actions)
+    if on_progress:
+        on_progress(0, len(segments))
 
     features_list = []
     segment_info = []
-    for seg in segments:
+    for i, seg in enumerate(segments):
         feat = assembler.extract_segment_features(seg)
         features_list.append(feat)
         ocr = getattr(assembler, "_last_ocr_text", "")
@@ -224,6 +287,14 @@ def _extract_real_features(
             "end_time": seg.end_time,
             "ocr_text": ocr,
         })
+        if on_progress:
+            on_progress(i + 1, len(segments))
 
+    ocr_extractor = getattr(assembler, "_ocr", None)
+    if ocr_extractor is not None:
+        logger.info(
+            f"OCR read {ocr_extractor.frames_read} keyframes, "
+            f"reused text for {ocr_extractor.frames_reused} unchanged ones"
+        )
     X = np.array(features_list)
     return X, segment_info
