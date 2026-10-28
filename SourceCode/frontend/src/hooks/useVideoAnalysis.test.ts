@@ -15,7 +15,7 @@ const { mockSteps, mockHistory } = vi.hoisted(() => {
 
 vi.mock('../services/api/analysisService', () => ({
   getMockHistory: vi.fn(() => [...mockHistory]),
-  fetchHistory: vi.fn(() => Promise.resolve([])),
+  fetchHistory: vi.fn(() => Promise.resolve([...mockHistory])),
   analyzeVideo: vi.fn((_file: File, _dur: number, onProgress: (pct: number) => void, onComplete: (r: unknown) => void) => {
     setTimeout(() => {
       onProgress(100);
@@ -36,10 +36,13 @@ describe('useVideoAnalysis', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it('starts on the upload screen with mock history preloaded', () => {
+  it('starts on the upload screen and loads the history from the backend', async () => {
     const { result } = renderHook(() => useVideoAnalysis(1));
     expect(result.current.screen).toBe('upload');
-    expect(result.current.history.length).toBe(3);
+    expect(result.current.history.length).toBe(0);
+
+    await act(async () => {});
+    expect(result.current.history.map(h => h.name)).toEqual(['mock.mp4', 'mock2.mp4', 'mock3.mp4']);
   });
 
   it('moves upload -> analyzing -> results on file selection', async () => {
@@ -50,15 +53,22 @@ describe('useVideoAnalysis', () => {
     expect(result.current.screen).toBe('analyzing');
     expect(result.current.fileName).toBe('demo.mp4');
 
+    // The result arrives, but the results screen waits for the progress animation to finish
     await act(async () => { vi.advanceTimersByTime(200); });
+    expect(result.current.analysisReady).toBe(true);
+    expect(result.current.screen).toBe('analyzing');
+
+    act(() => { result.current.onAnimationDone(); });
     expect(result.current.screen).toBe('results');
     expect(result.current.current?.name).toBe('demo.mp4');
     expect(result.current.history[0].name).toBe('demo.mp4');
   });
 
-  it('viewHistory shows a past result without re-analyzing', () => {
+  it('viewHistory shows a past result without re-analyzing', async () => {
     const { result } = renderHook(() => useVideoAnalysis(1));
+    await act(async () => {});
     const item = result.current.history[1];
+    expect(item).toBeDefined();
     act(() => { result.current.viewHistory(item); });
     expect(result.current.screen).toBe('results');
     expect(result.current.current).toBe(item);
