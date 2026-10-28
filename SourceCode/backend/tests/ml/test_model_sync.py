@@ -93,3 +93,16 @@ def test_require_checksum_skips_unverified(tmp_path):
     s3 = FakeS3({"models/svm.pkl": b"remote"})
     assert sync_models_from_s3("bucket", "models", tmp_path, require_checksum=True, client=s3) == []
     assert not (tmp_path / "svm.pkl").exists()
+
+
+def test_downloads_label_names_with_the_models_but_not_the_feature_cache(tmp_path):
+    # label_names.json maps the models' class indices to names; X/y .npy are training data
+    s3 = FakeS3({
+        "models/svm.pkl": b"remote-svm",
+        "models/label_names.json": b'["coding_editing"]',
+        "models/X_train.npy": b"big",
+    })
+    got = sync_models_from_s3("bucket", "models", tmp_path, client=s3)
+    assert got == ["label_names.json", "svm.pkl"]
+    assert (tmp_path / "label_names.json").read_bytes() == b'["coding_editing"]'
+    assert not (tmp_path / "X_train.npy").exists()

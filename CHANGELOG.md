@@ -11,14 +11,6 @@ with the pull request that brought them into `main` where there was one.
 - EfficientNet-B0 weights are baked into the backend image, one CNN feature model is shared by all
   jobs, and the startup warm-up loads it: the first job no longer downloads ~20 MB of weights, and a
   failed download can no longer turn every CNN feature into zeros — Lakshmi
-
-### Fixed
-- Production extracted 151 HOG features while the v3 models expect 1391 CNN features, so SVM, KNN,
-  Random Forest and Stacking failed on every job ("X has 151 features, but SVC is expecting 1391")
-  and CNN1D/LSTM ran on the wrong input. The ECS task now sets `FEATURE_BACKEND` (Terraform
-  variable `feature_backend`, default `cnn`) — Lakshmi
-
-### Changed
 - SOP detector switched off by default: uploads are not sent to it and the "Steps read from the
   video" panel is hidden unless the frontend is built with `VITE_SOP_DETECTOR_ENABLED=true`;
   docker compose starts it only with `--profile sop-detector` (see HowToRun.md) — Lakshmi
@@ -28,6 +20,19 @@ with the pull request that brought them into `main` where there was one.
 - The local model folder is named after the version (`./models/v3`, from `MODEL_S3_PREFIX`) unless
   `MODEL_DIR` is set. It was always `./models/v2`, so v3 was downloaded into a folder named v2, and a
   laptop that still held v2 models loaded the v2-only ones next to v3 — Lakshmi
+
+### Fixed
+- Activity names: v3's `label_names.json` named the classes `git_operations`, `docker_workflow`, ...
+  although class 0 holds the IDEs, 2 Bash, 4 the browsers, 5 draw.io and 6 OpenShot, so a File
+  Explorer recording came out as "Git Operations" and "Docker Workflow". `train.py --load-features`
+  read the cached, already renumbered class indices as indices into `ACTIVITY_LABELS`; it now names
+  them from `feature_labels.json`, written with the cache, and stops rather than guess. The S3 model
+  sync now also downloads `.json`, so production loads `label_names.json` at all. `models/v3/label_names.json`
+  in S3 is corrected (classes 7 and 8, `file_management` and `image_editing`, are inferred) — Lakshmi
+- Production extracted 151 HOG features while the v3 models expect 1391 CNN features, so SVM, KNN,
+  Random Forest and Stacking failed on every job ("X has 151 features, but SVC is expecting 1391")
+  and CNN1D/LSTM ran on the wrong input. The ECS task now sets `FEATURE_BACKEND` (Terraform
+  variable `feature_backend`, default `cnn`) — Lakshmi
 
 ## 2026-10-28 — Demo readiness: SOP quality, speed, SOP detector
 
