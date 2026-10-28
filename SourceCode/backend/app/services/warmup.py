@@ -1,8 +1,8 @@
 """Load the slow parts of the pipeline at startup, so the first job does not wait for them.
 
 Creating ml_service downloads the models from S3 and loads them; the EasyOCR reader
-loads its detection and recognition models (~10 s). Both are cached for the life of the
-process. A job that arrives while this is still running waits on the same import / reader
+loads its detection and recognition models (~10 s); with FEATURE_BACKEND=cnn, the
+EfficientNet-B0 feature model loads too. All are cached for the life of the process. A job that arrives while this is still running waits on the same import / reader
 lock instead of loading a second copy.
 """
 from __future__ import annotations
@@ -30,5 +30,17 @@ def warm_up() -> None:
         OCRExtractor(use_gpu=torch.cuda.is_available())._get_reader()
     except Exception as e:
         logger.warning(f"Warm-up: loading the OCR reader failed: {e}")
+
+    try:
+        from app.pipeline.feature_assembler import FEATURE_BACKEND
+
+        if FEATURE_BACKEND == "cnn":
+            import torch
+
+            from app.pipeline.cnn_features import CNNFeatureExtractor
+
+            CNNFeatureExtractor(use_gpu=torch.cuda.is_available())._load_model()
+    except Exception as e:
+        logger.warning(f"Warm-up: loading the CNN feature model failed: {e}")
 
     logger.info(f"Warm-up finished in {time.perf_counter() - t0:.1f}s")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 
 import cv2
 import numpy as np
@@ -8,6 +9,11 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 CNN_FEATURE_DIM = 1280  # EfficientNet-B0 final embedding size
+
+# One EfficientNet per process and device, shared by every job (each job builds its own
+# FeatureAssembler). The weights ship in the image (Dockerfile), so loading reads no network.
+_MODELS: dict[str, tuple] = {}
+_MODEL_LOCK = threading.Lock()
 
 
 class CNNFeatureExtractor:
@@ -28,21 +34,22 @@ class CNNFeatureExtractor:
         try:
             import torch
             import torchvision.models as models
-
-            weights = models.EfficientNet_B0_Weights.IMAGENET1K_V1
-            model = models.efficientnet_b0(weights=weights)
-            # Remove classifier head — keep feature extractor only
-            model.classifier = torch.nn.Identity()
-            model.eval()
-
-            self._device = torch.device(
-                "cuda" if self._use_gpu and torch.cuda.is_available() else "cpu"
-            )
-            self._model = model.to(self._device)
-            self._preprocess = weights.transforms()
-            print(f"[CNN] EfficientNet-B0 loaded on {self._device}", flush=True)
         except ImportError as e:
             logger.warning(f"torchvision not available, CNN features will be zeros: {e}")
+            return
+
+        device = torch.device("cuda" if self._use_gpu and torch.cuda.is_available() else "cpu")
+        with _MODEL_LOCK:
+            if str(device) not in _MODELS:
+                weights = models.EfficientNet_B0_Weights.IMAGENET1K_V1
+                model = models.efficientnet_b0(weights=weights)
+                # Remove classifier head — keep feature extractor only
+                model.classifier = torch.nn.Identity()
+                model.eval()
+                _MODELS[str(device)] = (model.to(device), weights.transforms())
+                print(f"[CNN] EfficientNet-B0 loaded on {device}", flush=True)
+            self._model, self._preprocess = _MODELS[str(device)]
+        self._device = device
 
     def extract(self, image: np.ndarray) -> np.ndarray:
         """Extract 1280-dim EfficientNet embedding from one BGR frame."""

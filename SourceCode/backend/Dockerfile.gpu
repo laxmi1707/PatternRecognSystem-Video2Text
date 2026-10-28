@@ -22,6 +22,10 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 RUN useradd --create-home --uid 1000 appuser
 
+# EfficientNet-B0 weights for FEATURE_BACKEND=cnn, baked in as in the CPU image
+ENV TORCH_HOME=/app/.cache/torch
+RUN python -c "import torchvision.models as m; m.efficientnet_b0(weights=m.EfficientNet_B0_Weights.IMAGENET1K_V1)"
+
 # Models are not baked into the image: MLService downloads them from S3
 # (MODEL_S3_BUCKET / MODEL_S3_PREFIX, see app/config.py) into /app/models at startup.
 RUN mkdir -p /app/uploads /app/models && chown -R appuser:appuser /app
