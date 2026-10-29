@@ -10,7 +10,7 @@ export function NavBar({ screen, onUpload, onHistory }: NavBarProps) {
   return (
     <header className="nav">
       <span className="nav-brand">
-        TRACE
+        <span className="nav-brand-trace">TRACE</span>
         <span className="nav-subtitle">Task Recognition &amp; Activity Capture Engine</span>
       </span>
       <a href="#" onClick={e => { e.preventDefault(); onUpload(); }} aria-current={screen === 'upload' ? 'page' : undefined}>

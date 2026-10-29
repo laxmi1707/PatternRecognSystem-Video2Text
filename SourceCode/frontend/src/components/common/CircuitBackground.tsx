@@ -20,8 +20,8 @@ interface Signal {
 }
 
 const ORANGE      = '239,124,0';
-const ORANGE_LITE = '255,180,80';
-const NAVY_GLOW   = '0,61,124';
+const ORANGE_LITE = '255,160,60';
+const NAVY_GLOW   = '0,35,70';
 
 export function CircuitBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -50,7 +50,7 @@ export function CircuitBackground() {
       signals.length = 0;
 
       // Spread neurons across the canvas in loose layers
-      const count = Math.max(30, Math.floor((w * h) / 11000));
+      const count = Math.max(12, Math.floor((w * h) / 38000));
       for (let i = 0; i < count; i++) {
         const layer = i % 3;
         neurons.push({
@@ -85,7 +85,7 @@ export function CircuitBackground() {
           toIdx: bestIdx,
           t: 0,
           speed: 0.006 + Math.random() * 0.009,
-          opacity: 0.5 + Math.random() * 0.4,
+          opacity: 0.2 + Math.random() * 0.2,
         });
       }
     }
@@ -112,12 +112,12 @@ export function CircuitBackground() {
           const dist = Math.hypot(a.x - b.x, a.y - b.y);
           const maxDist = 155;
           if (dist > maxDist) continue;
-          const alpha = 0.18 * (1 - dist / maxDist);
+          const alpha = 0.04 * (1 - dist / maxDist);
           ctx!.beginPath();
           ctx!.moveTo(a.x, a.y);
           ctx!.lineTo(b.x, b.y);
           ctx!.strokeStyle = `rgba(${ORANGE},${alpha})`;
-          ctx!.lineWidth = 0.7;
+          ctx!.lineWidth = 0.5;
           ctx!.stroke();
         }
       }
@@ -153,8 +153,8 @@ export function CircuitBackground() {
 
       // — draw neuron bodies —
       for (const n of neurons) {
-        const glowAlpha = 0.15 + Math.sin(n.pulse * Math.PI * 2) * 0.12;
-        const coreAlpha = 0.55 + Math.sin(n.pulse * Math.PI * 2) * 0.2;
+        const glowAlpha = 0.02 + Math.sin(n.pulse * Math.PI * 2) * 0.02;
+        const coreAlpha = 0.12 + Math.sin(n.pulse * Math.PI * 2) * 0.05;
 
         // Soft glow
         const grd = ctx!.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 4);
