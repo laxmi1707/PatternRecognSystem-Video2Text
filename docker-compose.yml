@@ -32,6 +32,7 @@ services:
     volumes:
       - ./dataset:/app/dataset:ro
       - uploads:/app/uploads
+      - ./SourceCode/backend/models:/app/models:ro
     depends_on:
       db:
         condition: service_healthy
