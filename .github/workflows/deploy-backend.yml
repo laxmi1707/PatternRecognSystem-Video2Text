@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - "SourceCode/backend/**"
+      # the SOP detector runs inside the backend's image (SourceCode/backend/Dockerfile)
+      - "SOP-detector/**"
       - ".github/workflows/deploy-backend.yml"
   workflow_dispatch: {}
 
@@ -83,8 +85,10 @@ jobs:
           REGISTRY: ${{ steps.ecr-login.outputs.registry }}
           REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
+        # --build-context puts the SOP detector into the image, beside the backend
         run: |
-          docker build -t "$REGISTRY/$REPOSITORY:$IMAGE_TAG" -t "$REGISTRY/$REPOSITORY:latest" .
+          docker build --build-context sop-detector=../../SOP-detector \
+            -t "$REGISTRY/$REPOSITORY:$IMAGE_TAG" -t "$REGISTRY/$REPOSITORY:latest" .
           docker push "$REGISTRY/$REPOSITORY:$IMAGE_TAG"
           docker push "$REGISTRY/$REPOSITORY:latest"
 

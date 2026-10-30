@@ -1,9 +1,21 @@
 import type { DetectedStep, DetectionJob } from '../../types/detection';
+import { authHeaders } from './client';
 
-// The SOP detector runs as its own small service (SOP-detector/ at the repository root);
-// the dev server proxies /sop-detector to it, docker compose sets VITE_SOP_DETECTOR_URL.
-const BASE = import.meta.env.VITE_SOP_DETECTOR_URL ?? '/sop-detector';
-export const DETECTOR_URL = BASE;
+/** Where the SOP detector answers. Locally it runs as its own small service (SOP-detector/
+ *  at the repository root): the dev server proxies /sop-detector to it, and docker compose
+ *  sets VITE_SOP_DETECTOR_URL. On AWS it runs beside the backend in the backend's
+ *  container, so a production build without VITE_SOP_DETECTOR_URL calls /sop-detector on
+ *  the backend's host, taken from VITE_API_BASE_URL. Read on each call, so tests can
+ *  switch it with vi.stubEnv. */
+export function detectorUrl(): string {
+  if (import.meta.env.VITE_SOP_DETECTOR_URL) return import.meta.env.VITE_SOP_DETECTOR_URL;
+  const api = import.meta.env.VITE_API_BASE_URL;
+  if (import.meta.env.PROD && api && /^https?:\/\//.test(api)) {
+    return `${new URL(api).origin}/sop-detector`;
+  }
+  return '/sop-detector';
+}
+export const DETECTOR_URL = detectorUrl();
 
 /** The SOP detector is switched off unless the build sets VITE_SOP_DETECTOR_ENABLED=true:
  *  then videos are not sent to it, and no "Steps read from the video" panel is shown.
@@ -12,10 +24,12 @@ export function detectorEnabled(): boolean {
   return import.meta.env.VITE_SOP_DETECTOR_ENABLED === 'true';
 }
 
-/** Whether this build expects a running detector: switched on, and a dev server or a build
- *  with VITE_SOP_DETECTOR_URL. Otherwise an unreachable detector shows no panel at all. */
+/** Whether this build expects a running detector: switched on, and a dev server, a build
+ *  with VITE_SOP_DETECTOR_URL, or a production build that calls the backend's host.
+ *  Otherwise an unreachable detector shows no panel at all. */
 export function detectorExpected(): boolean {
-  return detectorEnabled() && Boolean(import.meta.env.DEV || import.meta.env.VITE_SOP_DETECTOR_URL);
+  return detectorEnabled() && Boolean(
+    import.meta.env.DEV || import.meta.env.VITE_SOP_DETECTOR_URL || detectorUrl() !== '/sop-detector');
 }
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -30,7 +44,7 @@ export async function startDetection(file: File, attempts = 4, waitMs = 5000): P
     try {
       const form = new FormData();
       form.append('file', file);
-      const res = await fetch(`${BASE}/jobs`, { method: 'POST', body: form });
+      const res = await fetch(`${detectorUrl()}/jobs`, { method: 'POST', body: form, headers: authHeaders() });
       if (res.ok) {
         const body = await res.json();
         return typeof body.job_id === 'string' ? body.job_id : null;
@@ -44,7 +58,7 @@ export async function startDetection(file: File, attempts = 4, waitMs = 5000): P
 }
 
 export async function getDetection(jobId: string): Promise<DetectionJob> {
-  const res = await fetch(`${BASE}/jobs/${jobId}`);
+  const res = await fetch(`${detectorUrl()}/jobs/${jobId}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`SOP detector ${res.status}`);
   return res.json();
 }

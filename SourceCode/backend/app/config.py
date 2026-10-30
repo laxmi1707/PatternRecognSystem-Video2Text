@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     # API key authentication (empty string = auth disabled, for local dev)
     api_key: str = ""
 
+    # The SOP detector that runs beside the backend in its container (start.sh);
+    # /sop-detector/* is forwarded to it (app/routers/sop_detector.py)
+    sop_detector_url: str = "http://127.0.0.1:8100"
+
     allowed_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
     allowed_methods: list[str] = ["GET", "POST", "PATCH", "DELETE", "OPTIONS"]
     allowed_headers: list[str] = ["Authorization", "Content-Type", "X-API-Key"]

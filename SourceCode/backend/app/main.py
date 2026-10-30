@@ -24,7 +24,7 @@ from app.database import engine
 from app.middleware.auth import verify_api_key
 from app.models.base import Base
 from app.routers import classification, evaluation, knowledge
-from app.routers import videos, jobs
+from app.routers import videos, jobs, sop_detector
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["30/minute"])
 
@@ -92,6 +92,8 @@ app.include_router(evaluation.router, dependencies=_auth)
 app.include_router(videos.router, dependencies=_auth)
 app.include_router(jobs.router, dependencies=_auth)
 app.include_router(knowledge.router, dependencies=_auth)
+# Its /health is open like the backend's; the job routes check the API key themselves.
+app.include_router(sop_detector.router)
 
 
 @app.get("/health")
