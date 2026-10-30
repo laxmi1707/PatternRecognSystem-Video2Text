@@ -53,6 +53,10 @@ Desktop screen recordings contain expert knowledge that is impossible to search 
 | Promotional overview | *(link to be added)* |
 | Technical walkthrough | *(link to be added)* |
 
+Region ap-southeast-1 (Singapore)
+Account 984263476980
+API https://d3aev25xtfpx7z.cloudfront.net/api/v1
+App https://main.d2tjfo3h4t5uox.amplifyapp.com
 * * *
 
 ## User Guide
