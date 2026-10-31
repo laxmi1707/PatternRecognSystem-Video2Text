@@ -51,7 +51,7 @@ Desktop screen recordings contain expert knowledge that is impossible to search 
 | Video | Link |
 |-------|------|
 | Promotional overview | *(link to be added)* |
-| Technical walkthrough | [TRACE_Presentation.mp4](ProjectReport/TRACE_Presentation.mp4) |
+| Technical walkthrough | [TRACE-PROJECT.mp4](ProjectReport/TRACE-PROJECT.mp4) |
 
 Region ap-southeast-1 (Singapore)
 Account 984263476980
