@@ -93,6 +93,15 @@ python -m detector path/to/video.mp4 --out steps.json     # one video, steps as 
 python sop_detector_service.py                            # the service on port 8100
 ```
 
+**On AWS** it runs inside the backend's container, beside the backend, so it is deployed
+with it: a merge to main that changes this folder or the backend redeploys both
+(`.github/workflows/deploy-backend.yml`). `SourceCode/backend/Dockerfile` installs it with
+its own Python 3.14 when the build is given this folder
+(`--build-context sop-detector=../../SOP-detector`), `start.sh` starts it on
+127.0.0.1:8100, and the backend forwards `/sop-detector/*` to it. It shares the backend
+task's CPUs at a lower priority, so a new video takes longer than on its own machine.
+`deploy/aws/` (a Fargate service of its own) is the option when it needs its own CPUs.
+
 ## API
 
 ```

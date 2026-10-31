@@ -2,7 +2,7 @@ export const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
 
 const API_KEY = import.meta.env.VITE_API_KEY ?? '';
 
-function authHeaders(): Record<string, string> {
+export function authHeaders(): Record<string, string> {
   return API_KEY ? { 'X-API-Key': API_KEY } : {};
 }
 

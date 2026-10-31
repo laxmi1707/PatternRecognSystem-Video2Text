@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { describeStep, detectorEnabled, detectorExpected, formatClock, parseTimeRange, startDetection, stepsInRange } from './sopDetector';
+import { describeStep, detectorEnabled, detectorExpected, detectorUrl, formatClock, parseTimeRange, startDetection, stepsInRange } from './sopDetector';
 import type { DetectedStep } from '../../types/detection';
 
 const steps: DetectedStep[] = [
@@ -75,5 +75,51 @@ describe('startDetection', () => {
       .mockResolvedValueOnce({ ok: false, status: 503 } as Response)
       .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ job_id: 'late' }) } as Response);
     expect(await startDetection(new File(['x'], 'clip.mp4'), 4, 0)).toBe('late');
+  });
+  it('posts to the backend\'s host in a production build', async () => {
+    vi.stubEnv('PROD', true);
+    vi.stubEnv('VITE_SOP_DETECTOR_URL', '');
+    vi.stubEnv('VITE_API_BASE_URL', 'https://d123.cloudfront.net/api/v1');
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({ job_id: 'abc' }) } as Response));
+    globalThis.fetch = fetchMock;
+    await startDetection(new File(['x'], 'clip.mp4'));
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://d123.cloudfront.net/sop-detector/jobs', expect.objectContaining({ method: 'POST' }));
+  });
+  it('sends the API key, as the backend\'s own calls do', async () => {
+    vi.stubEnv('VITE_API_KEY', 'k');
+    vi.resetModules();
+    const { getDetection } = await import('./sopDetector');
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({ status: 'running' }) } as Response));
+    globalThis.fetch = fetchMock;
+    await getDetection('0123456789ab');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/sop-detector/jobs/0123456789ab', { headers: { 'X-API-Key': 'k' } });
+  });
+});
+
+describe('where the detector answers', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('uses VITE_SOP_DETECTOR_URL when the build sets it', () => {
+    vi.stubEnv('VITE_SOP_DETECTOR_URL', 'http://localhost:8100/sop-detector');
+    expect(detectorUrl()).toBe('http://localhost:8100/sop-detector');
+  });
+  it('is /sop-detector on the backend\'s host in a production build (on AWS it runs in the backend\'s container)', () => {
+    vi.stubEnv('PROD', true);
+    vi.stubEnv('DEV', false);
+    vi.stubEnv('VITE_SOP_DETECTOR_URL', '');
+    vi.stubEnv('VITE_API_BASE_URL', 'https://d123.cloudfront.net/api/v1');
+    expect(detectorUrl()).toBe('https://d123.cloudfront.net/sop-detector');
+    vi.stubEnv('VITE_SOP_DETECTOR_ENABLED', 'true');
+    expect(detectorExpected()).toBe(true);
+  });
+  it('stays /sop-detector on the dev server, which proxies it', () => {
+    vi.stubEnv('PROD', false);
+    vi.stubEnv('VITE_SOP_DETECTOR_URL', '');
+    vi.stubEnv('VITE_API_BASE_URL', 'http://localhost:8000/api/v1');
+    expect(detectorUrl()).toBe('/sop-detector');
   });
 });

@@ -1,0 +1,51 @@
+name: Build backend image
+
+# On pull requests: build the serving image the way deploy-backend.yml does, with the SOP
+# detector beside the backend, then start it and check that the backend and the detector
+# both answer. Nothing is pushed or deployed, so it needs no AWS access.
+
+on:
+  pull_request:
+    paths:
+      - "SourceCode/backend/**"
+      - "SOP-detector/**"
+      - ".github/workflows/build-backend-image.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-start:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The image is CPU-only (Fargate has no GPU), but torch + easyocr + ultralytics,
+      # twice over with the detector's own environment, make it several GB; the runner
+      # only has ~14 GB free by default.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker system prune -af
+          df -h /
+
+      - name: Build image
+        working-directory: SourceCode/backend
+        run: docker build --build-context sop-detector=../../SOP-detector -t backend:check .
+
+      # SQLite and no S3 or warm-up, as there is no database or AWS access here.
+      - name: Start it and check both answer
+        run: |
+          docker run -d --name backend -p 8000:8000 \
+            -e DATABASE_URL=sqlite+aiosqlite:////app/video2text.db \
+            -e MODEL_S3_BUCKET= -e WARMUP_ON_STARTUP=false backend:check
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8000/health && curl -sf http://localhost:8000/sop-detector/health; then
+              echo; echo "backend and SOP detector are up"; exit 0
+            fi
+            sleep 5
+          done
+          echo "did not answer within 5 minutes"; docker logs backend | tail -80; exit 1
