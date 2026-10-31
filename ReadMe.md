@@ -37,12 +37,12 @@ Desktop screen recordings contain expert knowledge that is impossible to search 
 
 ## Project Contribution
 
-| Member | Student ID | Scope | Email |
-|--------|-----------|-------|-------|
-| Lakshmi Barthwal Chamoli | A0340664E | AWS infrastructure, video upload, OCR pipeline, SVM, Naive Bayes, temporal sequence analysis, CI/CD | *(email)* |
-| Yuan Zilin | A0283899Y | React dashboard, workflow visualization, ground-truth collection, evaluation framework, MLP, CNN1D, Voting ensemble | *(email)* |
-| Stalin Sagayaraj | A0340115X | Docker, video ingestion, YOLO UI detection, LSTM, Transformer | *(email)* |
-| Muthaiah Muneeswaran | A0019650J | FastAPI backend, multi-tier classifier, Decision Tree, Random Forest, multimodal late fusion, CI/CD, monitoring | *(email)* |
+| Member | Student ID | Email |
+|--------|-----------|-------|
+| Lakshmi Barthwal Chamoli | A0340664E | lakshmi.birthwal-chamoli@u.nus.edu |
+| Yuan Zilin | A0283899Y | e1177210@u.nus.sg |
+| Stalin Sagayaraj | A0340115X | stlinf@u.nus.edu |
+| Muthaiah Muneeswaran | A0019650J | muthaiah_muneeswaran@u.nus.edu |
 
 * * *
 
